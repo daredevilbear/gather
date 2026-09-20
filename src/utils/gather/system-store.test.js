@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import vault from "../../../system/vault.cjs";
-import { candidate, confirm, publicConfig, stage } from "./system-store";
+import { candidate, checkConnections, confirm, publicConfig, stage } from "./system-store";
 let dir, key, notifyKey;
 const original = {
   revision: "initial",
@@ -46,6 +46,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
   fs.rmSync(dir, { recursive: true, force: true });
 });
 describe("encrypted system configuration", () => {
@@ -103,4 +104,25 @@ describe("encrypted system configuration", () => {
       confirm({ sub: "admin", gatherLoginRevision: "next", gatherLoginAt: Math.floor(Date.now() / 1000) }),
     ).toEqual({ confirmed: true });
   });
+});
+
+it("checks ntfy using a supported numeric since cursor", async () => {
+  const fetcher = vi
+    .fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      text: async () =>
+        JSON.stringify({
+          issuer: input.issuer,
+          authorization_endpoint: input.issuer + "/auth",
+          token_endpoint: input.issuer + "/token",
+          jwks_uri: input.issuer + "/keys",
+        }),
+    })
+    .mockResolvedValueOnce({ ok: true })
+    .mockResolvedValueOnce({ ok: true, body: { cancel: vi.fn() } });
+  vi.stubGlobal("fetch", fetcher);
+  vi.stubEnv("HOMEPAGE_CONFIG_DIR", dir);
+  await checkConnections(candidate(input, "admin"));
+  expect(fetcher.mock.calls[2][0]).toMatch(/poll=1&since=\d+$/);
 });

@@ -138,11 +138,14 @@ export async function checkConnections(records) {
     );
     if (fs.existsSync(pref)) topics = JSON.parse(fs.readFileSync(pref, "utf8")).topics || topics;
     if (!/^[A-Za-z0-9_-]+(?:,[A-Za-z0-9_-]+)*$/.test(topics)) throw Error();
-    const read = await fetch(records.notification.env.NTFY_URL + "/" + topics + "/json?poll=1&since=now", {
-      headers: { Authorization: records.notification.env.NTFY_AUTH },
-      redirect: "error",
-      signal: AbortSignal.timeout(8000),
-    });
+    const read = await fetch(
+      records.notification.env.NTFY_URL + "/" + topics + "/json?poll=1&since=" + Math.floor(Date.now() / 1000),
+      {
+        headers: { Authorization: records.notification.env.NTFY_AUTH },
+        redirect: "error",
+        signal: AbortSignal.timeout(8000),
+      },
+    );
     await read.body?.cancel();
     if (!read.ok) throw Error();
   } catch {
