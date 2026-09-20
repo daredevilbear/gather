@@ -142,7 +142,8 @@ vi.mock("components/errorboundry", () => ({
   default: ({ children }) => <>{children}</>,
 }));
 
-vi.mock("components/tab", () => ({
+vi.mock("components/tab", async (importOriginal) => ({
+  ...(await importOriginal()),
   default: ({ tab }) => <li data-testid="tab">{tab}</li>,
   slugifyAndEncode: (tabName) =>
     tabName !== undefined ? encodeURIComponent(tabName.toString().replace(/\\s+/g, "-").toLowerCase()) : "",

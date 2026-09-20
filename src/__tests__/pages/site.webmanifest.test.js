@@ -61,8 +61,8 @@ describe("pages/site.webmanifest", () => {
     await getServerSideProps({ res });
 
     const manifest = JSON.parse(res.write.mock.calls[0][0]);
-    expect(manifest.name).toBe("Homepage");
-    expect(manifest.short_name).toBe("Homepage");
+    expect(manifest.name).toBe("Gather");
+    expect(manifest.short_name).toBe("Gather");
     expect(manifest.start_url).toBe("/");
     expect(manifest.display).toBe("standalone");
     expect(manifest.theme_color).toBe(themes.slate.dark);
