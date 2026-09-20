@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { TabContext } from "utils/contexts/tab";
 
-import Tab, { slugifyAndEncode } from "./tab";
+import Tab, { initialTabFromPath, slugifyAndEncode } from "./tab";
 
 describe("components/tab", () => {
   it("slugifyAndEncode lowercases and encodes spaces", () => {
@@ -28,5 +28,20 @@ describe("components/tab", () => {
     fireEvent.click(btn);
     expect(setActiveTab).toHaveBeenCalledWith("my-tab");
     expect(window.location.hash).toBe("#my-tab");
+  });
+});
+
+describe("initial dashboard tab", () => {
+  const tabs = ["Home", "Media Library"];
+  it("keeps notification query parameters out of the selected tab", () => {
+    expect(initialTabFromPath("/?notifications=open&notification=message123", tabs)).toBe("home");
+  });
+  it("preserves a valid tab fragment alongside notification parameters", () => {
+    expect(initialTabFromPath("/?notifications=open#media-library", tabs)).toBe("media-library");
+  });
+  it("falls back for missing or stale fragments", () => {
+    expect(initialTabFromPath("/", tabs)).toBe("home");
+    expect(initialTabFromPath("/#deleted-tab", tabs)).toBe("home");
+    expect(initialTabFromPath("/", [])).toBe("");
   });
 });

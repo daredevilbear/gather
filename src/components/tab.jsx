@@ -11,6 +11,12 @@ export function slugifyAndEncode(tabName) {
   return tabName !== undefined ? encodeURIComponent(slugify(tabName)) : "";
 }
 
+export function initialTabFromPath(asPath, tabs) {
+  const hashIndex = asPath.indexOf("#");
+  const fragment = hashIndex >= 0 ? asPath.slice(hashIndex + 1) : "";
+  return tabs.map(slugifyAndEncode).includes(fragment) ? fragment : slugifyAndEncode(tabs[0]);
+}
+
 export default function Tab({ tab }) {
   const { activeTab, setActiveTab } = useContext(TabContext);
 

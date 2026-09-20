@@ -16,7 +16,7 @@ import Inbox from "components/notifications/inbox";
 import notificationStyles from "components/notifications/inbox.module.css";
 import QuickLaunch from "components/quicklaunch";
 import ServicesGroup from "components/services/group";
-import Tab, { slugifyAndEncode } from "components/tab";
+import Tab, { initialTabFromPath, slugifyAndEncode } from "components/tab";
 import Revalidate from "components/toggles/revalidate";
 import Widget from "components/widgets/widget";
 import { bookmarksResponse, servicesResponse, widgetsResponse } from "utils/config/api-response";
@@ -301,8 +301,7 @@ function Home({ initialSettings }) {
 
   useEffect(() => {
     if (!activeTab) {
-      const initialTab = asPath.substring(asPath.indexOf("#") + 1);
-      setActiveTab(initialTab === "/" ? slugifyAndEncode(tabs["0"]) : initialTab);
+      setActiveTab(initialTabFromPath(asPath, tabs));
     }
   });
 
