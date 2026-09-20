@@ -120,7 +120,7 @@ export function Fields({ value, onChange, label = "Options", level = 0 }) {
                 ) : (
                   <input
                     type={
-                      typeof v === "number" ? "number" : /password|secret|token|apikey/i.test(key) ? "password" : "text"
+                      typeof v === "number" ? "number" : /password|secret|token|apikey|^key$/i.test(key) ? "password" : "text"
                     }
                     autoComplete="off"
                     value={v ?? ""}
@@ -400,9 +400,8 @@ function Notifications({ value, onChange }) {
     <section className={styles.card}>
       <h2>Push & topics</h2>
       <p>
-        These options apply to the notification companion when its runtime configuration mount is enabled. Empty
-        configuration uses the server defaults. Server URL and publishing credentials stay in protected deployment
-        configuration.
+        Choose the topics you want to receive and how push notifications look. Leave a field empty to use the default.
+        Connection credentials are managed by your server administrator.
       </p>
       <label>
         Subscribed topics

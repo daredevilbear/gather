@@ -94,6 +94,7 @@ export function validate(file, text) {
   )
     fail("Widgets must be a list of named widget objects.");
   if (file === "gather-notifications.json") {
+    if (Buffer.byteLength(text) > 16384) fail("Notification preferences must be smaller than 16 KiB.");
     if (!object(value) || Object.keys(value).some((k) => !["topics", "appName", "icon"].includes(k)))
       fail("Only topics, appName and icon can be configured here.");
     if (
