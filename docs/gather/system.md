@@ -62,3 +62,18 @@ The host controller is a privileged component: its program and service definitio
 must remain operator-owned, outside web-writable volumes. Configuration migration
 should encrypt original environment-file backups before removing the plaintext
 copies. This does not migrate production automatically.
+
+### Optional isolated controller container
+
+`system/Dockerfile` and `system/compose-controller.example.yaml` package the recovery
+controller separately. It has no network interface, no encryption keys, a read-only
+root filesystem and no Linux capabilities. It accesses Docker through the Unix
+socket and accepts only operator-fixed container names; it does not execute shell
+commands or expose an HTTP API. The web app cannot modify its code.
+
+**Docker socket access still grants broad Docker/host-control potential if the
+controller is compromised.** Container hardening does not make that socket a
+restricted API. Deploy this optional component only with the host owner's explicit
+approval. Without a running recovery controller, UI apply remains disabled rather
+than making an unrecoverable authentication change. A separately operated host
+service can perform the same protocol where that is preferable.

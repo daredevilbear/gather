@@ -6,7 +6,9 @@ import argparse
 import json
 import os
 import shutil
-import subprocess
+import http.client
+import socket
+import re
 import time
 import uuid
 from pathlib import Path
@@ -21,6 +23,24 @@ def write(path, value, mode=0o600):
     os.replace(temp,path)
 
 
+class DockerConnection(http.client.HTTPConnection):
+    def connect(self):
+        self.sock=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM)
+        self.sock.settimeout(self.timeout)
+        self.sock.connect('/var/run/docker.sock')
+
+def docker(method, name, suffix):
+    if not re.fullmatch(r'[A-Za-z0-9_.-]+',name):
+        raise ValueError('Invalid operator container name')
+    connection=DockerConnection('localhost',timeout=90)
+    try:
+        connection.request(method,'/containers/'+name+'/'+suffix)
+        response=connection.getresponse();body=response.read(1048576)
+        if response.status not in (200,204,304):
+            raise RuntimeError('Container operation failed')
+        return json.loads(body) if body else {}
+    finally:connection.close()
+
 class Controller:
     def __init__(self, root, app, notification, gateway, timeout=600):
         self.root=Path(root);self.control=self.root/'control'
@@ -30,12 +50,11 @@ class Controller:
         try:return json.loads((self.control/'state.json').read_text())
         except FileNotFoundError:return {'phase':'idle'}
     def restart(self):
-        subprocess.run(['docker','restart',*self.containers],check=True,stdout=subprocess.DEVNULL,timeout=90)
+        for name in self.containers:docker('POST',name,'restart?t=10')
     def ready(self):
         # Health checks already embedded in the app and companion images.
         for name in self.containers[:2]:
-            p=subprocess.run(['docker','inspect','--format','{{.State.Health.Status}}',name],capture_output=True,text=True,timeout=10)
-            if p.returncode or p.stdout.strip()!='healthy':return False
+            if docker('GET',name,'json').get('State',{}).get('Health',{}).get('Status')!='healthy':return False
         return True
     def rollback(self, state, reason):
         state.update(phase='rolling_back',reason=reason);write(self.control/'state.json',state)
