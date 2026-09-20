@@ -141,6 +141,15 @@ if (authEnabled) {
 
 export const authOptions = {
   providers,
+  callbacks: {
+    async jwt({ token, account }) {
+      if (account) {
+        token.gatherLoginRevision = process.env.GATHER_SYSTEM_REVISION || "legacy";
+        token.gatherLoginAt = Math.floor(Date.now() / 1000);
+      }
+      return token;
+    },
+  },
   session: {
     strategy: "jwt",
   },

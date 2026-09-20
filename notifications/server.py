@@ -14,6 +14,9 @@ from pathlib import Path
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
+from vault_loader import load as load_vault
+load_vault()
+
 ORIGIN = os.environ['GATHER_ORIGIN'].rstrip('/')
 SESSION_URL = os.environ.get('SESSION_URL', 'http://gather:3000/api/auth/session')
 NTFY_URL = os.environ.get('NTFY_URL', 'http://ntfy:8080').rstrip('/')

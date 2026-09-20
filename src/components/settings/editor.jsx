@@ -120,7 +120,11 @@ export function Fields({ value, onChange, label = "Options", level = 0 }) {
                 ) : (
                   <input
                     type={
-                      typeof v === "number" ? "number" : /password|secret|token|apikey|^key$/i.test(key) ? "password" : "text"
+                      typeof v === "number"
+                        ? "number"
+                        : /password|secret|token|apikey|^key$/i.test(key)
+                          ? "password"
+                          : "text"
                     }
                     autoComplete="off"
                     value={v ?? ""}
@@ -582,6 +586,10 @@ export default function SettingsEditor() {
       </header>
       <div className={styles.shell}>
         <nav aria-label="Settings sections">
+          {/* Full navigation retains the unsaved-edit warning. */}
+          {/* Full navigation preserves the unsaved-change warning. */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+          <a href="/system">System configuration ↗</a>
           {SECTIONS.map(([key, label]) => (
             <button
               key={key}
