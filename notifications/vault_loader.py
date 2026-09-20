@@ -2,6 +2,7 @@
 import base64
 import json
 import os
+import sqlite3
 from pathlib import Path
 
 def load():
@@ -9,7 +10,15 @@ def load():
     if not source:
         return
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-    envelope=json.loads(Path(source).read_text())
+    connection=sqlite3.connect(Path(source).resolve().as_uri()+'?mode=ro', uri=True, timeout=5)
+    try:
+        connection.execute('PRAGMA trusted_schema=OFF')
+        if connection.execute('PRAGMA user_version').fetchone()[0] != 1:
+            raise ValueError('Unsupported configuration schema')
+        row=connection.execute("SELECT envelope FROM records WHERE slot='active'").fetchone()
+        if not row: raise ValueError('Missing configuration')
+        envelope=json.loads(row[0])
+    finally: connection.close()
     if envelope['version'] != 1:
         raise ValueError('Invalid vault')
     key=Path(os.environ['GATHER_NOTIFICATION_KEY_FILE']).read_bytes()

@@ -1,8 +1,11 @@
+import { execFileSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import database from "../../../system/database.cjs";
 import vault from "../../../system/vault.cjs";
 import { candidate, checkConnections, confirm, publicConfig, stage } from "./system-store";
 let dir, key, notifyKey;
@@ -39,10 +42,22 @@ beforeEach(() => {
   vi.stubEnv("GATHER_SYSTEM_DIR", dir);
   vi.stubEnv("GATHER_APP_KEY_FILE", path.join(dir, "app.key"));
   vi.stubEnv("GATHER_NOTIFICATION_KEY_FILE", path.join(dir, "notification.key"));
-  vault.atomicWrite(path.join(dir, "app/active.enc"), vault.seal(original, key, "app"));
-  vault.atomicWrite(path.join(dir, "notification/active.enc"), vault.seal(notifications, notifyKey, "notification"));
-  fs.mkdirSync(path.join(dir, "control"));
-  fs.writeFileSync(path.join(dir, "control/heartbeat"), "");
+  execFileSync(
+    "python3",
+    [
+      "-c",
+      "import sys,json;sys.path.insert(0,'system');from database import initialize;initialize(sys.argv[1],json.load(sys.stdin))",
+      dir,
+    ],
+    {
+      cwd: fileURLToPath(new URL("../../../", import.meta.url)),
+      input: JSON.stringify({
+        app: vault.seal(original, key, "app"),
+        notification: vault.seal(notifications, notifyKey, "notification"),
+      }),
+    },
+  );
+  database.control(dir, (db) => database.put(db, "heartbeat", Date.now()), true);
 });
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -79,22 +94,33 @@ describe("encrypted system configuration", () => {
     const next = candidate(input, "admin");
     const queued = stage(next, "admin");
     expect(queued.queued).toBe(true);
-    const request = fs.readFileSync(path.join(dir, "control/request.json"), "utf8");
+    const request = database.control(dir, (db) => db.prepare("SELECT value FROM requests WHERE id=1").get().value);
     expect(request).not.toContain("super-secret");
     expect(request).not.toContain("private-token");
     expect(() => stage(candidate(input, "admin"), "admin")).toThrow();
-    fs.unlinkSync(path.join(dir, "control/request.json"));
-    fs.utimesSync(path.join(dir, "control/heartbeat"), new Date(0), new Date(0));
+    database.control(
+      dir,
+      (db) => {
+        db.exec("DELETE FROM requests");
+        database.put(db, "heartbeat", 0);
+      },
+      true,
+    );
     expect(() => stage(candidate(input, "admin"), "admin")).toThrow();
   });
   it("requires a fresh login through the newly activated revision to confirm", () => {
     const started = Date.now() - 2000;
-    vault.atomicWrite(path.join(dir, "control/state.json"), {
-      phase: "awaiting_confirmation",
-      revision: "next",
-      started,
-      deadline: Date.now() + 100000,
-    });
+    database.control(
+      dir,
+      (db) =>
+        database.put(db, "state", {
+          phase: "awaiting_confirmation",
+          revision: "next",
+          started,
+          deadline: Date.now() + 100000,
+        }),
+      true,
+    );
     vi.stubEnv("GATHER_SYSTEM_REVISION", "next");
     expect(() =>
       confirm({ sub: "admin", gatherLoginRevision: "old", gatherLoginAt: Math.floor(Date.now() / 1000) }),
@@ -125,4 +151,34 @@ it("checks ntfy using a supported numeric since cursor", async () => {
   vi.stubEnv("HOMEPAGE_CONFIG_DIR", dir);
   await checkConnections(candidate(input, "admin"));
   expect(fetcher.mock.calls[2][0]).toMatch(/poll=1&since=\d+$/);
+});
+
+it("fails closed for missing or unsupported databases without a legacy fallback", () => {
+  database.control(dir, (db) => db.exec("PRAGMA user_version=999"), true);
+  expect(() => publicConfig()).toThrow();
+  fs.unlinkSync(path.join(dir, "app/settings.sqlite"));
+  expect(() => vault.read("app")).toThrow();
+});
+it("keeps secrets out of database pages and rejects modified ciphertext", () => {
+  for (const domain of ["app", "notification", "control"]) {
+    const bytes = fs.readFileSync(path.join(dir, domain, "settings.sqlite"));
+    for (const secret of ["super-secret", "private-token", "session-secret"])
+      expect(bytes.includes(Buffer.from(secret))).toBe(false);
+  }
+  const db = database.open(path.join(dir, "app/settings.sqlite"), false);
+  const envelope = database.envelope(dir, "app");
+  envelope.tag = Buffer.alloc(16).toString("base64");
+  db.prepare("UPDATE records SET envelope=? WHERE slot='active'").run(JSON.stringify(envelope));
+  db.close();
+  expect(() => vault.read("app")).toThrow();
+});
+it("rejects a queued candidate when the active revision changed during connection testing", () => {
+  const next = candidate(input, "admin");
+  const db = database.open(path.join(dir, "app/settings.sqlite"), false);
+  db.prepare("UPDATE records SET envelope=? WHERE slot='active'").run(
+    JSON.stringify(vault.seal({ ...original, revision: "changed" }, key, "app")),
+  );
+  db.close();
+  expect(() => stage(next, "admin")).toThrow(/changed/);
+  expect(database.control(dir, (db) => db.prepare("SELECT count(*) AS n FROM requests").get().n)).toBe(0);
 });

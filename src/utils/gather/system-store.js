@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
+import database from "../../../system/database.cjs";
 import vault from "../../../system/vault.cjs";
 
 import { ConfigError } from "./config-store";
@@ -27,12 +28,7 @@ function url(value, httpsOnly = true) {
   }
 }
 export function state() {
-  try {
-    return JSON.parse(fs.readFileSync(path.join(vault.locations().directory, "control/state.json"), "utf8"));
-  } catch (e) {
-    if (e.code === "ENOENT") return { phase: "idle" };
-    throw e;
-  }
+  return database.control(vault.locations().directory, (db) => database.value(db, "state", { phase: "idle" }));
 }
 export function publicConfig() {
   const app = vault.read("app"),
@@ -104,7 +100,7 @@ export function candidate(input, subject) {
   notification.env.NTFY_URL = input.ntfyUrl.replace(/\/+$/, "");
   if (input.ntfyAuth) notification.env.NTFY_AUTH = input.ntfyAuth;
   if (!app.env.HOMEPAGE_OIDC_CLIENT_SECRET || !notification.env.NTFY_AUTH) fail("Connection credentials are required.");
-  return { app, notification };
+  return { app, notification, baseRevision: app.revision };
 }
 export async function checkConnections(records) {
   const issuer = records.app.env.HOMEPAGE_OIDC_ISSUER;
@@ -154,14 +150,7 @@ export async function checkConnections(records) {
   return "OIDC discovery and ntfy authentication passed. The OIDC client secret is verified by a fresh sign-in after applying.";
 }
 export function stage(records, subject) {
-  const p = vault.locations(),
-    control = path.join(p.directory, "control"),
-    status = state();
-  if (["awaiting_confirmation", "applying", "rolling_back"].includes(status.phase))
-    fail("A configuration change is already awaiting confirmation.", 409);
-  const heartbeat = fs.statSync(path.join(control, "heartbeat")).mtimeMs;
-  if (Date.now() - heartbeat > 20000)
-    fail("The recovery controller is not available. Changes cannot be applied safely.", 503);
+  const p = vault.locations();
   const revision = randomUUID();
   records.app.revision = revision;
   records.notification.revision = revision;
@@ -172,32 +161,45 @@ export function stage(records, subject) {
     app: vault.seal(records.app, fs.readFileSync(p.appKey), "app"),
     notification: vault.seal(records.notification, fs.readFileSync(p.notificationKey), "notification"),
   };
-  const temporary = path.join(control, revision + ".request");
-  vault.atomicWrite(temporary, request);
-  try {
-    fs.linkSync(temporary, path.join(control, "request.json"));
-  } catch (e) {
-    if (e.code === "EEXIST") fail("Another apply request is queued.", 409);
-    throw e;
-  } finally {
-    fs.unlinkSync(temporary);
-  }
+  database.control(
+    p.directory,
+    (db) =>
+      database.transaction(db, () => {
+        const status = database.value(db, "state", { phase: "idle" });
+        if (["awaiting_confirmation", "applying", "rolling_back"].includes(status.phase))
+          fail("A configuration change is already awaiting confirmation.", 409);
+        const heartbeat = database.value(db, "heartbeat", 0);
+        if (Date.now() - heartbeat > 20000 || heartbeat > Date.now() + 5000)
+          fail("The recovery controller is not available. Changes cannot be applied safely.", 503);
+        if (db.prepare("SELECT id FROM requests WHERE id=1").get()) fail("Another apply request is queued.", 409);
+        // Recheck inside the write transaction: another activation may have completed
+        // between connection testing and queuing this request.
+        if (vault.read("app").revision !== records.baseRevision)
+          fail("System configuration changed. Reload before editing.", 409);
+        db.prepare("INSERT INTO requests(id,value) VALUES (1,?)").run(JSON.stringify(request));
+      }),
+    true,
+  );
   return { revision, queued: true };
 }
 export function confirm(token) {
-  const status = state();
-  if (status.phase !== "awaiting_confirmation" || status.deadline < Date.now())
-    fail("There is no active confirmation window.", 409);
-  if (
-    !Number.isInteger(token.gatherLoginAt) ||
-    token.gatherLoginRevision !== status.revision ||
-    token.gatherLoginAt < Math.floor(status.started / 1000) ||
-    process.env.GATHER_SYSTEM_REVISION !== status.revision
-  )
-    fail("Sign in again through SSO before confirming this change.", 403);
-  vault.atomicWrite(path.join(vault.locations().directory, "control/confirmed.json"), {
-    revision: status.revision,
-    subject: token.sub,
-  });
-  return { confirmed: true };
+  return database.control(
+    vault.locations().directory,
+    (db) =>
+      database.transaction(db, () => {
+        const status = database.value(db, "state", { phase: "idle" });
+        if (status.phase !== "awaiting_confirmation" || status.deadline <= Date.now())
+          fail("There is no active confirmation window.", 409);
+        if (
+          !Number.isInteger(token.gatherLoginAt) ||
+          token.gatherLoginRevision !== status.revision ||
+          token.gatherLoginAt < Math.floor(status.started / 1000) ||
+          process.env.GATHER_SYSTEM_REVISION !== status.revision
+        )
+          fail("Sign in again through SSO before confirming this change.", 403);
+        database.put(db, "confirmed", { revision: status.revision, subject: token.sub });
+        return { confirmed: true };
+      }),
+    true,
+  );
 }

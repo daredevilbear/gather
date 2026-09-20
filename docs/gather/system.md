@@ -10,7 +10,7 @@ ntfy topic access. An OIDC client secret can only be fully verified by signing i
 
 ## Storage and startup
 
-System records use AES-256-GCM with random 96-bit nonces and domain-specific
+System records in SQLite use AES-256-GCM with random 96-bit nonces and domain-specific
 associated data. The app and notification companion use separate 256-bit keys.
 The companion receives only its own record and key, not OIDC credentials.
 
@@ -22,7 +22,7 @@ The host provides these mounts (paths are examples):
 - Companion: only `notification/` mounted read-only at `/vault`, plus its own key.
 
 App configuration points to the store with `GATHER_SYSTEM_DIR=/system-data`.
-Companion configuration sets `GATHER_NOTIFICATION_VAULT=/vault/active.enc` and
+Companion configuration sets `GATHER_NOTIFICATION_VAULT=/vault/settings.sqlite` and
 `GATHER_NOTIFICATION_KEY_FILE=/run/secrets/gather-notification-key`.
 These environment values are file paths, not credentials. The bootstrap decrypts
 credentials into process memory before starting the application. They are not
@@ -52,9 +52,9 @@ services fail health checks, or activation is interrupted. A restart of the
 controller resumes the recovery state; an interrupted activation rolls back.
 
 Do not manually edit active records while an apply is pending. For emergency
-recovery, stop the controller, restore the encrypted files in `rollback/` to each
-service's `active.enc`, restart the configured services, then repair/reset control
-state before starting the controller. Preserve both records and their matching
+recovery, stop the app, companion and controller, restore a consistent offline
+backup of all three SQLite databases, then restart the services. Do not restore
+only one database or reset pending recovery state independently. Preserve both records and their matching
 keys. The deployment origin, callback path and bootstrap storage paths remain
 operator-owned so a UI change cannot redirect this recovery mechanism.
 
@@ -77,3 +77,54 @@ restricted API. Deploy this optional component only with the host owner's explic
 approval. Without a running recovery controller, UI apply remains disabled rather
 than making an unrecoverable authentication change. A separately operated host
 service can perform the same protocol where that is preferable.
+
+## SQLite layout and migration
+
+Node 22.13 or newer supplies the built-in SQLite driver; no database server or
+additional listening port is needed. `system/migrate-sqlite.py --root /system-data`
+is an **offline** migration: stop the app, companion and recovery controller first.
+Finish any pending configuration activation before migrating. It refuses to
+overwrite existing databases. Validate both decrypted records against the legacy
+records before deploying; retain the original ciphertext as an offline migration
+backup. Never fall back to it automatically when a database is missing or corrupt.
+
+Three databases preserve the service boundary:
+
+- `app/settings.sqlite`: encrypted authentication/integration record and rollback.
+- `notification/settings.sqlite`: encrypted companion record and rollback; only
+  this database directory is mounted into the companion, read-only.
+- `control/settings.sqlite`: ciphertext requests, recovery state and an operational
+  event history containing timestamps, actions and revision IDs, never credentials.
+
+Each database has a schema version and migration history. Files are mode `0600`
+and parent directories should be `0700`, owned by the deployment service UID.
+Keys remain outside the database directories and are never inserted into SQLite.
+All record fields (including non-secret connection settings) are encrypted before
+insertion, so rollback journals also contain ciphertext rather than credentials.
+Statements use bound parameters and disable trusted schema; extension loading is
+disabled in Node and never enabled in Python. Missing/incompatible stores fail
+closed. No credential field is returned to the browser.
+
+Activation/rollback updates both records, the recovery state and the request queue
+in a single attached-database transaction. DELETE journaling and FULL synchronous
+writes are required for multi-database atomic commits; do not switch these stores
+to WAL or place them on a filesystem without reliable SQLite locking/fsync.
+The controller commits before restarting services and retains a rollback slot.
+After an interrupted activation, it restores both records transactionally.
+Concurrent/stale apply requests are rejected within the write transaction.
+
+Back up all three databases while all writers are stopped (app and controller),
+or use a coordinated snapshot that preserves the whole transaction set. A live
+file copy or separate per-database online backups are not a consistent set.
+Store keys separately from database backups. Test restoration on an isolated
+instance before relying on the backup. Operational audit entries are local,
+not tamper-proof against host or application compromise.
+
+Encryption at rest does not prevent a compromised running application or host
+administrator from using its mounted keys. The existing controller's Docker
+socket remains a privileged boundary. For deployments requiring keys outside
+host control, use an external secret manager/KMS rather than storing keys beside
+backups. SQLite is a persistence improvement, not a substitute for these boundaries.
+
+This migration covers system configuration. Dashboard YAML and the notification
+service's existing user-state store retain their current formats.
