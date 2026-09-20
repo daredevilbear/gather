@@ -1,0 +1,143 @@
+.header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-left: auto;
+  order: 10;
+}
+.inbox {
+  position: relative;
+  color: inherit;
+}
+.summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  cursor: pointer;
+  list-style: none;
+  border: 1px solid #9bc9b940;
+  border-radius: 12px;
+  padding: 10px 14px;
+  background: #263545;
+  color: #f1f5f2;
+}
+.summary::-webkit-details-marker {
+  display: none;
+}
+.panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: min(460px, calc(100vw - 32px));
+  z-index: 100;
+  padding: 18px;
+  border: 1px solid #72998d;
+  border-radius: 18px;
+  background: #182938;
+  color: #f1f5f2;
+  box-shadow: 0 18px 60px #0009;
+  box-sizing: border-box;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.actions strong {
+  margin-right: auto;
+}
+.panel button,
+.panel select,
+.actions a {
+  font-size: 13px;
+  color: #b9e5d7;
+  background: #263c49;
+  border-radius: 8px;
+  padding: 8px;
+  min-height: 40px;
+  cursor: pointer;
+}
+.panel button:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+.panel small {
+  display: block;
+  font-size: 11px;
+  color: #b0c5cf;
+  margin: 10px 0;
+}
+.panel section {
+  border-top: 1px solid #ffffff20;
+  margin-top: 12px;
+  padding-top: 12px;
+}
+.panel section button + button {
+  margin-left: 8px;
+}
+.list {
+  max-height: min(55vh, 520px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  margin-top: 12px;
+}
+.message {
+  padding: 14px;
+  margin-bottom: 10px;
+  border: 1px solid #ffffff1c;
+  border-radius: 10px;
+  overflow-wrap: anywhere;
+}
+.message[data-unread="true"] {
+  border-left: 3px solid #8ed7be;
+  background: #ffffff05;
+}
+.message[data-selected="true"] {
+  outline: 2px solid #8ed7be;
+  outline-offset: -2px;
+  background: #263c49;
+}
+.message p {
+  white-space: pre-wrap;
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 10px 0;
+}
+.message p a {
+  display: inline;
+  color: #b9e5d7;
+  padding: 0;
+  background: transparent;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 640px) {
+  .header {
+    flex-direction: column-reverse;
+    width: 100%;
+    order: -2;
+    margin: 12px 0;
+  }
+  .header > * {
+    width: 100%;
+  }
+  .summary {
+    width: 100%;
+  }
+  .panel {
+    position: fixed;
+    top: 12vh;
+    left: 16px;
+    right: 16px;
+    width: auto;
+    max-height: 82vh;
+    overflow: auto;
+  }
+  .list {
+    max-height: 42vh;
+  }
+}

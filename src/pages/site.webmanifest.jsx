@@ -11,8 +11,8 @@ export async function getServerSideProps({ res }) {
   const pwa = settings.pwa || {};
 
   const manifest = {
-    name: settings.title || "Homepage",
-    short_name: settings.title || "Homepage",
+    name: settings.title || "Gather",
+    short_name: settings.title || "Gather",
     icons: pwa.icons || [
       {
         src: "/android-chrome-192x192.png?v=2",
@@ -29,6 +29,8 @@ export async function getServerSideProps({ res }) {
     theme_color: themes[color][theme],
     background_color: themes[color][theme],
     display: "standalone",
+    id: "/",
+    scope: "/",
     start_url: settings.startUrl || "/",
   };
 
