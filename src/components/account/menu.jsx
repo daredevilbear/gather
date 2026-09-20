@@ -1,5 +1,8 @@
+
 import { signOut, useSession } from "next-auth/react";
 import { useTranslation } from "next-i18next/pages";
+
+import SettingsLink from "components/settings/link";
 
 export function accountSettingsUrl(value) {
   if (typeof value !== "string") return null;
@@ -38,6 +41,7 @@ export default function AccountMenu({ settingsUrl }) {
         </span>
       </summary>
       <div className="flex flex-wrap gap-3 border-t border-theme-500/20 px-4 py-2">
+        <SettingsLink />
         {settings && (
           <a href={settings} className="flex min-h-11 items-center underline">
             Account settings

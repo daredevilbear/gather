@@ -1,0 +1,18 @@
+# Optional, privileged operator component. Requires explicit deployment approval.
+# The web app must NOT receive the Docker socket or this controller's code mount.
+services:
+  system-controller:
+    build: .
+    restart: unless-stopped
+    user: '1001:1001'
+    group_add: ['${DOCKER_SOCKET_GID}']
+    network_mode: none
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 128m
+    pids_limit: 32
+    volumes:
+      - ${GATHER_SYSTEM_DATA}:/system-data
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: [--root, /system-data, --app, gather-app, --notification, gather-notifications, --gateway, gather-gateway]

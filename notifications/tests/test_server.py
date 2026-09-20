@@ -153,3 +153,17 @@ class PushTests(unittest.TestCase):
         self.assertNotIn(b'Encrypted notification',kwargs['data'])
 
 if __name__=='__main__':unittest.main()
+
+class RuntimeSettingsTests(unittest.TestCase):
+    def test_runtime_overrides_preserve_server_credentials_and_validate_topics(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / 'preferences.json'
+            with patch.dict(os.environ, {'GATHER_NOTIFICATION_CONFIG': str(target)}):
+                self.assertEqual(push.runtime_settings()['topics'], push.TOPICS)
+                target.write_text(json.dumps({'topics': 'apps,health', 'appName': 'Example', 'icon': '/images/icon.png'}))
+                self.assertEqual(push.runtime_settings()['topics'], 'apps,health')
+                self.assertEqual(push.runtime_settings()['appName'], 'Example')
+                for invalid in [{'topics': '../private'}, {'icon': '//external.test/x'}, {'token': 'private'}, {'appName': ''}]:
+                    target.write_text(json.dumps(invalid))
+                    with self.assertRaises(ValueError):
+                        push.runtime_settings()

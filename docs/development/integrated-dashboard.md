@@ -1,6 +1,6 @@
 # Integrated dashboard migration
 
-Status: native account and notification components implemented; isolated staging validation in progress. Production has not been replaced.
+Status: native account, notifications, and integrated configuration editor implemented; staging validation in progress. Production has not been replaced.
 Project: Gather. Repository: daredevilbear/gather.
 
 ## Baseline
