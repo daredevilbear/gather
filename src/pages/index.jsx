@@ -12,6 +12,8 @@ import useSWR, { SWRConfig } from "swr";
 import AccountMenu from "components/account/menu";
 import BookmarksGroup from "components/bookmarks/group";
 import ErrorBoundary from "components/errorboundry";
+import Inbox from "components/notifications/inbox";
+import notificationStyles from "components/notifications/inbox.module.css";
 import QuickLaunch from "components/quicklaunch";
 import ServicesGroup from "components/services/group";
 import Tab, { slugifyAndEncode } from "components/tab";
@@ -473,6 +475,12 @@ function Home({ initialSettings }) {
           )}
         >
           <div id="widgets-wrap" className={classNames("flex flex-row w-full flex-wrap justify-between gap-x-2")}>
+            {(settings.gather?.accountMenu || settings.gather?.notifications) && (
+              <div className={notificationStyles.header}>
+                {settings.gather?.notifications && <Inbox prefix={settings.gather.notificationPrefix} />}
+                {settings.gather?.accountMenu && <AccountMenu settingsUrl={settings.gather.accountSettingsUrl} />}
+              </div>
+            )}
             {widgets && (
               <>
                 {widgets
@@ -506,12 +514,6 @@ function Home({ initialSettings }) {
             )}
           </div>
         </div>
-
-        {settings.gather?.accountMenu && (
-          <div className="flex justify-end px-4 pb-4">
-            <AccountMenu settingsUrl={settings.gather.accountSettingsUrl} />
-          </div>
-        )}
 
         {servicesAndBookmarksGroups}
 

@@ -16,7 +16,7 @@ ENV CI=$CI
 
 # Install and build only outside CI
 RUN if [ "$CI" != "true" ]; then \
-      corepack enable && corepack prepare pnpm@latest --activate && \
+      corepack enable && corepack prepare pnpm@11.19.0 --activate && \
       pnpm install --frozen-lockfile --prefer-offline && \
       NEXT_TELEMETRY_DISABLED=1 \
       NEXT_PUBLIC_BUILDTIME=$BUILDTIME \
@@ -31,12 +31,12 @@ RUN if [ "$CI" != "true" ]; then \
 # Runtime Stage
 # =========================
 FROM node:22-alpine AS runner
-LABEL org.opencontainers.image.title="Homepage"
+LABEL org.opencontainers.image.title="Gather"
 LABEL org.opencontainers.image.description="A self-hosted services landing page, with docker and service integrations."
-LABEL org.opencontainers.image.url="https://github.com/gethomepage/homepage"
-LABEL org.opencontainers.image.documentation='https://github.com/gethomepage/homepage/wiki'
-LABEL org.opencontainers.image.source='https://github.com/gethomepage/homepage'
-LABEL org.opencontainers.image.licenses='Apache-2.0'
+LABEL org.opencontainers.image.url="https://github.com/daredevilbear/gather"
+LABEL org.opencontainers.image.documentation='https://github.com/daredevilbear/gather/wiki'
+LABEL org.opencontainers.image.source='https://github.com/daredevilbear/gather'
+LABEL org.opencontainers.image.licenses='GPL-3.0'
 
 # Setup
 WORKDIR /app
