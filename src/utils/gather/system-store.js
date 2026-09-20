@@ -51,6 +51,7 @@ export function publicConfig() {
 export function candidate(input, subject) {
   const app = structuredClone(vault.read("app")),
     notification = structuredClone(vault.read("notification"));
+  if (app.revision !== notification.revision) fail("System configuration changed. Reload before editing.", 409);
   if (input.revision !== app.revision) fail("System configuration changed. Reload before editing.", 409);
   if (
     Object.keys(input).some(

@@ -182,3 +182,12 @@ it("rejects a queued candidate when the active revision changed during connectio
   expect(() => stage(next, "admin")).toThrow(/changed/);
   expect(database.control(dir, (db) => db.prepare("SELECT count(*) AS n FROM requests").get().n)).toBe(0);
 });
+
+it("rejects a mixed-revision snapshot during concurrent activation", () => {
+  const db = database.open(path.join(dir, "notification/settings.sqlite"), false);
+  db.prepare("UPDATE records SET envelope=? WHERE slot='active'").run(
+    JSON.stringify(vault.seal({ ...notifications, revision: "concurrent" }, notifyKey, "notification")),
+  );
+  db.close();
+  expect(() => candidate(input, "admin")).toThrow(/changed/);
+});
