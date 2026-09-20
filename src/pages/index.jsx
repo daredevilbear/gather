@@ -9,6 +9,7 @@ import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { BiError } from "react-icons/bi";
 import useSWR, { SWRConfig } from "swr";
 
+import AccountMenu from "components/account/menu";
 import BookmarksGroup from "components/bookmarks/group";
 import ErrorBoundary from "components/errorboundry";
 import QuickLaunch from "components/quicklaunch";
@@ -506,13 +507,19 @@ function Home({ initialSettings }) {
           </div>
         </div>
 
+        {settings.gather?.accountMenu && (
+          <div className="flex justify-end px-4 pb-4">
+            <AccountMenu settingsUrl={settings.gather.accountSettingsUrl} />
+          </div>
+        )}
+
         {servicesAndBookmarksGroups}
 
         <div id="footer" className="flex flex-col mt-auto p-8 w-full">
           <div id="style" className="flex w-full justify-end">
             {!settings?.color && <ColorToggle />}
             <Revalidate />
-            <SignOut />
+            {!settings.gather?.accountMenu && <SignOut />}
             {!settings.theme && <ThemeToggle />}
           </div>
 
