@@ -58,4 +58,4 @@ for the same authenticated account. Push tests have no retained inbox message.
 Use a distinct hostname, OIDC client, config directory, ntfy topic/server, VAPID
 key and data directory. Staging must never share production push subscriptions or
 write the live dashboard's configuration. Run a real device test before production
-cutover. The visual configuration editor is a separate upcoming milestone.
+cutover. The [integrated editor](settings.md) can manage topics and branding through a read-only runtime mount into the companion.
