@@ -4,7 +4,6 @@ Run with fixed, operator-owned arguments. Input files never select commands/path
 """
 import argparse
 import json
-import os
 import http.client
 import socket
 import re
@@ -12,15 +11,6 @@ import time
 import uuid
 from pathlib import Path
 from database import Transaction, get, put, event
-
-
-def write(path, value, mode=0o600):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temp=path.with_name(path.name+'.tmp')
-    with open(temp,'w') as f:
-        os.chmod(temp,mode)
-        json.dump(value,f);f.flush();os.fsync(f.fileno())
-    os.replace(temp,path)
 
 
 class DockerConnection(http.client.HTTPConnection):

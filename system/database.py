@@ -13,12 +13,12 @@ def open_database(root):
     paths = [root / part / 'settings.sqlite' for part in ('control', 'app', 'notification')]
     if not all(p.is_file() for p in paths):
         raise RuntimeError('System databases are not initialized')
-    db = sqlite3.connect(paths[0], timeout=5, isolation_level=None)
+    db = sqlite3.connect(paths[0].resolve().as_uri()+'?mode=rw', uri=True, timeout=5, isolation_level=None)
     try:
         db.execute('PRAGMA trusted_schema=OFF')
         db.execute('PRAGMA foreign_keys=ON')
         for name, file in zip(('app', 'notification'), paths[1:]):
-            db.execute('ATTACH DATABASE ? AS ' + name, (str(file),))
+            db.execute('ATTACH DATABASE ? AS ' + name, (file.resolve().as_uri()+'?mode=rw',))
         for name in ('main', 'app', 'notification'):
             if db.execute('PRAGMA '+name+'.user_version').fetchone()[0] != SCHEMA:
                 raise RuntimeError('Unsupported system database schema')
@@ -45,8 +45,12 @@ class Transaction:
     def __init__(self, root): self.root = root
     def __enter__(self):
         self.db = open_database(self.root)
-        self.db.execute('BEGIN IMMEDIATE')
-        return self.db
+        try:
+            self.db.execute('BEGIN IMMEDIATE')
+            return self.db
+        except Exception:
+            self.db.close()
+            raise
     def __exit__(self, kind, value, trace):
         try: self.db.execute('ROLLBACK' if kind else 'COMMIT')
         finally: self.db.close()
