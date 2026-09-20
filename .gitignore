@@ -52,3 +52,7 @@ site*/
 
 # venv
 .venv/
+
+# Python notification companion build artifacts
+__pycache__/
+*.pyc

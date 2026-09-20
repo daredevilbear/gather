@@ -1,6 +1,6 @@
 # Integrated dashboard migration
 
-Status: source baseline prepared; migration has not replaced the live dashboard.
+Status: native account and notification components implemented; isolated staging validation in progress. Production has not been replaced.
 Project: Gather. Repository: daredevilbear/gather.
 
 ## Baseline
@@ -90,4 +90,4 @@ It consumes the existing NextAuth session and sign-out flow, displays the signed
 user, and omits the account link unless a credential-free HTTPS URL is configured.
 The default remains disabled during migration. Enabling it should be paired with
 removing the old custom.js account injection in the isolated staging config.
-Notification components and the final unified header layout are still pending.
+The native notification inbox and shared responsive header are now implemented. See [notification setup](../gather/notifications.md) for companion service configuration.
