@@ -29,6 +29,28 @@ KEY = DATA / 'vapid.pem'
 public_key = ''
 last_poll = 0
 
+def runtime_settings():
+    """Only non-secret preferences can be overridden by the dashboard editor."""
+    target = Path(os.environ.get('GATHER_NOTIFICATION_CONFIG', '/config/gather-notifications.json'))
+    try:
+        if target.stat().st_size > 16384:
+            raise ValueError('Notification preferences too large')
+        value = json.loads(target.read_text())
+    except FileNotFoundError:
+        value = {}
+    if not isinstance(value, dict) or set(value) - {'topics', 'appName', 'icon'}:
+        raise ValueError('Invalid notification preferences')
+    topics = value.get('topics', TOPICS)
+    name = value.get('appName', APP_NAME)
+    icon = value.get('icon', ICON_URL)
+    if not isinstance(topics, str) or not re.fullmatch(r'[A-Za-z0-9_-]+(?:,[A-Za-z0-9_-]+)*', topics):
+        raise ValueError('Invalid topics')
+    if not isinstance(name, str) or not name.strip() or len(name) > 80:
+        raise ValueError('Invalid app name')
+    if 'icon' in value and (not isinstance(icon, str) or not re.fullmatch(r'/(?!/)[A-Za-z0-9_./-]+', icon) or '..' in icon):
+        raise ValueError('Invalid icon path')
+    return {'topics': topics, 'appName': name, 'icon': icon}
+
 @contextmanager
 def connect():
     db = sqlite3.connect(DB, timeout=10)
@@ -115,10 +137,11 @@ def payload(message):
     return {'id':str(message['id']), 'title':str(message.get('title') or message['topic'])[:120],
             'body':str(message.get('message', 'Open Gather to view this notification.'))[:500]}
 
-def ingest(messages, now):
+def ingest(messages, now, topics=None):
+    topics = topics or runtime_settings()['topics']
     with connect() as db:
         for message in messages:
-            if message.get('event') != 'message' or message.get('topic') not in TOPICS.split(','):
+            if message.get('event') != 'message' or message.get('topic') not in topics.split(','):
                 continue
             ident = message['id']
             inserted = db.execute('INSERT OR IGNORE INTO events VALUES (?,?)',(ident,now)).rowcount
@@ -134,16 +157,21 @@ def ingest(messages, now):
 
 def poll():
     global last_poll
+    topics = runtime_settings()['topics']
     with connect() as db:
+        previous = db.execute("SELECT value FROM state WHERE key='topics'").fetchone()
+        if previous and previous[0] != topics:
+            db.execute("UPDATE state SET value=? WHERE key='cursor'", (str(int(time.time())),))
+        db.execute("INSERT OR REPLACE INTO state VALUES ('topics', ?)", (topics,))
         cursor = db.execute("SELECT value FROM state WHERE key='cursor'").fetchone()[0]
     # The cursor is a server-produced message ID or the initial Unix timestamp.
     if not re.fullmatch(r'[A-Za-z0-9_-]+', cursor):
         raise ValueError('Invalid cursor')
-    request = Request(NTFY_URL+'/'+TOPICS+'/json?poll=1&since='+cursor,
+    request = Request(NTFY_URL+'/'+topics+'/json?poll=1&since='+cursor,
                       headers={'Authorization':os.environ['NTFY_AUTH']})
     with urlopen(request, timeout=15) as response:
         messages = [json.loads(line) for line in response]
-    ingest(messages, time.time())
+    ingest(messages, time.time(), topics)
     last_poll = time.time()
 
 def deliver(subscription, body):
@@ -243,16 +271,18 @@ class Handler(BaseHTTPRequestHandler):
             self.respond(503,{'error':'Notification service temporarily unavailable'})
 
     def get(self):
+        preferences = runtime_settings()
+        topics = preferences['topics']
         if self.path == PREFIX+'feed':
             if not self.owner():
                 return
             from collections import deque
-            request = Request(NTFY_URL+'/'+TOPICS+'/json?poll=1&since=720h', headers={'Authorization':os.environ['NTFY_AUTH']})
+            request = Request(NTFY_URL+'/'+topics+'/json?poll=1&since=720h', headers={'Authorization':os.environ['NTFY_AUTH']})
             messages = deque(maxlen=200)
             with urlopen(request, timeout=15) as response:
                 for line in response:
                     item = json.loads(line)
-                    if item.get('event') == 'message' and item.get('topic') in TOPICS.split(','):
+                    if item.get('event') == 'message' and item.get('topic') in topics.split(','):
                         messages.append({k:item[k] for k in ('id','time','topic','title','message','priority','tags','click') if k in item})
             return self.respond(200,{'messages':list(reversed(messages)),'checked_at':int(time.time())})
         if self.path.startswith(PREFIX+'message/'):
@@ -261,19 +291,19 @@ class Handler(BaseHTTPRequestHandler):
             ident = self.path[len(PREFIX+'message/'):]
             if not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', ident):
                 return self.respond(400,{'error':'Invalid notification ID'})
-            request = Request(NTFY_URL+'/'+TOPICS+'/json?poll=1&since=720h',
+            request = Request(NTFY_URL+'/'+topics+'/json?poll=1&since=720h',
                               headers={'Authorization':os.environ['NTFY_AUTH']})
             with urlopen(request,timeout=15) as response:
                 for line in response:
                     item = json.loads(line)
-                    if item.get('event') == 'message' and item.get('id') == ident and item.get('topic') in TOPICS.split(','):
+                    if item.get('event') == 'message' and item.get('id') == ident and item.get('topic') in topics.split(','):
                         message = {k:item[k] for k in ('id','time','topic','title','message','priority','tags','click') if k in item}
                         return self.respond(200,{'message':message})
             return self.respond(404,{'error':'Notification expired or unavailable'})
         if self.path == PREFIX+'sw.js':
-            return self.respond(200,Path('/app/sw.js').read_text().replace('__GATHER_ICON__', json.dumps(ICON_URL)).encode(),'application/javascript; charset=utf-8')
+            return self.respond(200,Path('/app/sw.js').read_text().replace('__GATHER_ICON__', json.dumps(preferences['icon'])).encode(),'application/javascript; charset=utf-8')
         if self.path == PREFIX+'manifest.json':
-            return self.respond(200,json.dumps({'id':'/','name':APP_NAME,'short_name':APP_NAME,'start_url':'/','scope':'/','display':'standalone','background_color':'#182938','theme_color':'#182938','icons':[{'src':ICON_URL,'sizes':'512x512','type':'image/png'}]}).encode(),'application/manifest+json')
+            return self.respond(200,json.dumps({'id':'/','name':preferences['appName'],'short_name':preferences['appName'],'start_url':'/','scope':'/','display':'standalone','background_color':'#182938','theme_color':'#182938','icons':[{'src':preferences['icon'],'sizes':'512x512','type':'image/png'}]}).encode(),'application/manifest+json')
         if self.path == PREFIX+'health':
             return self.respond(200 if time.time()-last_poll < 120 else 503, {'ready':time.time()-last_poll < 120})
         if self.path not in (PREFIX+'config', PREFIX+'inbox-state'):
@@ -340,7 +370,7 @@ class Handler(BaseHTTPRequestHandler):
                 if now-existing['last_test'] < 60:
                     return self.respond(429,{'error':'Wait one minute before another test'})
                 test_id='test-'+uuid.uuid4().hex
-                body=json.dumps({'id':test_id,'title':APP_NAME+' push test','body':'Gather notifications are enabled on this device.'})
+                body=json.dumps({'id':test_id,'title':runtime_settings()['appName']+' push test','body':'Gather notifications are enabled on this device.'})
                 db.execute('INSERT INTO queue(event,subscriber,body,created,next_try) VALUES (?,?,?,?,?)',(test_id,ident,body,now,now))
                 db.execute('UPDATE subscriptions SET last_test=? WHERE id=?',(now,ident))
         self.respond(200,{'ok':True})

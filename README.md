@@ -21,6 +21,12 @@ Branding, domains, account providers, and notification connections will be
 configurable. Personal deployment configuration and credentials do not belong
 in this repository.
 
+## Configuration editor
+
+The administrator-only [settings editor](docs/gather/settings.md) supports dashboard
+configuration, services, bookmarks, widgets, notification preferences, custom code,
+and versioned backup/restore. Enable it explicitly in deployment configuration.
+
 ## License and upstream
 
 This derivative retains Homepage's [GPL-3.0 license](LICENSE) and upstream
