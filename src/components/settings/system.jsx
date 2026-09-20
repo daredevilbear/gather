@@ -123,7 +123,7 @@ export default function SystemSettings() {
             <section className={styles.card}>
               <h2>Secure storage</h2>
               <p>
-                Credentials are encrypted on disk. Keys are kept separately. Existing secrets are never shown here;
+                Credentials are encrypted in SQLite. Keys are kept separately. Existing secrets are never shown here;
                 leave a secret field blank to keep it.
               </p>
               <p>
