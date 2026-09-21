@@ -272,3 +272,67 @@ it("shows compact service metadata and lets groups collapse without losing entri
   fireEvent.click(screen.getByRole("button", { name: "Expand group Home" }));
   expect(screen.getByText("https://example.test")).toBeInTheDocument();
 });
+
+function dragItem(handle, target) {
+  vi.stubGlobal("PointerEvent", MouseEvent);
+  const original = document.elementFromPoint;
+  document.elementFromPoint = () => target;
+  fireEvent.pointerDown(handle, { button: 0, clientX: 0, clientY: 0 });
+  fireEvent.pointerMove(handle, { clientX: 20, clientY: 30 });
+  fireEvent.pointerUp(handle, { clientX: 20, clientY: 30 });
+  document.elementFromPoint = original;
+}
+
+it("drags services without losing widget secrets and keeps bookmark link arrays", () => {
+  const change = vi.fn();
+  const first = { First: { href: "https://first.test", widget: { type: "customapi", key: "{{TOKEN}}" } } };
+  const second = { Second: { href: "https://second.test" } };
+  const { rerender } = render(<Groups value={[{ Home: [first, second] }]} onChange={change} />);
+  dragItem(screen.getByRole("button", { name: "Reorder First" }), screen.getByLabelText("Edit Second"));
+  expect(change).toHaveBeenLastCalledWith([{ Home: [second, first] }]);
+  const bookmark = { First: [{ href: "https://first.test", abbr: "F" }] };
+  rerender(<Groups value={[{ Home: [bookmark, second] }]} onChange={change} bookmarks />);
+  dragItem(screen.getByRole("button", { name: "Reorder First" }), screen.getByLabelText("Edit Second"));
+  expect(change).toHaveBeenLastCalledWith([{ Home: [second, bookmark] }]);
+});
+
+it("reorders groups only inside their tab without moving another tab's configuration", () => {
+  const change = vi.fn();
+  render(
+    <Groups
+      value={[{ First: [] }, { Other: [] }, { Last: [] }]}
+      onChange={change}
+      layout={{ First: { tab: "Home" }, Last: { tab: "Home" }, Other: { tab: "Media" } }}
+      tabs={["Home", "Media"]}
+    />,
+  );
+  dragItem(screen.getByRole("button", { name: "Reorder group First" }), screen.getByRole("region", { name: "Other" }));
+  expect(change).not.toHaveBeenCalled();
+  dragItem(screen.getByRole("button", { name: "Reorder group First" }), screen.getByRole("region", { name: "Last" }));
+  expect(change).toHaveBeenLastCalledWith([{ Last: [] }, { Other: [] }, { First: [] }]);
+});
+
+it("saves dragged Home widget order and resets subsequent keyboard moves", async () => {
+  const request = createPreviewStore();
+  render(<SettingsEditor request={request} preview />);
+  await screen.findByLabelText("Dashboard title");
+  fireEvent.click(screen.getByRole("button", { name: "Home widgets", exact: true }));
+  const handle = await screen.findByRole("button", { name: "Reorder Greeting" });
+  dragItem(handle, screen.getByLabelText("Edit Search"));
+  expect(screen.getAllByRole("button", { name: /^Reorder / }).map((e) => e.getAttribute("aria-label"))).toEqual([
+    "Reorder Date & time",
+    "Reorder Search",
+    "Reorder Greeting",
+  ]);
+  fireEvent.click(screen.getByRole("button", { name: "Save & apply" }));
+  await screen.findByText(/Saved and applied/);
+  const saved = (await request(null, "widgets.yaml")).text;
+  expect(saved.indexOf("search:")).toBeLessThan(saved.indexOf("greeting:"));
+  fireEvent.keyDown(screen.getByRole("button", { name: "Reorder Greeting" }), { key: "ArrowUp", altKey: true });
+  fireEvent.click(screen.getByRole("button", { name: "Reset changes" }));
+  expect(screen.getAllByRole("button", { name: /^Reorder / }).map((e) => e.getAttribute("aria-label"))).toEqual([
+    "Reorder Date & time",
+    "Reorder Search",
+    "Reorder Greeting",
+  ]);
+});

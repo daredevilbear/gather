@@ -998,3 +998,40 @@
     flex-wrap: wrap;
   }
 }
+
+.editor .dragHandle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 28px;
+  width: 28px;
+  padding: 0;
+  min-height: 36px;
+  border: 0;
+  background: transparent;
+  color: #a4b5c4;
+  cursor: grab;
+}
+.editor .dragHandle:active {
+  cursor: grabbing;
+}
+.editor [data-drop-target="true"] {
+  outline: 2px solid #a8d8c8;
+  outline-offset: -2px;
+}
+.orderAnnouncement {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.editor .orderHint {
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.editor .dragHandle {
+  touch-action: none;
+  user-select: none;
+}

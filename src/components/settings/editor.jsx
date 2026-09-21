@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import styles from "./editor.module.css";
 import Migration from "./migration";
+import { DragHandle, moveTo, useOrdering } from "./ordering";
 import {
   Catalog,
   EditorPreviewContext,
@@ -184,10 +185,11 @@ function reorder(list, index, direction) {
   [next[index], next[index + direction]] = [next[index + direction], next[index]];
   return next;
 }
-function ContentRow({ name, subtitle, icon, kind = "grid", badge, children, open = false }) {
+function ContentRow({ name, subtitle, icon, kind = "grid", badge, children, open = false, drag, drop }) {
   return (
-    <details className={styles.contentRow} open={open || undefined}>
+    <details className={styles.contentRow} open={open || undefined} {...drop}>
       <summary aria-label={`Edit ${name}`}>
+        {drag && <DragHandle {...drag} />}
         <span className={styles.contentIcon}>
           {icon ? (
             // Configured icons include local uploads and external URLs; use the same direct loading as the picker.
@@ -214,6 +216,32 @@ export function Groups({ value, onChange, bookmarks = false, layout = {}, tabs =
   const [collapsed, setCollapsed] = useState({});
   const [renaming, setRenaming] = useState(null);
   const [newEntry, setNewEntry] = useState(null);
+  const ordering = useOrdering((scope, from, to) => {
+    if (scope.startsWith("group:")) {
+      // Move within the displayed tab while preserving interleaved groups on other tabs.
+      const indices = value
+        .map((group, index) => ({ group, index }))
+        .filter(({ group }) => `group:${layout[Object.keys(group)[0]]?.tab || ""}` === scope)
+        .map(({ index }) => index);
+      const reordered = moveTo(
+        indices.map((index) => value[index]),
+        from,
+        to,
+      );
+      const next = [...value];
+      indices.forEach((index, position) => {
+        next[index] = reordered[position];
+      });
+      onChange(next);
+      setCollapsed({});
+      setRenaming(null);
+    } else {
+      const groupIndex = Number(scope.slice(6));
+      const [name, entries] = Object.entries(value[groupIndex])[0];
+      onChange(value.map((group, index) => (index === groupIndex ? { [name]: moveTo(entries, from, to) } : group)));
+    }
+    setNewEntry(null);
+  });
   if (!Array.isArray(value)) return <p>Use the source view to repair this configuration.</p>;
   const total = value.reduce(
     (count, group) => count + (Array.isArray(Object.values(group)[0]) ? Object.values(group)[0].length : 0),
@@ -221,6 +249,12 @@ export function Groups({ value, onChange, bookmarks = false, layout = {}, tabs =
   );
   return (
     <div className={styles.contentList}>
+      <span className={styles.orderAnnouncement} role="status">
+        {ordering.announcement}
+      </span>
+      <p className={styles.orderHint}>
+        Drag the handles to reorder within a group or tab. Use Alt + ↑ / ↓ on a handle with the keyboard.
+      </p>
       <div className={styles.contentToolbar}>
         <p>
           {total} {bookmarks ? "bookmark" : "service"}
@@ -245,6 +279,11 @@ export function Groups({ value, onChange, bookmarks = false, layout = {}, tabs =
         .map(({ group, i }, displayIndex, ordered) => {
           const [name, entries] = Object.entries(group)[0] || ["", []];
           if (!Array.isArray(entries)) return <p key={i}>Group {name} requires a list. Use the source view.</p>;
+          const groupScope = `group:${layout[name]?.tab || ""}`;
+          const peers = ordered.filter(
+            ({ group: peer }) => (layout[Object.keys(peer)[0]]?.tab || "") === (layout[name]?.tab || ""),
+          );
+          const groupPosition = peers.findIndex(({ i: index }) => index === i);
           const update = (list) => onChange(value.map((g, n) => (n === i ? { [name]: list } : g)));
           const add = () => {
             update([
@@ -264,8 +303,13 @@ export function Groups({ value, onChange, bookmarks = false, layout = {}, tabs =
                 layout[Object.keys(ordered[displayIndex - 1].group)[0]]?.tab !== layout[name]?.tab) && (
                 <h2 className={styles.tabHeading}>{layout[name]?.tab || "Every tab"}</h2>
               )}
-              <section className={styles.contentGroup} aria-label={name || "Unnamed group"}>
+              <section
+                className={styles.contentGroup}
+                aria-label={name || "Unnamed group"}
+                {...ordering.target(groupScope, groupPosition)}
+              >
                 <div className={styles.groupBar}>
+                  <DragHandle {...ordering.handle(groupScope, groupPosition, `group ${name}`, peers.length)} />
                   <button
                     className={styles.groupToggle}
                     type="button"
@@ -342,6 +386,8 @@ export function Groups({ value, onChange, bookmarks = false, layout = {}, tabs =
                           kind={bookmarks ? "bookmark" : "grid"}
                           badge={details?.widget ? "widget" : null}
                           open={newEntry === `${i}:${j}`}
+                          drag={ordering.handle(`entry:${i}`, j, entryName, entries.length)}
+                          drop={ordering.target(`entry:${i}`, j)}
                         >
                           <label>
                             {bookmarks ? "Bookmark name" : "Service name"}
@@ -834,15 +880,19 @@ function Layout({ value, onChange, request, tabs }) {
 }
 function Widgets({ value, onChange }) {
   const [library, setLibrary] = useState(false);
+  const ordering = useOrdering((scope, from, to) => onChange(moveTo(value, from, to)));
   if (!Array.isArray(value)) return <p>Use Source to repair this widget list.</p>;
   return (
     <section className={styles.contentGroup}>
       <div className={styles.widgetToolbar}>
         <div>
+          <span className={styles.orderAnnouncement} role="status">
+            {ordering.announcement}
+          </span>
           <h2>
             Your Home widgets <span className={styles.contentBadge}>{value.length}</span>
           </h2>
-          <p>Shown on Home, in this order.</p>
+          <p>Drag the handles to arrange your Home widgets.</p>
         </div>
         <button type="button" onClick={() => setLibrary(!library)}>
           {library ? "Close library" : "Add Home widget"}
@@ -870,6 +920,8 @@ function Widgets({ value, onChange }) {
               type === "search" ? "search" : type === "datetime" ? "history" : type === "greeting" ? "person" : "home"
             }
             badge="widget"
+            drag={ordering.handle("widgets", index, item?.name || type, value.length)}
+            drop={ordering.target("widgets", index)}
           >
             {type === "logo" && (
               <IconPicker
