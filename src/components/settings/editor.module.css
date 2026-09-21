@@ -833,3 +833,168 @@
 .editor label {
   font-size: 14px;
 }
+
+/* Content management uses compact lists; forms appear only when editing. */
+.contentToolbar,
+.widgetToolbar,
+.groupBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: space-between;
+}
+.contentToolbar {
+  margin-bottom: 24px;
+}
+.contentToolbar p,
+.widgetToolbar p {
+  margin: 0;
+}
+.contentGroup {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #121c27;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.groupBar,
+.widgetToolbar {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.editor .groupToggle {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  background: transparent;
+  border-color: transparent;
+  padding-left: 0;
+}
+.groupToggle strong {
+  overflow-wrap: anywhere;
+}
+.closedChevron {
+  transform: rotate(-90deg);
+}
+.contentBadge {
+  font-size: 11px;
+  border: 1px solid #92aaff35;
+  border-radius: 7px;
+  padding: 3px 7px;
+  color: #b1c7ff;
+  background: #829cff10;
+  white-space: nowrap;
+}
+.groupEntries {
+  padding: 8px 12px 12px;
+}
+.contentRow {
+  margin: 5px 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #19232f;
+}
+.editor .contentRow > summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  list-style: none;
+}
+.contentRow > summary::-webkit-details-marker {
+  display: none;
+}
+.contentRow > summary:hover {
+  background: #ffffff04;
+  border-radius: 10px;
+}
+.contentIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff06;
+  border-radius: 7px;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  color: #98c7bf;
+}
+.contentIcon img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+.contentIdentity {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.contentIdentity strong {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.contentIdentity small {
+  font-size: 12px;
+  color: #9caec0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.editAffordance {
+  color: #a8bbcc;
+  padding: 5px;
+  display: flex;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.contentRow[open] > summary {
+  border-bottom: 1px solid var(--line);
+}
+.contentFields {
+  padding: 20px;
+}
+.contentFields > label {
+  margin-bottom: 18px;
+}
+.contentFields > button {
+  margin-top: 12px;
+}
+.editor .tabHeading {
+  margin: 24px 0 10px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: #a8b9c8;
+}
+.editor .emptyGroup {
+  padding: 16px;
+  margin: 0;
+}
+.contentGroup > .contentRow {
+  margin: 8px 12px;
+}
+.contentGroup > .sourceHint {
+  margin: 16px;
+}
+@media (max-width: 600px) {
+  .groupBar {
+    padding: 8px;
+    gap: 4px;
+  }
+  .contentFields {
+    padding: 14px;
+  }
+  .groupEntries {
+    padding: 6px;
+  }
+  .contentToolbar,
+  .widgetToolbar {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+}

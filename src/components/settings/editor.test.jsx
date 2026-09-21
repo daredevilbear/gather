@@ -142,7 +142,7 @@ describe("guided editor navigation", () => {
     render(<SettingsEditor request={request} preview />);
     await screen.findByLabelText("Dashboard title");
     fireEvent.click(screen.getByRole("button", { name: "Services", exact: true }));
-    fireEvent.click(await screen.findByText("Home Assistant", { selector: "summary" }));
+    fireEvent.click(await screen.findByLabelText("Edit Home Assistant"));
     fireEvent.change(screen.getAllByLabelText("Service URL")[0], { target: { value: "broken url" } });
     fireEvent.click(screen.getByRole("button", { name: "Save & apply" }));
     expect(request.mock.calls.filter(([body]) => body?.action === "save")).toHaveLength(0);
@@ -231,6 +231,7 @@ it("groups services by tab while editing the original service index", () => {
     />,
   );
   expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual(["Everyday", "Watch"]);
+  fireEvent.click(screen.getByRole("button", { name: "Edit group Home" }));
   fireEvent.change(screen.getAllByLabelText("Group name")[0], { target: { value: "Renamed" } });
   expect(onChange.mock.calls[0][0][0]).toEqual({ Media: [{ Plex: { href: "https://media.test" } }] });
   expect(onChange.mock.calls[0][0][1]).toEqual({ Renamed: [] });
@@ -245,4 +246,29 @@ it("opens the native user, variables and migration screens from navigation", asy
   expect(await screen.findByLabelText("Secret value")).toHaveAttribute("type", "password");
   fireEvent.click(screen.getByRole("button", { name: "Import from Homepage", exact: true }));
   expect(await screen.findByLabelText("Homepage YAML file")).toHaveAttribute("type", "file");
+});
+
+it("shows compact service metadata and lets groups collapse without losing entries", () => {
+  render(
+    <Groups
+      value={[
+        {
+          Home: [
+            {
+              Example: { href: "https://example.test", icon: "home-assistant.png", widget: { type: "homeassistant" } },
+            },
+          ],
+        },
+      ]}
+      onChange={vi.fn()}
+    />,
+  );
+  expect(screen.getByText("1 service across 1 group")).toBeInTheDocument();
+  expect(screen.getByText("https://example.test")).toBeInTheDocument();
+  expect(screen.getByText("widget")).toBeInTheDocument();
+  expect(screen.getByLabelText("Edit Example").parentElement).not.toHaveAttribute("open");
+  fireEvent.click(screen.getByRole("button", { name: "Collapse group Home" }));
+  expect(screen.queryByLabelText("Edit Example")).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Expand group Home" }));
+  expect(screen.getByText("https://example.test")).toBeInTheDocument();
 });

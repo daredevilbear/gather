@@ -184,10 +184,58 @@ function reorder(list, index, direction) {
   [next[index], next[index + direction]] = [next[index + direction], next[index]];
   return next;
 }
-export function Groups({ value, onChange, bookmarks = false, layout = {}, tabs = [] }) {
-  if (!Array.isArray(value)) return <p>Use the source view to repair this configuration.</p>;
+function ContentRow({ name, subtitle, icon, kind = "grid", badge, children, open = false }) {
   return (
-    <div>
+    <details className={styles.contentRow} open={open || undefined}>
+      <summary aria-label={`Edit ${name}`}>
+        <span className={styles.contentIcon}>
+          {icon ? (
+            // Configured icons include local uploads and external URLs; use the same direct loading as the picker.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={iconURL(icon)} alt="" loading="lazy" width="24" height="24" />
+          ) : (
+            <GatherIcon name={kind} />
+          )}
+        </span>
+        <span className={styles.contentIdentity}>
+          <strong>{name}</strong>
+          <small>{subtitle}</small>
+        </span>
+        {badge && <span className={styles.contentBadge}>{badge}</span>}
+        <span className={styles.editAffordance} title="Edit">
+          <GatherIcon name="edit" />
+        </span>
+      </summary>
+      <div className={styles.contentFields}>{children}</div>
+    </details>
+  );
+}
+export function Groups({ value, onChange, bookmarks = false, layout = {}, tabs = [] }) {
+  const [collapsed, setCollapsed] = useState({});
+  const [renaming, setRenaming] = useState(null);
+  const [newEntry, setNewEntry] = useState(null);
+  if (!Array.isArray(value)) return <p>Use the source view to repair this configuration.</p>;
+  const total = value.reduce(
+    (count, group) => count + (Array.isArray(Object.values(group)[0]) ? Object.values(group)[0].length : 0),
+    0,
+  );
+  return (
+    <div className={styles.contentList}>
+      <div className={styles.contentToolbar}>
+        <p>
+          {total} {bookmarks ? "bookmark" : "service"}
+          {total === 1 ? "" : "s"} across {value.length} {value.length === 1 ? "group" : "groups"}
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            onChange([...value, { [`New group ${value.length + 1}`]: [] }]);
+            setRenaming(value.length);
+          }}
+        >
+          + Add group
+        </button>
+      </div>
       {value
         .map((group, i) => ({ group, i }))
         .sort((a, b) => {
@@ -198,76 +246,139 @@ export function Groups({ value, onChange, bookmarks = false, layout = {}, tabs =
           const [name, entries] = Object.entries(group)[0] || ["", []];
           if (!Array.isArray(entries)) return <p key={i}>Group {name} requires a list. Use the source view.</p>;
           const update = (list) => onChange(value.map((g, n) => (n === i ? { [name]: list } : g)));
+          const add = () => {
+            update([
+              ...entries,
+              {
+                [bookmarks ? "New bookmark" : "New service"]: bookmarks
+                  ? [{ href: "https://", icon: "", abbr: "" }]
+                  : { href: "https://", description: "", icon: "" },
+              },
+            ]);
+            setNewEntry(`${i}:${entries.length}`);
+            setCollapsed({ ...collapsed, [i]: false });
+          };
           return (
-            <section className={styles.card} key={i}>
+            <div key={i}>
               {(displayIndex === 0 ||
                 layout[Object.keys(ordered[displayIndex - 1].group)[0]]?.tab !== layout[name]?.tab) && (
-                <h2>{layout[name]?.tab || "Every tab"}</h2>
+                <h2 className={styles.tabHeading}>{layout[name]?.tab || "Every tab"}</h2>
               )}
-              <div className={styles.heading}>
-                <label>
-                  Group name
-                  <input
-                    value={name}
-                    onChange={(e) => onChange(value.map((g, n) => (n === i ? { [e.target.value]: entries } : g)))}
-                  />
-                </label>
-                <Move
-                  label={name || "group"}
-                  index={i}
-                  length={value.length}
-                  move={(d) => onChange(reorder(value, i, d))}
-                  remove={() => onChange(value.filter((_, n) => n !== i))}
-                />
-              </div>
-              {entries.map((entry, j) => {
-                const [entryName, config] = Object.entries(entry)[0] || ["", {}];
-                return (
-                  <details className={styles.entry} key={j}>
-                    <summary>{entryName || "Unnamed entry"}</summary>
+              <section className={styles.contentGroup} aria-label={name || "Unnamed group"}>
+                <div className={styles.groupBar}>
+                  <button
+                    className={styles.groupToggle}
+                    type="button"
+                    aria-label={`${collapsed[i] ? "Expand" : "Collapse"} group ${name}`}
+                    aria-expanded={!collapsed[i]}
+                    onClick={() => setCollapsed({ ...collapsed, [i]: !collapsed[i] })}
+                  >
+                    <span className={collapsed[i] ? styles.closedChevron : undefined}>
+                      <GatherIcon name="chevron" />
+                    </span>
+                    <strong>{name || "Unnamed group"}</strong>
+                    <span className={styles.contentBadge}>{entries.length}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={add}
+                    aria-label={`Add ${bookmarks ? "bookmark" : "service"} to ${name}`}
+                  >
+                    + Add
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Edit group ${name}`}
+                    title="Edit group"
+                    onClick={() => setRenaming(renaming === i ? null : i)}
+                  >
+                    <GatherIcon name="edit" />
+                  </button>
+                </div>
+                {renaming === i && (
+                  <div className={styles.contentFields}>
                     <label>
-                      {bookmarks ? "Bookmark name" : "Service name"}
+                      Group name
                       <input
-                        value={entryName}
-                        onChange={(e) => update(entries.map((x, n) => (n === j ? { [e.target.value]: config } : x)))}
+                        autoFocus
+                        value={name}
+                        onChange={(e) => onChange(value.map((g, n) => (n === i ? { [e.target.value]: entries } : g)))}
                       />
                     </label>
-                    <EntryDetails
-                      value={config}
-                      bookmarks={bookmarks}
-                      onChange={(next) => update(entries.map((x, n) => (n === j ? { [entryName]: next } : x)))}
-                    />
                     <Move
-                      label={entryName || "entry"}
-                      index={j}
-                      length={entries.length}
-                      move={(d) => update(reorder(entries, j, d))}
-                      remove={() => update(entries.filter((_, n) => n !== j))}
+                      label={name || "group"}
+                      index={i}
+                      length={value.length}
+                      move={(d) => {
+                        onChange(reorder(value, i, d));
+                        setRenaming(i + d);
+                      }}
+                      remove={() => {
+                        onChange(value.filter((_, n) => n !== i));
+                        setRenaming(null);
+                      }}
                     />
-                  </details>
-                );
-              })}
-              <button
-                type="button"
-                onClick={() =>
-                  update([
-                    ...entries,
-                    {
-                      [bookmarks ? "New bookmark" : "New service"]: bookmarks
-                        ? [{ href: "https://", icon: "", abbr: "" }]
-                        : { href: "https://", description: "", icon: "" },
-                    },
-                  ])
-                }
-              >
-                Add {bookmarks ? "bookmark" : "service"}
-              </button>
-            </section>
+                    <button type="button" onClick={() => setRenaming(null)}>
+                      Done
+                    </button>
+                  </div>
+                )}
+                {!collapsed[i] && (
+                  <div className={styles.groupEntries}>
+                    {!entries.length && (
+                      <p className={styles.emptyGroup}>
+                        No {bookmarks ? "bookmarks" : "services"} yet. Add your first one above.
+                      </p>
+                    )}
+                    {entries.map((entry, j) => {
+                      const [entryName, config] = Object.entries(entry)[0] || ["", {}];
+                      const details = Array.isArray(config) ? config[0] : config;
+                      return (
+                        <ContentRow
+                          key={j}
+                          name={entryName || "Unnamed entry"}
+                          subtitle={details?.href || details?.description || "No destination set"}
+                          icon={details?.icon}
+                          kind={bookmarks ? "bookmark" : "grid"}
+                          badge={details?.widget ? "widget" : null}
+                          open={newEntry === `${i}:${j}`}
+                        >
+                          <label>
+                            {bookmarks ? "Bookmark name" : "Service name"}
+                            <input
+                              value={entryName}
+                              onChange={(e) =>
+                                update(entries.map((x, n) => (n === j ? { [e.target.value]: config } : x)))
+                              }
+                            />
+                          </label>
+                          <EntryDetails
+                            value={config}
+                            bookmarks={bookmarks}
+                            onChange={(next) => update(entries.map((x, n) => (n === j ? { [entryName]: next } : x)))}
+                          />
+                          <Move
+                            label={entryName || "entry"}
+                            index={j}
+                            length={entries.length}
+                            move={(d) => {
+                              update(reorder(entries, j, d));
+                              setNewEntry(null);
+                            }}
+                            remove={() => {
+                              update(entries.filter((_, n) => n !== j));
+                              setNewEntry(null);
+                            }}
+                          />
+                        </ContentRow>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            </div>
           );
         })}
-      <button type="button" onClick={() => onChange([...value, { [`New group ${value.length + 1}`]: [] }])}>
-        Add group
-      </button>
     </div>
   );
 }
@@ -725,10 +836,12 @@ function Widgets({ value, onChange }) {
   const [library, setLibrary] = useState(false);
   if (!Array.isArray(value)) return <p>Use Source to repair this widget list.</p>;
   return (
-    <section className={styles.card}>
-      <div className={styles.heading}>
+    <section className={styles.contentGroup}>
+      <div className={styles.widgetToolbar}>
         <div>
-          <h2>Your Home widgets</h2>
+          <h2>
+            Your Home widgets <span className={styles.contentBadge}>{value.length}</span>
+          </h2>
           <p>Shown on Home, in this order.</p>
         </div>
         <button type="button" onClick={() => setLibrary(!library)}>
@@ -749,11 +862,15 @@ function Widgets({ value, onChange }) {
         const [type, config] = Object.entries(widget)[0] || [];
         const item = HOME_WIDGETS.find((entry) => entry.id === type);
         return (
-          <details className={styles.entry} key={index}>
-            <summary>
-              {item?.name || pretty(type || "Widget")}
-              <span className={styles.entryMeta}>Widget {index + 1}</span>
-            </summary>
+          <ContentRow
+            key={index}
+            name={item?.name || pretty(type || "Widget")}
+            subtitle={item?.description || `Position ${index + 1} on Home`}
+            kind={
+              type === "search" ? "search" : type === "datetime" ? "history" : type === "greeting" ? "person" : "home"
+            }
+            badge="widget"
+          >
             {type === "logo" && (
               <IconPicker
                 value={config.icon}
@@ -790,12 +907,13 @@ function Widgets({ value, onChange }) {
             )}
             {type === "openmeteo" && <p>Leave coordinates empty to use the browser’s location.</p>}
             <Move
+              label={item?.name || type || "widget"}
               index={index}
               length={value.length}
               move={(direction) => onChange(reorder(value, index, direction))}
               remove={() => onChange(value.filter((_, i) => i !== index))}
             />
-          </details>
+          </ContentRow>
         );
       })}
       <p className={styles.sourceHint}>Additional widget options remain available in Source.</p>
