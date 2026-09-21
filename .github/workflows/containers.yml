@@ -2,14 +2,14 @@ name: Test and publish containers
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, dev]
   push:
-    branches: [main]
+    branches: [main, dev]
     tags: ['v*.*.*']
   workflow_dispatch:
     inputs:
       publish:
-        description: Publish images from main after validation
+        description: Publish images from main or dev after validation
         type: boolean
         default: false
 
@@ -96,7 +96,7 @@ jobs:
     needs: [tests, build]
     if: >-
       github.event_name == 'push' ||
-      (github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main')
+      (github.event_name == 'workflow_dispatch' && inputs.publish && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'))
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
@@ -120,8 +120,14 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Only publish revisions that belong to main
-        run: git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+      - name: Verify publication branch
+        run: |
+          case "$GITHUB_REF" in
+            refs/heads/dev) target=origin/dev ;;
+            refs/heads/main|refs/tags/v*) target=origin/main ;;
+            *) echo "Unsupported publication ref: $GITHUB_REF" >&2; exit 1 ;;
+          esac
+          git merge-base --is-ancestor "$GITHUB_SHA" "$target"
       - name: Normalize registry namespace
         id: registry
         env:
@@ -141,11 +147,12 @@ jobs:
         with:
           images: ghcr.io/${{ steps.registry.outputs.owner }}/${{ matrix.image }}
           tags: |
-            type=raw,value=main,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=dev,enable=${{ github.ref == 'refs/heads/dev' }}
             type=sha,format=long,prefix=sha-
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-          flavor: latest=auto
+          flavor: latest=false
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.licenses=GPL-3.0
