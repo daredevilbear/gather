@@ -124,3 +124,5 @@
     flex-basis: auto;
   }
 }
+
+.information { width: 100%; min-width: 0; }

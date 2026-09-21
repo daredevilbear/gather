@@ -5,11 +5,14 @@ import styles from "./header.module.css";
 import GatherIcon from "./icon";
 import GatherMark from "./mark";
 
+import usePreferences from "components/account/preferences";
 import AccountMenu from "components/account/menu";
 import Inbox from "components/notifications/inbox";
 import Tab from "components/tab";
 
-export default function GatherHeader({ settings = {}, tabs = [], onSearch }) {
+export default function GatherHeader({ settings = {}, tabs = [], onSearch, informationWidgets }) {
+  const { data: preferences } = usePreferences();
+  const above = preferences?.widgetsPosition === "above";
   return (
     <header className={styles.header} aria-label="Gather application">
       <Link href="/" className={styles.brand} aria-label="Gather home">
@@ -26,6 +29,7 @@ export default function GatherHeader({ settings = {}, tabs = [], onSearch }) {
         {settings.gather?.notifications && <Inbox prefix={settings.gather.notificationPrefix} />}
         {settings.gather?.accountMenu !== false && <AccountMenu settingsUrl={settings.gather?.accountSettingsUrl} />}
       </nav>
+      {above && informationWidgets && <div className={styles.information}>{informationWidgets}</div>}
       {tabs.length > 0 && (
         <nav id="tabs" className={styles.tabs} aria-label="Dashboard sections">
           <ul
@@ -44,6 +48,7 @@ export default function GatherHeader({ settings = {}, tabs = [], onSearch }) {
           </ul>
         </nav>
       )}
+      {!above && informationWidgets && <div className={styles.information}>{informationWidgets}</div>}
     </header>
   );
 }

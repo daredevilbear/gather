@@ -430,15 +430,7 @@ function Home({ initialSettings }) {
           "relative m-auto flex flex-col justify-start z-10 h-full min-h-screen",
         )}
       >
-        <GatherHeader settings={settings} tabs={tabs} onSearch={() => setSearching(true)} />
-        <QuickLaunch
-          servicesAndBookmarks={servicesAndBookmarks}
-          searchString={searchString}
-          setSearchString={setSearchString}
-          isOpen={searching}
-          setSearching={setSearching}
-        />
-        {showWelcome && (
+        <GatherHeader settings={settings} tabs={tabs} onSearch={() => setSearching(true)} informationWidgets={showWelcome && (
           <div
             id="information-widgets"
             className={classNames(
@@ -483,7 +475,15 @@ function Home({ initialSettings }) {
               )}
             </div>
           </div>
-        )}
+        )} />
+        <QuickLaunch
+          servicesAndBookmarks={servicesAndBookmarks}
+          searchString={searchString}
+          setSearchString={setSearchString}
+          isOpen={searching}
+          setSearching={setSearching}
+        />
+
 
         {servicesAndBookmarksGroups}
 
