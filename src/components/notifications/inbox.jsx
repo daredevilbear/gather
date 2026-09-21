@@ -18,6 +18,7 @@ export default function Inbox({ prefix = "/gather-notifications/", fullPage = fa
   const [selected, setSelected] = useState(null);
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [badgeRefresh, setBadgeRefresh] = useState(0);
   const box = useRef(null);
   const target = useRef(null);
   const focused = useRef(null);
@@ -49,6 +50,20 @@ export default function Inbox({ prefix = "/gather-notifications/", fullPage = fa
     },
     { refreshInterval: 30000, revalidateOnFocus: true },
   );
+  useEffect(() => {
+    function resume() {
+      if (status !== "authenticated" || document.visibilityState === "hidden") return;
+      // Reapply even if SWR returns unchanged data after the app was suspended.
+      setBadgeRefresh((value) => value + 1);
+      mutate().catch(() => console.warn("[Gather badge] Resume inbox refresh failed"));
+    }
+    window.addEventListener("pageshow", resume);
+    document.addEventListener("visibilitychange", resume);
+    return () => {
+      window.removeEventListener("pageshow", resume);
+      document.removeEventListener("visibilitychange", resume);
+    };
+  }, [status, mutate]);
   const { data: linked, error: linkedError } = useSWR(
     identity && selected ? ["gather-message", identity, selected, safePrefix] : null,
     () => api(`message/${selected}`),
@@ -156,11 +171,11 @@ export default function Inbox({ prefix = "/gather-notifications/", fullPage = fa
   useEffect(() => {
     if (!("setAppBadge" in navigator)) return;
     if (status === "unauthenticated" || (data && (!preferences.badge || badgeCount === 0))) {
-      navigator.clearAppBadge?.().catch(() => {});
+      navigator.clearAppBadge?.().catch(() => console.warn("[Gather badge] Clear failed"));
     } else if (status === "authenticated" && data && preferences.badge) {
-      navigator.setAppBadge(badgeCount).catch(() => {});
+      navigator.setAppBadge(badgeCount).catch(() => console.warn("[Gather badge] Update failed"));
     }
-  }, [status, data, preferences.badge, badgeCount]);
+  }, [status, data, preferences.badge, badgeCount, badgeRefresh]);
 
   async function savePreferences(patch) {
     if (busy || !data?.account) return;

@@ -5,19 +5,30 @@ async function inboxState() {
   if (!response.ok) throw Error('Inbox unavailable');
   return response.json();
 }
-async function updateBadge() {
+async function updateBadge(reason = 'push') {
+  let stage = 'inbox-state';
   if (!self.navigator?.setAppBadge) return;
   try {
     const saved = await inboxState();
-    if (saved.preferences?.badge === false) return self.navigator.clearAppBadge();
+    if (saved.preferences?.badge === false) {
+      stage = 'clear';
+      await self.navigator.clearAppBadge();
+      return;
+    }
+    stage = 'feed';
     const response = await fetch('/gather-notifications/feed', {credentials:'same-origin', cache:'no-store'});
-    if (!response.ok) return;
+    if (!response.ok) throw Error('Feed unavailable');
     const feed = await response.json();
     const unread = (feed.messages || []).filter(message => !saved.states?.[message.id]).length;
+    stage = 'apply';
     if (unread) await self.navigator.setAppBadge(unread);
     else await self.navigator.clearAppBadge();
-  } catch { /* A signed-out or offline device catches up when the inbox next opens. */ }
+  } catch {
+    // Never log account identifiers, notification content, URLs or credentials.
+    console.warn('[Gather badge] Refresh failed', {reason, stage});
+  }
 }
+self.addEventListener('activate', event => event.waitUntil(updateBadge('activate')));
 self.addEventListener('push', event => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch {}

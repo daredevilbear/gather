@@ -59,3 +59,17 @@ Use a distinct hostname, OIDC client, config directory, ntfy topic/server, VAPID
 key and data directory. Staging must never share production push subscriptions or
 write the live dashboard's configuration. Run a real device test before production
 cutover. The [integrated editor](settings.md) can manage topics and branding through a read-only runtime mount into the companion.
+
+### Badge refresh diagnostics
+
+The notification worker refreshes the unread app badge when a new worker activates
+and when a push arrives. The app reapplies its badge and refreshes the inbox on
+page resume (`pageshow` and visible `visibilitychange`), including when the cached
+inbox data has not changed. Existing read/dismiss updates still clear the badge.
+
+Failed updates emit `[Gather badge]` browser/worker console warnings. Worker
+warnings identify the trigger and failed stage (`inbox-state`, `feed`, `clear`
+or `apply`); they do not include notification content, account identifiers or
+credentials. These are local diagnostics, not a persistent server history.
+Deploy both the dashboard and notification companion to receive these changes.
+Test on the installed app after upgrade and after backgrounding/resuming it.

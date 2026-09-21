@@ -2,6 +2,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const events = {}, notifications = [], opened = [], badges = [];
+const warnings = [];
+let failFetch = false;
 let preferences = {badge:true, pushPage:true};
 const self = {
  navigator: {setAppBadge:async count=>badges.push(count),clearAppBadge:async()=>badges.push(0)},
@@ -11,9 +13,17 @@ const self = {
  registration:{showNotification:async(title,options)=>notifications.push({title,options})},
  clients:{matchAll:async()=>[],openWindow:async url=>opened.push(url)},
 };
-vm.runInNewContext(fs.readFileSync(process.argv[2] || 'notifications/sw.js','utf8').replace('__GATHER_ICON__', JSON.stringify('/icon.png')),{self,URL,MessageChannel,setTimeout,clearTimeout,fetch:async url=>({ok:true,json:async()=>url.endsWith('/feed') ? {messages:[{id:'one'},{id:'two'}]} : {states:{one:'read'},preferences}})});
+vm.runInNewContext(fs.readFileSync(process.argv[2] || 'notifications/sw.js','utf8').replace('__GATHER_ICON__', JSON.stringify('/icon.png')),{self,URL,MessageChannel,setTimeout,clearTimeout,console:{warn:(...args)=>warnings.push(args)},fetch:async url=>({ok:!failFetch,json:async()=>url.endsWith('/feed') ? {messages:[{id:'one'},{id:'two'}]} : {states:{one:'read'},preferences}})});
 (async()=>{
  let work;const waitUntil=p=>work=p;
+ events.activate({waitUntil});await work;
+ assert.equal(badges.at(-1),1);
+ assert.equal(notifications.length,0);
+ failFetch=true;
+ events.activate({waitUntil});await work;
+ assert.equal(warnings.at(-1)[1].reason,'activate');
+ assert.equal(warnings.at(-1)[1].stage,'inbox-state');
+ failFetch=false;
  events.push({data:{json:()=>({id:'message-1',title:'Service alert',body:'Example message',url:'https://untrusted.invalid/'})},waitUntil});await work;
  assert.equal(badges.at(-1),1);
  assert.equal(notifications[0].title,'Service alert');
