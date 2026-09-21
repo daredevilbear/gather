@@ -179,3 +179,36 @@
 .message p a {
   color: inherit;
 }
+
+.fullPage {
+  min-height: 100vh;
+  padding: clamp(16px, 4vw, 56px);
+  background: #121b26;
+  color: #f1f5f2;
+}
+.fullPage > summary {
+  display: none;
+}
+.fullPage .panel {
+  position: static;
+  width: 100%;
+  max-width: 1120px;
+  margin: auto;
+  box-shadow: none;
+}
+.fullPage .list {
+  max-height: none;
+  overflow: visible;
+}
+.preferences label {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-height: 44px;
+  margin: 8px 0;
+}
+.panel :is(button, select, a, input):focus-visible {
+  outline: 2px solid #b8ebce;
+  outline-offset: 3px;
+}

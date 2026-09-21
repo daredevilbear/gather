@@ -38,6 +38,18 @@ class PushTests(unittest.TestCase):
         handler.owner=lambda:owner
         handler.do_POST()
         return responses[-1]
+    def test_notification_preferences_are_validated_and_account_scoped(self):
+        preferences = {'badge':False,'pushPage':False,'inboxView':'page'}
+        body = {'account':'account-a','updates':{},'preferences':preferences}
+        self.assertEqual(self.api('inbox-state',body=body)[1]['preferences'], preferences)
+        self.assertEqual(self.api('inbox-state',owner='account-b',body=body)[0],409)
+        other = self.api('inbox-state',owner='account-b',body={'account':'account-b','updates':{}})
+        self.assertEqual(other[1]['preferences'], {'badge':True,'pushPage':True,'inboxView':'panel'})
+        self.assertEqual(self.api('inbox-state',body={**body,'preferences':{'badge':'false'}})[0],400)
+        self.assertEqual(self.api('inbox-state',body=body,origin='https://evil.invalid')[0],403)
+        # Updating read state preserves preferences.
+        self.assertEqual(self.api('inbox-state',body={'account':'account-a','updates':{'one':'read'}})[1]['preferences'],preferences)
+
     def test_subscription_ownership_csrf_and_deletion(self):
         self.assertEqual(self.api('subscribe',origin='https://evil.invalid')[0],403)
         self.assertEqual(self.api('subscribe',header='')[0],403)

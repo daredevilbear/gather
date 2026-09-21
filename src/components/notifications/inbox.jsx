@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import useSWR from "swr";
@@ -10,10 +11,10 @@ import PushControls from "./push";
 import GatherIcon from "components/gather/icon";
 
 const validId = (value) => typeof value === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(value);
-export default function Inbox({ prefix = "/gather-notifications/" }) {
+export default function Inbox({ prefix = "/gather-notifications/", fullPage = false }) {
   const { data: session, status } = useSession();
   const identity = session?.user?.id || session?.user?.email;
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(fullPage);
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -106,6 +107,7 @@ export default function Inbox({ prefix = "/gather-notifications/" }) {
   }, [mutate]);
   useEffect(() => {
     function close(event) {
+      if (fullPage) return;
       if (event.key === "Escape" || (event.type === "pointerdown" && !box.current?.contains(event.target)))
         setOpen(false);
     }
@@ -115,7 +117,7 @@ export default function Inbox({ prefix = "/gather-notifications/" }) {
       document.removeEventListener("keydown", close);
       document.removeEventListener("pointerdown", close);
     };
-  }, []);
+  }, [fullPage]);
   useEffect(() => {
     if (open && target.current && focused.current !== selected) {
       target.current.scrollIntoView?.({ block: "nearest" });
@@ -150,6 +152,31 @@ export default function Inbox({ prefix = "/gather-notifications/" }) {
       if (current === generation.current) setBusy(false);
     }
   }
+  const preferences = { badge: true, pushPage: true, inboxView: "panel", ...data?.preferences };
+  const badgeCount = (data?.messages || []).filter((message) => !data?.states?.[message.id]).length;
+  useEffect(() => {
+    if (!("setAppBadge" in navigator)) return;
+    if (status === "unauthenticated" || (data && (!preferences.badge || badgeCount === 0))) {
+      navigator.clearAppBadge?.().catch(() => {});
+    } else if (status === "authenticated" && data && preferences.badge) {
+      navigator.setAppBadge(badgeCount).catch(() => {});
+    }
+  }, [status, data, preferences.badge, badgeCount]);
+
+  async function savePreferences(patch) {
+    if (busy || !data?.account) return;
+    const current = generation.current;
+    setBusy(true);
+    setSaveError("");
+    try {
+      const saved = await api("inbox-state", { account: data.account, updates: {}, preferences: { ...preferences, ...patch } });
+      if (current === generation.current) await mutate((previous) => ({ ...previous, ...saved }), false);
+    } catch {
+      if (current === generation.current) setSaveError("Could not save notification preferences. Try again.");
+    } finally {
+      if (current === generation.current) setBusy(false);
+    }
+  }
   if (status !== "authenticated" || !identity) return null;
   const states = data?.states || {};
   const messages = [...(data?.messages || [])];
@@ -177,17 +204,25 @@ export default function Inbox({ prefix = "/gather-notifications/" }) {
             ? "Latest 200 · 30-day history"
             : "Loading notifications…");
   return (
-    <details ref={box} open={open} className={styles.inbox} onToggle={(event) => setOpen(event.currentTarget.open)}>
-      <summary className={styles.summary} aria-label={`${unread} unread notifications`}>
+    <details ref={box} open={fullPage || open} className={fullPage ? styles.fullPage : styles.inbox} onToggle={(event) => setOpen(event.currentTarget.open)}>
+      <summary hidden={fullPage} className={styles.summary} aria-label={`${unread} unread notifications`}
+        onClick={(event) => {
+          if (preferences.inboxView === "page" && !fullPage) {
+            event.preventDefault();
+            // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- Full navigation remounts the independent inbox page and clears popup state.
+            window.location.assign("/notifications");
+          }
+        }}>
         <GatherIcon name="bell" />
         Notifications{unread ? ` · ${unread}` : ""}
       </summary>
       <section className={styles.panel} aria-label="Notification inbox">
         <div className={styles.actions}>
           <strong>Notifications</strong>
-          <button type="button" onClick={() => setOpen(false)}>
-            Close
-          </button>
+          {fullPage ? <Link href="/">Back to dashboard</Link> : <>
+            <Link href={`/notifications${selected ? `?notification=${encodeURIComponent(selected)}` : ""}`}>Expand inbox</Link>
+            <button type="button" onClick={() => setOpen(false)}>Close</button>
+          </>}
         </div>
         <div className={styles.actions}>
           <select
@@ -224,6 +259,24 @@ export default function Inbox({ prefix = "/gather-notifications/" }) {
         <small role="status">{notice}</small>
         <details className={styles.preferences}>
           <summary>Notification preferences</summary>
+          <label>
+            <input type="checkbox" checked={preferences.badge} disabled={busy || !data}
+              onChange={(e) => savePreferences({ badge: e.target.checked })} />
+            Show unread count on the app icon
+          </label>
+          <label>
+            <input type="checkbox" checked={preferences.pushPage} disabled={busy || !data}
+              onChange={(e) => savePreferences({ pushPage: e.target.checked })} />
+            Open push notifications in the full-page inbox
+          </label>
+          <label>Open inbox as
+            <select value={preferences.inboxView} disabled={busy || !data}
+              onChange={(e) => savePreferences({ inboxView: e.target.value })}>
+              <option value="panel">Compact panel</option>
+              <option value="page">Full page</option>
+            </select>
+          </label>
+          <small>App icon badges depend on your device and notification permissions.</small>
           <PushControls api={api} prefix={safePrefix} />
         </details>
         <div className={styles.list}>

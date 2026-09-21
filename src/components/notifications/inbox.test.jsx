@@ -111,3 +111,26 @@ describe("native notification inbox", () => {
     expect(container.querySelector("img")).toBeNull();
   });
 });
+
+
+it("updates and clears the installed app badge as unread messages are read", async () => {
+  Object.defineProperty(navigator, "setAppBadge", { configurable: true, value: vi.fn().mockResolvedValue() });
+  Object.defineProperty(navigator, "clearAppBadge", { configurable: true, value: vi.fn().mockResolvedValue() });
+  mount();
+  await waitFor(() => expect(navigator.setAppBadge).toHaveBeenCalledWith(1));
+  fireEvent.click(screen.getByText("Mark read"));
+  await waitFor(() => expect(navigator.clearAppBadge).toHaveBeenCalled());
+});
+it("renders a full-page inbox and saves account-specific preferences", async () => {
+  render(<SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}><Inbox fullPage /></SWRConfig>);
+  await screen.findByText("First");
+  expect(screen.getByRole("link", { name: "Back to dashboard" })).toHaveAttribute("href", "/");
+  fireEvent.click(screen.getByText("Notification preferences"));
+  fireEvent.click(screen.getByLabelText("Open push notifications in the full-page inbox"));
+  await waitFor(() => expect(fetch).toHaveBeenCalledWith(
+    "/gather-notifications/inbox-state",
+    expect.objectContaining({ body: JSON.stringify({
+      account: "account-one", updates: {}, preferences: {badge:true,pushPage:false,inboxView:"panel"},
+    }) }),
+  ));
+});
