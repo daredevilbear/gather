@@ -284,6 +284,7 @@ export default function QuickLaunch({ servicesAndBookmarks, searchString, setSea
           transitionDuration: "300ms, 0s",
           transitionDelay: isOpen ? "0s, 0s" : "0s, 300ms",
         }}
+        aria-label="Find services and bookmarks"
         role="dialog"
         aria-modal="true"
         aria-hidden={!isOpen}
@@ -293,6 +294,7 @@ export default function QuickLaunch({ servicesAndBookmarks, searchString, setSea
           <div className="flex min-h-full min-w-full items-start justify-center text-center">
             <dialog className="mt-[10%] mx-auto min-w-[90%] max-w-[90%] md:min-w-[40%] md:max-w-[40%] rounded-md p-0 block font-medium text-theme-700 dark:text-theme-200 dark:hover:text-theme-300 shadow-md shadow-theme-900/10 dark:shadow-theme-900/20 bg-theme-50 dark:bg-theme-800">
               <input
+                aria-label="Search services and bookmarks"
                 placeholder="Search"
                 className={classNames(
                   results.length > 0 && "rounded-t-md",

@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+vi.mock("next-auth/react", () => ({ useSession: () => ({ status: "unauthenticated" }), signOut: vi.fn() }));
 
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -485,6 +486,21 @@ describe("pages/index Home behavior", () => {
     expect(screen.getAllByTestId("bookmarks-group")[0]).toHaveTextContent("Bookmarks");
   });
 
+  it.each(["home", "media", "network", "systems", "bitcoin"])(
+    "keeps application navigation on %s and limits the welcome widgets to Home",
+    async (activeTab) => {
+      const layout = Object.fromEntries(
+        ["Home", "Media", "Network", "Systems", "Bitcoin"].map((tab) => [tab, { tab }]),
+      );
+      state.widgetsData = [{ type: "greeting" }, { type: "search" }];
+      await renderIndex({ initialSettings: { layout }, settings: { layout }, activeTab });
+      expect(document.querySelector('header[aria-label="Gather application"]')).toBeInTheDocument();
+      expect(screen.getAllByTestId("tab")).toHaveLength(5);
+      expect(!!document.querySelector("#information-widgets")).toBe(activeTab === "home");
+      expect(screen.getByRole("button", { name: "Find services & bookmarks" })).toBeInTheDocument();
+    },
+  );
+
   it("waits for settings.layout to populate when it differs from initial settings", async () => {
     state.servicesData = [{ name: "Services", services: [], groups: [] }];
     state.bookmarksData = [{ name: "Bookmarks", bookmarks: [] }];
@@ -516,6 +532,7 @@ describe("pages/index Home behavior", () => {
     });
 
     expect(document.querySelector("#myTab")?.className).toContain("backdrop-blur-sm");
+    expect(document.querySelector("#myTab")?.closest("header")).toHaveAttribute("aria-label", "Gather application");
     expect(document.querySelector("#information-widgets")?.className).toContain("backdrop-blur-sm");
   });
 

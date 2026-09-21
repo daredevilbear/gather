@@ -45,7 +45,12 @@ describe("settings API", () => {
     );
     expect(save).toHaveBeenCalledWith("settings.yaml", "title: Test", "old", undefined);
     expect(res.revalidate).toHaveBeenCalledWith("/");
-    expect(res.json).toHaveBeenCalledWith({ revision: "next", backups: [], applied: true });
+    expect(res.json).toHaveBeenCalledWith({
+      revision: "next",
+      backups: [],
+      applied: true,
+      capabilities: { system: true },
+    });
   });
   it("validates source without mutating any files", async () => {
     administrator.mockResolvedValue(true);

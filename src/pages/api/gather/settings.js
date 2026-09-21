@@ -8,11 +8,12 @@ export default async function handler(req, res) {
   if (!(await administrator(req)))
     return res.status(403).json({ error: "Dashboard settings require an explicitly authorized administrator." });
   const store = createStore(CONF_DIR);
+  const capabilities = { system: true };
   try {
     if (req.method === "GET") {
-      if (!req.query.file) return res.json({ administrator: true, files: FILES });
+      if (!req.query.file) return res.json({ administrator: true, files: FILES, capabilities });
       const doc = await store.document(req.query.file);
-      return res.json({ ...doc, backups: await store.backups(req.query.file) });
+      return res.json({ ...doc, capabilities, backups: await store.backups(req.query.file) });
     }
     if (req.method !== "POST") {
       res.setHeader("Allow", "GET, POST");
@@ -33,7 +34,7 @@ export default async function handler(req, res) {
     } catch {
       applied = false;
     }
-    return res.json({ ...result, backups: await store.backups(file), applied });
+    return res.json({ ...result, capabilities, backups: await store.backups(file), applied });
   } catch (e) {
     return res.status(e instanceof ConfigError ? e.status : 500).json({
       error:

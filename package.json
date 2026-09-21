@@ -5,6 +5,7 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "dev": "next dev",
+    "dev:preview": "next dev --webpack --hostname 127.0.0.1 --port 3022",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint .",
@@ -39,6 +40,7 @@
     "react-i18next": "^17.0.12",
     "react-icons": "^5.6.0",
     "recharts": "^3.1.2",
+    "sharp": "0.35.4",
     "swr": "^2.5.1",
     "systeminformation": "^5.33.1",
     "tough-cookie": "^6.0.2",

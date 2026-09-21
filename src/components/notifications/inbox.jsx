@@ -2,9 +2,12 @@ import { useSession } from "next-auth/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 
+
 import styles from "./inbox.module.css";
 import Message from "./message";
 import PushControls from "./push";
+
+import GatherIcon from "components/gather/icon";
 
 const validId = (value) => typeof value === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(value);
 export default function Inbox({ prefix = "/gather-notifications/" }) {
@@ -176,9 +179,7 @@ export default function Inbox({ prefix = "/gather-notifications/" }) {
   return (
     <details ref={box} open={open} className={styles.inbox} onToggle={(event) => setOpen(event.currentTarget.open)}>
       <summary className={styles.summary} aria-label={`${unread} unread notifications`}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M12 2a2 2 0 0 0-2 2v.35A6 6 0 0 0 6 10v4l-2 3v1h16v-1l-2-3v-4a6 6 0 0 0-4-5.65V4a2 2 0 0 0-2-2Zm-3 18a3 3 0 0 0 6 0H9Z" />
-        </svg>
+        <GatherIcon name="bell" />
         Notifications{unread ? ` · ${unread}` : ""}
       </summary>
       <section className={styles.panel} aria-label="Notification inbox">
@@ -221,7 +222,10 @@ export default function Inbox({ prefix = "/gather-notifications/" }) {
           </button>
         </div>
         <small role="status">{notice}</small>
-        <PushControls api={api} prefix={safePrefix} />
+        <details className={styles.preferences}>
+          <summary>Notification preferences</summary>
+          <PushControls api={api} prefix={safePrefix} />
+        </details>
         <div className={styles.list}>
           {visible.map((message) => (
             <article
@@ -255,7 +259,7 @@ export default function Inbox({ prefix = "/gather-notifications/" }) {
               </div>
             </article>
           ))}
-          {!visible.length && data && <p>No notifications to show.</p>}
+          {!visible.length && data && <p>You’re all caught up. No notifications in this view.</p>}
         </div>
         <small>Read and dismissed status syncs across devices signed in to this account.</small>
       </section>

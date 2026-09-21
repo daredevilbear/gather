@@ -1,5 +1,5 @@
 import { signIn } from "next-auth/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import styles from "./editor.module.css";
 async function call(body) {
@@ -23,7 +23,32 @@ async function call(body) {
   if (!r.ok) throw Error(data.error || "System settings are unavailable.");
   return data;
 }
-export default function SystemSettings() {
+const previewConfig = {
+  revision: "preview",
+  issuer: "https://accounts.example.com",
+  clientId: "gather",
+  providerName: "Gather account",
+  admins: ["preview-admin"],
+  ntfyUrl: "https://ntfy.example.com",
+  callbackUrl: "https://dashboard.example.com/api/auth/callback/homepage-oidc",
+  clientSecretSet: true,
+  ntfyAuthSet: true,
+  status: { phase: "idle" },
+};
+async function previewRequest(body) {
+  return body
+    ? {
+        message:
+          body.action === "test"
+            ? "Preview connection check complete. No live servers were contacted."
+            : "Preview saved. No live services were changed.",
+      }
+    : structuredClone(previewConfig);
+}
+export default function SystemSettings({ embedded = false, preview = false, onDirtyChange, titleRef }) {
+  const request = preview ? previewRequest : call;
+  const formRef = useRef(null);
+  const Container = embedded ? "section" : "main";
   const [config, setConfig] = useState(null),
     [draft, setDraft] = useState(null),
     [error, setError] = useState(""),
@@ -33,7 +58,7 @@ export default function SystemSettings() {
     [dirty, setDirty] = useState(false);
   useEffect(() => {
     let active = true;
-    call()
+    request()
       .then((c) => {
         if (active) {
           setConfig(c);
@@ -46,7 +71,7 @@ export default function SystemSettings() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [request]);
   useEffect(() => {
     if (!dirty) return;
     const warn = (e) => {
@@ -56,12 +81,16 @@ export default function SystemSettings() {
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
   const set = (key, value) => {
     setDraft({ ...draft, [key]: value });
     setDirty(true);
     setReview(false);
   };
   async function run(action) {
+    if (action !== "confirm" && !validForm()) return;
     setBusy(true);
     setError("");
     setMessage("");
@@ -76,12 +105,14 @@ export default function SystemSettings() {
         ...(draft.clientSecret ? { clientSecret: draft.clientSecret } : {}),
         ...(draft.ntfyAuth ? { ntfyAuth: draft.ntfyAuth } : {}),
       };
-      const result = await call({ action, config: data });
+      const result = await request({ action, config: data });
       if (action === "apply") {
         setDirty(false);
         setDraft({ ...draft, clientSecret: "", ntfyAuth: "" });
         setMessage(
-          "Apply queued. Services will restart briefly. Refresh this page, sign in again, then confirm the change within 10 minutes. Otherwise the previous configuration will be restored.",
+          preview
+            ? result.message
+            : "Apply queued. Services will restart briefly. Refresh this page, sign in again, then confirm the change within 10 minutes. Otherwise the previous configuration will be restored.",
         );
         setReview(false);
       } else if (action === "confirm")
@@ -95,19 +126,33 @@ export default function SystemSettings() {
       setBusy(false);
     }
   }
+  function validForm() {
+    const invalid = formRef.current?.querySelector(":invalid");
+    if (invalid) {
+      invalid.reportValidity();
+      invalid.focus();
+      return false;
+    }
+    return true;
+  }
   return (
-    <main className={styles.editor}>
-      <header className={styles.top}>
+    <Container className={embedded ? styles.systemSection : styles.editor}>
+      <header className={embedded ? styles.heading : styles.top}>
         <div>
-          <p className={styles.eyebrow}>GATHER / SYSTEM</p>
-          <h1>System configuration</h1>
+          <p className={styles.eyebrow}>ADMINISTRATION</p>
+          <h2 ref={titleRef} tabIndex={-1} className={styles.sectionTitle}>
+            System settings
+          </h2>
           <p>Authentication, notification connections and administrator access.</p>
         </div>
         {/* Full navigation preserves the unsaved-change warning. */}
         {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-        <a href="/settings">Dashboard settings</a>
+        {!embedded && <a href="/settings">Dashboard settings</a>}
       </header>
-      <div className={styles.content} style={{ maxWidth: 900, margin: "auto" }}>
+      <div
+        className={embedded ? undefined : styles.content}
+        style={embedded ? undefined : { maxWidth: 900, margin: "auto" }}
+      >
         {error && (
           <p role="alert" className={styles.error}>
             {error}
@@ -137,7 +182,11 @@ export default function SystemSettings() {
                     Confirm by {new Date(config.status.deadline).toLocaleTimeString()} after signing in with the new
                     configuration. An unconfirmed change rolls back automatically.
                   </p>
-                  <button onClick={() => signIn("homepage-oidc", { callbackUrl: "/system" }, { prompt: "login" })}>
+                  <button
+                    onClick={() =>
+                      signIn("homepage-oidc", { callbackUrl: "/settings?section=system" }, { prompt: "login" })
+                    }
+                  >
                     Sign in again
                   </button>
                   <button disabled={busy} onClick={() => run("confirm")}>
@@ -147,6 +196,7 @@ export default function SystemSettings() {
               )}
             </section>
             <fieldset
+              ref={formRef}
               className={styles.form}
               disabled={busy || ["applying", "awaiting_confirmation", "rolling_back"].includes(config.status.phase)}
             >
@@ -154,11 +204,11 @@ export default function SystemSettings() {
                 <h2>Single sign-on (OIDC)</h2>
                 <label>
                   Issuer URL
-                  <input type="url" value={draft.issuer} onChange={(e) => set("issuer", e.target.value)} />
+                  <input type="url" required value={draft.issuer} onChange={(e) => set("issuer", e.target.value)} />
                 </label>
                 <label>
                   Client ID
-                  <input value={draft.clientId} onChange={(e) => set("clientId", e.target.value)} />
+                  <input required value={draft.clientId} onChange={(e) => set("clientId", e.target.value)} />
                 </label>
                 <label>
                   Client secret
@@ -187,7 +237,7 @@ export default function SystemSettings() {
                 <h2>Notification connection</h2>
                 <label>
                   ntfy server URL
-                  <input type="url" value={draft.ntfyUrl} onChange={(e) => set("ntfyUrl", e.target.value)} />
+                  <input type="url" required value={draft.ntfyUrl} onChange={(e) => set("ntfyUrl", e.target.value)} />
                 </label>
                 <label>
                   Authorization
@@ -203,7 +253,7 @@ export default function SystemSettings() {
                 </label>
                 <p>
                   Use “Bearer token” or “Basic base64-credentials”. Prefer a read-only token for the subscribed topics.
-                  Topic and icon options are under Dashboard settings → Push & topics.
+                  Choose notification topics and icons in Notifications.
                 </p>
               </section>
               <section className={styles.card}>
@@ -223,7 +273,12 @@ export default function SystemSettings() {
               </section>
               <div className={styles.toolbar}>
                 <button onClick={() => run("test")}>Test connections</button>
-                <button className={styles.primary} onClick={() => setReview(true)}>
+                <button
+                  className={styles.primary}
+                  onClick={() => {
+                    if (validForm()) setReview(true);
+                  }}
+                >
                   Review & apply
                 </button>
               </div>
@@ -251,6 +306,6 @@ export default function SystemSettings() {
           </>
         )}
       </div>
-    </main>
+    </Container>
   );
 }

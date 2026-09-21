@@ -2,6 +2,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import SettingsEditor, { Groups } from "./editor";
+import { createPreviewStore } from "./preview-store";
 vi.mock("next/head", () => ({ default: ({ children }) => children }));
 vi.mock("next/link", () => ({ default: ({ children, ...props }) => <a {...props}>{children}</a> }));
 afterEach(() => {
@@ -45,12 +46,10 @@ describe("settings editor", () => {
   it("keeps unsaved edits when another section is requested", async () => {
     vi.stubGlobal(
       "fetch",
-      vi
-        .fn()
-        .mockResolvedValue({
-          ok: true,
-          json: async () => ({ file: "settings.yaml", text: "title: Original\n", revision: "old", backups: [] }),
-        }),
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ file: "settings.yaml", text: "title: Original\n", revision: "old", backups: [] }),
+      }),
     );
     render(<SettingsEditor />);
     fireEvent.change(await screen.findByLabelText("Dashboard title"), { target: { value: "Unsaved" } });
@@ -58,6 +57,21 @@ describe("settings editor", () => {
     expect(screen.getByText(/You have unsaved changes/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Keep editing" }));
     expect(screen.getByLabelText("Dashboard title")).toHaveValue("Unsaved");
+  });
+  it("preserves the shared dashboard draft across appearance and layout", async () => {
+    const request = createPreviewStore();
+    render(<SettingsEditor request={request} preview />);
+    fireEvent.change(await screen.findByLabelText("Dashboard title"), { target: { value: "My workspace" } });
+    fireEvent.click(screen.getByRole("button", { name: "Layout & tabs" }));
+    expect(screen.queryByText(/You have unsaved changes/)).not.toBeInTheDocument();
+    fireEvent.change(screen.getAllByLabelText("Tab name")[0], { target: { value: "Everyday" } });
+    fireEvent.click(screen.getByRole("button", { name: "Appearance" }));
+    expect(screen.getByLabelText("Dashboard title")).toHaveValue("My workspace");
+    fireEvent.click(screen.getByRole("button", { name: "Save & apply" }));
+    await screen.findByText(/Saved and applied/);
+    const saved = await request(null, "settings.yaml");
+    expect(saved.text).toContain("My workspace");
+    expect(saved.text).toContain("Everyday");
   });
   it("shows a permission error without rendering configuration", async () => {
     vi.stubGlobal(
@@ -87,5 +101,82 @@ describe("settings editor", () => {
     fireEvent.click(screen.getByText("Example"));
     fireEvent.change(screen.getByLabelText("Service name"), { target: { value: "Renamed" } });
     expect(change.mock.calls[0][0][0].Home[0].Renamed.widget.key).toBe("{{HOMEPAGE_VAR_TOKEN}}");
+  });
+});
+
+describe("guided editor navigation", () => {
+  it("only includes system navigation when the server grants access", async () => {
+    const store = createPreviewStore();
+    const request = async (...args) => ({ ...(await store(...args)), capabilities: { system: false } });
+    render(<SettingsEditor request={request} />);
+    await screen.findByLabelText("Dashboard title");
+    expect(screen.queryByRole("button", { name: "System settings" })).not.toBeInTheDocument();
+  });
+  it("guards unsaved system changes and keeps system settings on the same page", async () => {
+    render(<SettingsEditor request={createPreviewStore()} preview />);
+    await screen.findByLabelText("Dashboard title");
+    fireEvent.click(screen.getByRole("button", { name: "System settings" }));
+    fireEvent.change(await screen.findByLabelText("Sign-in button name"), { target: { value: "My account" } });
+    fireEvent.click(screen.getByRole("button", { name: "Services", exact: true }));
+    expect(screen.getByText(/You have unsaved changes/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Keep editing" }));
+    expect(screen.getByLabelText("Sign-in button name")).toHaveValue("My account");
+    fireEvent.click(screen.getByRole("button", { name: "Services", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: "Discard changes" }));
+    await screen.findByRole("heading", { name: "Services" });
+  });
+  it("removes a layout without removing its service group", async () => {
+    const request = createPreviewStore();
+    const before = await request(null, "services.yaml");
+    render(<SettingsEditor request={request} preview />);
+    await screen.findByLabelText("Dashboard title");
+    fireEvent.click(screen.getByRole("button", { name: "Layout & tabs" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove layout for Your everyday" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save & apply" }));
+    await screen.findByText(/Saved and applied/);
+    expect((await request(null, "settings.yaml")).text).not.toContain("  Your everyday:");
+    expect((await request(null, "services.yaml")).text).toBe(before.text);
+  });
+  it("blocks saving an invalid service URL in the visual form", async () => {
+    const request = vi.fn(createPreviewStore());
+    render(<SettingsEditor request={request} preview />);
+    await screen.findByLabelText("Dashboard title");
+    fireEvent.click(screen.getByRole("button", { name: "Services", exact: true }));
+    fireEvent.click(await screen.findByText("Home Assistant", { selector: "summary" }));
+    fireEvent.change(screen.getAllByLabelText("Service URL")[0], { target: { value: "broken url" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save & apply" }));
+    expect(request.mock.calls.filter(([body]) => body?.action === "save")).toHaveLength(0);
+  });
+});
+
+describe("reset changes", () => {
+  it("immediately restores the latest saved version without a hidden confirmation or server write", async () => {
+    const request = vi.fn(createPreviewStore());
+    render(<SettingsEditor request={request} preview />);
+    fireEvent.change(await screen.findByLabelText("Dashboard title"), { target: { value: "Saved title" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save & apply" }));
+    await screen.findByText(/Saved and applied/);
+    fireEvent.change(screen.getByLabelText("Dashboard title"), { target: { value: "Unsaved title" } });
+    request.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: "Reset changes" }));
+    expect(screen.getByLabelText("Dashboard title")).toHaveValue("Saved title");
+    expect(screen.getByRole("status")).toHaveTextContent("reset to the last saved version");
+    expect(screen.queryByRole("button", { name: "Discard changes" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save & apply" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Reset changes" })).toBeDisabled();
+    expect(request).not.toHaveBeenCalled();
+  });
+  it("repairs invalid source and restores shared appearance/layout drafts together", async () => {
+    render(<SettingsEditor request={createPreviewStore()} preview />);
+    fireEvent.change(await screen.findByLabelText("Dashboard title"), { target: { value: "Unsaved title" } });
+    fireEvent.click(screen.getByRole("button", { name: "Layout & tabs" }));
+    fireEvent.change(screen.getAllByLabelText("Tab name")[0], { target: { value: "Unsaved tab" } });
+    fireEvent.click(screen.getByRole("button", { name: "Source", exact: true }));
+    fireEvent.change(screen.getByLabelText("settings.yaml"), { target: { value: "broken: [" } });
+    fireEvent.click(screen.getByRole("button", { name: "Reset changes" }));
+    fireEvent.click(screen.getByRole("button", { name: "Visual", exact: true }));
+    expect(screen.getAllByLabelText("Tab name")[0]).toHaveValue("Home");
+    fireEvent.click(screen.getByRole("button", { name: "Appearance" }));
+    expect(screen.getByLabelText("Dashboard title")).toHaveValue("Gather");
   });
 });

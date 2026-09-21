@@ -1,6 +1,8 @@
 import Link from "next/link";
 import useSWR from "swr";
-export default function SettingsLink() {
+
+import GatherIcon from "components/gather/icon";
+export default function SettingsLink({ className = "flex min-h-11 items-center gap-2" }) {
   const { data } = useSWR(
     "/api/gather/settings",
     async (url) => {
@@ -14,7 +16,8 @@ export default function SettingsLink() {
     { revalidateOnFocus: true, shouldRetryOnError: false },
   );
   return data?.administrator ? (
-    <Link href="/settings" className="flex min-h-11 items-center underline">
+    <Link href="/settings" className={className}>
+      <GatherIcon name="settings" />
       Dashboard settings
     </Link>
   ) : null;

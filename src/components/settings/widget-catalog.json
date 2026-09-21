@@ -1,0 +1,2966 @@
+[
+  {
+    "id": "adguard",
+    "name": "Adguard Home",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      }
+    ],
+    "doc": "adguard-home"
+  },
+  {
+    "id": "apcups",
+    "name": "APC UPS Monitoring",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      }
+    ],
+    "doc": "apcups"
+  },
+  {
+    "id": "arcane",
+    "name": "Arcane",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "env",
+        "kind": "number"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "arcane"
+  },
+  {
+    "id": "argocd",
+    "name": "ArgoCD",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "argocd"
+  },
+  {
+    "id": "atsumeru",
+    "name": "Atsumeru",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      }
+    ],
+    "doc": "atsumeru"
+  },
+  {
+    "id": "audiobookshelf",
+    "name": "Audiobookshelf",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "audiobookshelf"
+  },
+  {
+    "id": "authentik",
+    "name": "Authentik",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      },
+      {
+        "key": "version",
+        "kind": "number"
+      }
+    ],
+    "doc": "authentik"
+  },
+  {
+    "id": "autobrr",
+    "name": "Autobrr",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "autobrr"
+  },
+  {
+    "id": "azuredevops",
+    "name": "Azure DevOps",
+    "fields": [
+      {
+        "key": "organization",
+        "kind": "text"
+      },
+      {
+        "key": "project",
+        "kind": "text"
+      },
+      {
+        "key": "definitionId",
+        "kind": "text"
+      },
+      {
+        "key": "branchName",
+        "kind": "text"
+      },
+      {
+        "key": "userEmail",
+        "kind": "text"
+      },
+      {
+        "key": "repositoryId",
+        "kind": "text"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "azuredevops"
+  },
+  {
+    "id": "backrest",
+    "name": "Backrest",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      }
+    ],
+    "doc": "backrest"
+  },
+  {
+    "id": "bazarr",
+    "name": "Bazarr",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "bazarr"
+  },
+  {
+    "id": "beszel",
+    "name": "Beszel",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      },
+      {
+        "key": "systemId",
+        "kind": "text"
+      },
+      {
+        "key": "version",
+        "kind": "number"
+      }
+    ],
+    "doc": "beszel"
+  },
+  {
+    "id": "booklore",
+    "name": "Booklore",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      }
+    ],
+    "doc": "booklore"
+  },
+  {
+    "id": "caddy",
+    "name": "Caddy",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      }
+    ],
+    "doc": "caddy"
+  },
+  {
+    "id": "calibreweb",
+    "name": "Calibre-web",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      }
+    ],
+    "doc": "calibre-web"
+  },
+  {
+    "id": "changedetectionio",
+    "name": "Changedetection.io",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "changedetectionio"
+  },
+  {
+    "id": "channelsdvrserver",
+    "name": "Channels DVR Server",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      }
+    ],
+    "doc": "channelsdvrserver"
+  },
+  {
+    "id": "checkmk",
+    "name": "Checkmk",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "site",
+        "kind": "text"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      }
+    ],
+    "doc": "checkmk"
+  },
+  {
+    "id": "cloudflared",
+    "name": "Cloudflare Tunnels",
+    "fields": [
+      {
+        "key": "accountid",
+        "kind": "text"
+      },
+      {
+        "key": "tunnelid",
+        "kind": "text"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "cloudflared"
+  },
+  {
+    "id": "coinmarketcap",
+    "name": "Coin Market Cap",
+    "fields": [
+      {
+        "key": "currency",
+        "kind": "text"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      },
+      {
+        "key": "defaultinterval",
+        "kind": "text"
+      }
+    ],
+    "doc": "coin-market-cap"
+  },
+  {
+    "id": "crowdsec",
+    "name": "Crowdsec",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      }
+    ],
+    "doc": "crowdsec"
+  },
+  {
+    "id": "customapi",
+    "name": "Custom API",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "refreshInterval",
+        "kind": "number"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      },
+      {
+        "key": "method",
+        "kind": "text"
+      }
+    ],
+    "doc": "customapi"
+  },
+  {
+    "id": "deluge",
+    "name": "Deluge",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      },
+      {
+        "key": "enableLeechProgress",
+        "kind": "boolean"
+      }
+    ],
+    "doc": "deluge"
+  },
+  {
+    "id": "develancacheui",
+    "name": "DeveLanCacheUI",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      }
+    ],
+    "doc": "develancacheui"
+  },
+  {
+    "id": "dispatcharr",
+    "name": "Dispatcharr",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      },
+      {
+        "key": "enableActiveStreams",
+        "kind": "boolean"
+      }
+    ],
+    "doc": "dispatcharr"
+  },
+  {
+    "id": "dockhand",
+    "name": "Dockhand",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "environment",
+        "kind": "text"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "dockhand"
+  },
+  {
+    "id": "duplicati",
+    "name": "Duplicati",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      }
+    ],
+    "doc": "duplicati"
+  },
+  {
+    "id": "emby",
+    "name": "Emby",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      },
+      {
+        "key": "enableBlocks",
+        "kind": "boolean"
+      },
+      {
+        "key": "enableNowPlaying",
+        "kind": "boolean"
+      },
+      {
+        "key": "enableUser",
+        "kind": "boolean"
+      },
+      {
+        "key": "enableMediaControl",
+        "kind": "boolean"
+      },
+      {
+        "key": "showEpisodeNumber",
+        "kind": "boolean"
+      },
+      {
+        "key": "expandOneStreamToTwoRows",
+        "kind": "boolean"
+      }
+    ],
+    "doc": "emby"
+  },
+  {
+    "id": "esphome",
+    "name": "ESPHome",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      }
+    ],
+    "doc": "esphome"
+  },
+  {
+    "id": "evcc",
+    "name": "EVCC",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      }
+    ],
+    "doc": "evcc"
+  },
+  {
+    "id": "filebrowser",
+    "name": "Filebrowser",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      },
+      {
+        "key": "authHeader",
+        "kind": "text"
+      }
+    ],
+    "doc": "filebrowser"
+  },
+  {
+    "id": "fileflows",
+    "name": "Fileflows",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      }
+    ],
+    "doc": "fileflows"
+  },
+  {
+    "id": "firefly",
+    "name": "Firefly III",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "firefly"
+  },
+  {
+    "id": "flood",
+    "name": "Flood",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      }
+    ],
+    "doc": "flood"
+  },
+  {
+    "id": "freshrss",
+    "name": "FreshRSS",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      }
+    ],
+    "doc": "freshrss"
+  },
+  {
+    "id": "frigate",
+    "name": "Frigate",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "enableRecentEvents",
+        "kind": "boolean"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      }
+    ],
+    "doc": "frigate"
+  },
+  {
+    "id": "fritzbox",
+    "name": "FRITZ!Box",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      }
+    ],
+    "doc": "fritzbox"
+  },
+  {
+    "id": "gamedig",
+    "name": "GameDig",
+    "fields": [
+      {
+        "key": "serverType",
+        "kind": "text"
+      },
+      {
+        "key": "url",
+        "kind": "url"
+      }
+    ],
+    "doc": "gamedig"
+  },
+  {
+    "id": "gatus",
+    "name": "Gatus",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      }
+    ],
+    "doc": "gatus"
+  },
+  {
+    "id": "ghostfolio",
+    "name": "Ghostfolio",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "ghostfolio"
+  },
+  {
+    "id": "gitea",
+    "name": "Gitea",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "gitea"
+  },
+  {
+    "id": "gitlab",
+    "name": "Gitlab",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      },
+      {
+        "key": "user_id",
+        "kind": "number"
+      }
+    ],
+    "doc": "gitlab"
+  },
+  {
+    "id": "glances",
+    "name": "Glances",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      },
+      {
+        "key": "version",
+        "kind": "number"
+      },
+      {
+        "key": "metric",
+        "kind": "text"
+      },
+      {
+        "key": "diskUnits",
+        "kind": "text"
+      },
+      {
+        "key": "refreshInterval",
+        "kind": "number"
+      },
+      {
+        "key": "pointsLimit",
+        "kind": "number"
+      }
+    ],
+    "doc": "glances"
+  },
+  {
+    "id": "gluetun",
+    "name": "Gluetun",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      },
+      {
+        "key": "version",
+        "kind": "number"
+      }
+    ],
+    "doc": "gluetun"
+  },
+  {
+    "id": "gotify",
+    "name": "Gotify",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "gotify"
+  },
+  {
+    "id": "grafana",
+    "name": "Grafana",
+    "fields": [
+      {
+        "key": "version",
+        "kind": "number"
+      },
+      {
+        "key": "alerts",
+        "kind": "text"
+      },
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      }
+    ],
+    "doc": "grafana"
+  },
+  {
+    "id": "hdhomerun",
+    "name": "HDHomerun",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "tuner",
+        "kind": "number"
+      }
+    ],
+    "doc": "hdhomerun"
+  },
+  {
+    "id": "headscale",
+    "name": "Headscale",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "nodeId",
+        "kind": "text"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "headscale"
+  },
+  {
+    "id": "healthchecks",
+    "name": "Health checks",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      },
+      {
+        "key": "uuid",
+        "kind": "text"
+      }
+    ],
+    "doc": "healthchecks"
+  },
+  {
+    "id": "hoarder",
+    "name": "hoarder",
+    "fields": []
+  },
+  {
+    "id": "homeassistant",
+    "name": "Home Assistant",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "homeassistant"
+  },
+  {
+    "id": "homebox",
+    "name": "Homebox",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      }
+    ],
+    "doc": "homebox"
+  },
+  {
+    "id": "homebridge",
+    "name": "Homebridge",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      }
+    ],
+    "doc": "homebridge"
+  },
+  {
+    "id": "ical",
+    "name": "ical",
+    "fields": []
+  },
+  {
+    "id": "immich",
+    "name": "Immich",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      },
+      {
+        "key": "version",
+        "kind": "number"
+      }
+    ],
+    "doc": "immich"
+  },
+  {
+    "id": "jackett",
+    "name": "Jackett",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      }
+    ],
+    "doc": "jackett"
+  },
+  {
+    "id": "jdownloader",
+    "name": "JDownloader",
+    "fields": [
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      },
+      {
+        "key": "client",
+        "kind": "text"
+      }
+    ],
+    "doc": "jdownloader"
+  },
+  {
+    "id": "jellyfin",
+    "name": "Jellyfin",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      },
+      {
+        "key": "version",
+        "kind": "number"
+      },
+      {
+        "key": "enableBlocks",
+        "kind": "boolean"
+      },
+      {
+        "key": "enableNowPlaying",
+        "kind": "boolean"
+      },
+      {
+        "key": "enableUser",
+        "kind": "boolean"
+      },
+      {
+        "key": "enableMediaControl",
+        "kind": "boolean"
+      },
+      {
+        "key": "showEpisodeNumber",
+        "kind": "boolean"
+      },
+      {
+        "key": "expandOneStreamToTwoRows",
+        "kind": "boolean"
+      }
+    ],
+    "doc": "jellyfin"
+  },
+  {
+    "id": "jellyseerr",
+    "name": "jellyseerr",
+    "fields": []
+  },
+  {
+    "id": "jellystat",
+    "name": "Jellystat",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      },
+      {
+        "key": "days",
+        "kind": "number"
+      }
+    ],
+    "doc": "jellystat"
+  },
+  {
+    "id": "karakeep",
+    "name": "Karakeep",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "karakeep"
+  },
+  {
+    "id": "kavita",
+    "name": "Kavita",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "kavita"
+  },
+  {
+    "id": "komga",
+    "name": "Komga",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "komga"
+  },
+  {
+    "id": "komodo",
+    "name": "Komodo",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      },
+      {
+        "key": "secret",
+        "kind": "password"
+      },
+      {
+        "key": "showSummary",
+        "kind": "boolean"
+      },
+      {
+        "key": "showStacks",
+        "kind": "boolean"
+      }
+    ],
+    "doc": "komodo"
+  },
+  {
+    "id": "kopia",
+    "name": "Kopia",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      },
+      {
+        "key": "snapshotHost",
+        "kind": "text"
+      },
+      {
+        "key": "snapshotPath",
+        "kind": "text"
+      }
+    ],
+    "doc": "kopia"
+  },
+  {
+    "id": "lidarr",
+    "name": "Lidarr",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "lidarr"
+  },
+  {
+    "id": "linkwarden",
+    "name": "Linkwarden",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "linkwarden"
+  },
+  {
+    "id": "lubelogger",
+    "name": "LubeLogger",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      },
+      {
+        "key": "vehicleID",
+        "kind": "number"
+      }
+    ],
+    "doc": "lubelogger"
+  },
+  {
+    "id": "mailcow",
+    "name": "Mailcow",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "mailcow"
+  },
+  {
+    "id": "maintainerr",
+    "name": "Maintainerr",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      }
+    ],
+    "doc": "maintainerr"
+  },
+  {
+    "id": "mastodon",
+    "name": "Mastodon",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      }
+    ],
+    "doc": "mastodon"
+  },
+  {
+    "id": "mealie",
+    "name": "Mealie",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      },
+      {
+        "key": "version",
+        "kind": "number"
+      }
+    ],
+    "doc": "mealie"
+  },
+  {
+    "id": "medusa",
+    "name": "Medusa",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "medusa"
+  },
+  {
+    "id": "mikrotik",
+    "name": "Mikrotik",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      }
+    ],
+    "doc": "mikrotik"
+  },
+  {
+    "id": "minecraft",
+    "name": "Minecraft",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      }
+    ],
+    "doc": "minecraft"
+  },
+  {
+    "id": "miniflux",
+    "name": "Miniflux",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "miniflux"
+  },
+  {
+    "id": "mjpeg",
+    "name": "MJPEG",
+    "fields": [
+      {
+        "key": "stream",
+        "kind": "text"
+      }
+    ],
+    "doc": "mjpeg"
+  },
+  {
+    "id": "moonraker",
+    "name": "Moonraker (Klipper)",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      }
+    ],
+    "doc": "moonraker"
+  },
+  {
+    "id": "mylar",
+    "name": "Mylar3",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "mylar"
+  },
+  {
+    "id": "myspeed",
+    "name": "MySpeed",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      }
+    ],
+    "doc": "myspeed"
+  },
+  {
+    "id": "navidrome",
+    "name": "Navidrome",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "user",
+        "kind": "text"
+      },
+      {
+        "key": "token",
+        "kind": "password"
+      },
+      {
+        "key": "salt",
+        "kind": "text"
+      }
+    ],
+    "doc": "navidrome"
+  },
+  {
+    "id": "netalertx",
+    "name": "NetAlertX",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      },
+      {
+        "key": "version",
+        "kind": "number"
+      }
+    ],
+    "doc": "netalertx"
+  },
+  {
+    "id": "netdata",
+    "name": "Netdata",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      }
+    ],
+    "doc": "netdata"
+  },
+  {
+    "id": "nextcloud",
+    "name": "Nextcloud",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "nextcloud"
+  },
+  {
+    "id": "nextdns",
+    "name": "NextDNS",
+    "fields": [
+      {
+        "key": "profile",
+        "kind": "text"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "nextdns"
+  },
+  {
+    "id": "npm",
+    "name": "Nginx Proxy Manager",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      }
+    ],
+    "doc": "nginx-proxy-manager"
+  },
+  {
+    "id": "ntfy",
+    "name": "ntfy",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "topic",
+        "kind": "text"
+      }
+    ],
+    "doc": "ntfy"
+  },
+  {
+    "id": "nzbget",
+    "name": "NZBget",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      }
+    ],
+    "doc": "nzbget"
+  },
+  {
+    "id": "octoprint",
+    "name": "OctoPrint",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "octoprint"
+  },
+  {
+    "id": "omada",
+    "name": "Omada",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      },
+      {
+        "key": "site",
+        "kind": "text"
+      }
+    ],
+    "doc": "omada"
+  },
+  {
+    "id": "ombi",
+    "name": "Ombi",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "ombi"
+  },
+  {
+    "id": "opendtu",
+    "name": "OpenDTU",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      }
+    ],
+    "doc": "opendtu"
+  },
+  {
+    "id": "openmediavault",
+    "name": "OpenMediaVault",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      },
+      {
+        "key": "method",
+        "kind": "text"
+      }
+    ],
+    "doc": "openmediavault"
+  },
+  {
+    "id": "openwrt",
+    "name": "OpenWRT",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      },
+      {
+        "key": "interfaceName",
+        "kind": "text"
+      }
+    ],
+    "doc": "openwrt"
+  },
+  {
+    "id": "opnsense",
+    "name": "OPNSense",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      },
+      {
+        "key": "wan",
+        "kind": "text"
+      }
+    ],
+    "doc": "opnsense"
+  },
+  {
+    "id": "overseerr",
+    "name": "overseerr",
+    "fields": []
+  },
+  {
+    "id": "pangolin",
+    "name": "Pangolin",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      },
+      {
+        "key": "org",
+        "kind": "text"
+      }
+    ],
+    "doc": "pangolin"
+  },
+  {
+    "id": "paperlessngx",
+    "name": "Paperless-ngx",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      }
+    ],
+    "doc": "paperlessngx"
+  },
+  {
+    "id": "peanut",
+    "name": "PeaNUT",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      }
+    ],
+    "doc": "peanut"
+  },
+  {
+    "id": "pfsense",
+    "name": "pfSense",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      },
+      {
+        "key": "wan",
+        "kind": "text"
+      },
+      {
+        "key": "version",
+        "kind": "number"
+      }
+    ],
+    "doc": "pfsense"
+  },
+  {
+    "id": "photoprism",
+    "name": "PhotoPrism",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      }
+    ],
+    "doc": "photoprism"
+  },
+  {
+    "id": "pialert",
+    "name": "pialert",
+    "fields": []
+  },
+  {
+    "id": "pihole",
+    "name": "PiHole",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "version",
+        "kind": "number"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "pihole"
+  },
+  {
+    "id": "plantit",
+    "name": "Plant-it",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "plantit"
+  },
+  {
+    "id": "plex",
+    "name": "Plex",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "plex"
+  },
+  {
+    "id": "portainer",
+    "name": "Portainer",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "env",
+        "kind": "number"
+      },
+      {
+        "key": "kubernetes",
+        "kind": "boolean"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "portainer"
+  },
+  {
+    "id": "prometheus",
+    "name": "Prometheus",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      }
+    ],
+    "doc": "prometheus"
+  },
+  {
+    "id": "prometheusmetric",
+    "name": "Prometheus Metric",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "refreshInterval",
+        "kind": "number"
+      }
+    ],
+    "doc": "prometheusmetric"
+  },
+  {
+    "id": "prowlarr",
+    "name": "Prowlarr",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "prowlarr"
+  },
+  {
+    "id": "proxmox",
+    "name": "Proxmox",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      },
+      {
+        "key": "node",
+        "kind": "text"
+      }
+    ],
+    "doc": "proxmox"
+  },
+  {
+    "id": "proxmoxbackupserver",
+    "name": "Proxmox Backup Server",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      },
+      {
+        "key": "datastore",
+        "kind": "text"
+      }
+    ],
+    "doc": "proxmoxbackupserver"
+  },
+  {
+    "id": "pterodactyl",
+    "name": "Pterodactyl",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "pterodactyl"
+  },
+  {
+    "id": "pulse",
+    "name": "Pulse",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      },
+      {
+        "key": "version",
+        "kind": "number"
+      }
+    ],
+    "doc": "pulse"
+  },
+  {
+    "id": "pyload",
+    "name": "Pyload",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "pyload"
+  },
+  {
+    "id": "qbittorrent",
+    "name": "qBittorrent",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      },
+      {
+        "key": "enableLeechProgress",
+        "kind": "boolean"
+      },
+      {
+        "key": "enableLeechSize",
+        "kind": "boolean"
+      }
+    ],
+    "doc": "qbittorrent"
+  },
+  {
+    "id": "qnap",
+    "name": "QNAP",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      }
+    ],
+    "doc": "qnap"
+  },
+  {
+    "id": "radarr",
+    "name": "Radarr",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      },
+      {
+        "key": "enableQueue",
+        "kind": "boolean"
+      }
+    ],
+    "doc": "radarr"
+  },
+  {
+    "id": "readarr",
+    "name": "Readarr",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "readarr"
+  },
+  {
+    "id": "romm",
+    "name": "Romm",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      }
+    ],
+    "doc": "romm"
+  },
+  {
+    "id": "rutorrent",
+    "name": "ruTorrent",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      }
+    ],
+    "doc": "rutorrent"
+  },
+  {
+    "id": "sabnzbd",
+    "name": "SABnzbd",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "sabnzbd"
+  },
+  {
+    "id": "scrutiny",
+    "name": "Scrutiny",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      }
+    ],
+    "doc": "scrutiny"
+  },
+  {
+    "id": "seerr",
+    "name": "Seerr Widget",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "seerr"
+  },
+  {
+    "id": "slskd",
+    "name": "Slskd",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "slskd"
+  },
+  {
+    "id": "sonarr",
+    "name": "Sonarr",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      },
+      {
+        "key": "enableQueue",
+        "kind": "boolean"
+      }
+    ],
+    "doc": "sonarr"
+  },
+  {
+    "id": "sparkyfitness",
+    "name": "SparkyFitness",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "sparkyfitness"
+  },
+  {
+    "id": "speedtest",
+    "name": "Speedtest Tracker",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "version",
+        "kind": "number"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      },
+      {
+        "key": "bitratePrecision",
+        "kind": "number"
+      }
+    ],
+    "doc": "speedtest-tracker"
+  },
+  {
+    "id": "spoolman",
+    "name": "Spoolman",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      }
+    ],
+    "doc": "spoolman"
+  },
+  {
+    "id": "sportarr",
+    "name": "Sportarr",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "sportarr"
+  },
+  {
+    "id": "stash",
+    "name": "Stash",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "stash"
+  },
+  {
+    "id": "stocks",
+    "name": "Stocks",
+    "fields": [
+      {
+        "key": "provider",
+        "kind": "text"
+      },
+      {
+        "key": "showUSMarketStatus",
+        "kind": "boolean"
+      }
+    ],
+    "doc": "stocks"
+  },
+  {
+    "id": "suwayomi",
+    "name": "Suwayomi",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      },
+      {
+        "key": "category",
+        "kind": "number"
+      }
+    ],
+    "doc": "suwayomi"
+  },
+  {
+    "id": "swagdashboard",
+    "name": "SWAG Dashboard",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      }
+    ],
+    "doc": "swagdashboard"
+  },
+  {
+    "id": "syncthing",
+    "name": "Syncthing",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "syncthing"
+  },
+  {
+    "id": "strelaysrv",
+    "name": "Syncthing Relay Server",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      }
+    ],
+    "doc": "syncthing-relay-server"
+  },
+  {
+    "id": "diskstation",
+    "name": "Synology Disk Station",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      },
+      {
+        "key": "volume",
+        "kind": "text"
+      }
+    ],
+    "doc": "diskstation"
+  },
+  {
+    "id": "downloadstation",
+    "name": "Synology Download Station",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      }
+    ],
+    "doc": "downloadstation"
+  },
+  {
+    "id": "tailscale",
+    "name": "Tailscale",
+    "fields": [
+      {
+        "key": "deviceid",
+        "kind": "text"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "tailscale"
+  },
+  {
+    "id": "tandoor",
+    "name": "Tandoor",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "tandoor"
+  },
+  {
+    "id": "tautulli",
+    "name": "Tautulli (Plex)",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      },
+      {
+        "key": "enableUser",
+        "kind": "boolean"
+      },
+      {
+        "key": "showEpisodeNumber",
+        "kind": "boolean"
+      },
+      {
+        "key": "expandOneStreamToTwoRows",
+        "kind": "boolean"
+      }
+    ],
+    "doc": "plex-tautulli"
+  },
+  {
+    "id": "tdarr",
+    "name": "Tdarr",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "tdarr"
+  },
+  {
+    "id": "technitium",
+    "name": "Technitium DNS Server",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      },
+      {
+        "key": "node",
+        "kind": "text"
+      },
+      {
+        "key": "range",
+        "kind": "text"
+      }
+    ],
+    "doc": "technitium"
+  },
+  {
+    "id": "tracearr",
+    "name": "Tracearr",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      },
+      {
+        "key": "view",
+        "kind": "text"
+      },
+      {
+        "key": "enableUser",
+        "kind": "boolean"
+      },
+      {
+        "key": "showEpisodeNumber",
+        "kind": "boolean"
+      },
+      {
+        "key": "expandOneStreamToTwoRows",
+        "kind": "boolean"
+      }
+    ],
+    "doc": "tracearr"
+  },
+  {
+    "id": "traefik",
+    "name": "Traefik",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      }
+    ],
+    "doc": "traefik"
+  },
+  {
+    "id": "transmission",
+    "name": "Transmission",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      },
+      {
+        "key": "rpcUrl",
+        "kind": "url"
+      }
+    ],
+    "doc": "transmission"
+  },
+  {
+    "id": "trilium",
+    "name": "Trilium",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "trilium"
+  },
+  {
+    "id": "truenas",
+    "name": "TrueNas",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "version",
+        "kind": "number"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      },
+      {
+        "key": "enablePools",
+        "kind": "boolean"
+      },
+      {
+        "key": "nasType",
+        "kind": "text"
+      }
+    ],
+    "doc": "truenas"
+  },
+  {
+    "id": "tubearchivist",
+    "name": "Tube Archivist",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "tubearchivist"
+  },
+  {
+    "id": "unifi",
+    "name": "Unifi Controller",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "site",
+        "kind": "text"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "unifi-controller"
+  },
+  {
+    "id": "unifi_drive",
+    "name": "UniFi Drive",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      }
+    ],
+    "doc": "unifi-drive"
+  },
+  {
+    "id": "unifi_console",
+    "name": "unifi_console",
+    "fields": []
+  },
+  {
+    "id": "unmanic",
+    "name": "Unmanic",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      }
+    ],
+    "doc": "unmanic"
+  },
+  {
+    "id": "unraid",
+    "name": "Unraid",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      },
+      {
+        "key": "pool1",
+        "kind": "text"
+      },
+      {
+        "key": "pool2",
+        "kind": "text"
+      },
+      {
+        "key": "pool3",
+        "kind": "text"
+      },
+      {
+        "key": "pool4",
+        "kind": "text"
+      }
+    ],
+    "doc": "unraid"
+  },
+  {
+    "id": "uptimekuma",
+    "name": "Uptime Kuma",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "slug",
+        "kind": "text"
+      }
+    ],
+    "doc": "uptime-kuma"
+  },
+  {
+    "id": "uptimerobot",
+    "name": "UptimeRobot",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "uptimerobot"
+  },
+  {
+    "id": "urbackup",
+    "name": "UrBackup",
+    "fields": [
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      },
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "maxDays",
+        "kind": "number"
+      }
+    ],
+    "doc": "urbackup"
+  },
+  {
+    "id": "vikunja",
+    "name": "Vikunja",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      },
+      {
+        "key": "enableTaskList",
+        "kind": "boolean"
+      },
+      {
+        "key": "version",
+        "kind": "number"
+      }
+    ],
+    "doc": "vikunja"
+  },
+  {
+    "id": "wallos",
+    "name": "Wallos",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "wallos"
+  },
+  {
+    "id": "watchtower",
+    "name": "Watchtower",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "watchtower"
+  },
+  {
+    "id": "wgeasy",
+    "name": "Wg-Easy",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "version",
+        "kind": "number"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      },
+      {
+        "key": "threshold",
+        "kind": "number"
+      }
+    ],
+    "doc": "wgeasy"
+  },
+  {
+    "id": "whatsupdocker",
+    "name": "What's Up Docker",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "whatsupdocker"
+  },
+  {
+    "id": "xteve",
+    "name": "Xteve",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      }
+    ],
+    "doc": "xteve"
+  },
+  {
+    "id": "yourspotify",
+    "name": "Your Spotify",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      },
+      {
+        "key": "interval",
+        "kind": "text"
+      }
+    ],
+    "doc": "yourspotify"
+  },
+  {
+    "id": "zabbix",
+    "name": "Zabbix",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "key",
+        "kind": "password"
+      }
+    ],
+    "doc": "zabbix"
+  }
+]

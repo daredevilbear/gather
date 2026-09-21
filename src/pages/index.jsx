@@ -9,14 +9,12 @@ import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { BiError } from "react-icons/bi";
 import useSWR, { SWRConfig } from "swr";
 
-import AccountMenu from "components/account/menu";
 import BookmarksGroup from "components/bookmarks/group";
 import ErrorBoundary from "components/errorboundry";
-import Inbox from "components/notifications/inbox";
-import notificationStyles from "components/notifications/inbox.module.css";
+import GatherHeader from "components/gather/header";
 import QuickLaunch from "components/quicklaunch";
 import ServicesGroup from "components/services/group";
-import Tab, { initialTabFromPath, slugifyAndEncode } from "components/tab";
+import { initialTabFromPath, slugifyAndEncode } from "components/tab";
 import Revalidate from "components/toggles/revalidate";
 import Widget from "components/widgets/widget";
 import { bookmarksResponse, servicesResponse, widgetsResponse } from "utils/config/api-response";
@@ -305,6 +303,9 @@ function Home({ initialSettings }) {
     }
   });
 
+  const homeTab = tabs.find((tab) => slugifyAndEncode(tab) === "home") || tabs[0];
+  const showWelcome = !tabs.length || (activeTab || initialTabFromPath(asPath, tabs)) === slugifyAndEncode(homeTab);
+
   const servicesAndBookmarksGroups = useMemo(() => {
     const tabGroupFilter = (g) => g && [activeTab, ""].includes(slugifyAndEncode(settings.layout?.[g.name]?.tab));
     const undefinedGroupFilter = (g) => settings.layout?.[g.name] === undefined;
@@ -323,24 +324,6 @@ function Home({ initialSettings }) {
 
     return (
       <>
-        {tabs.length > 0 && (
-          <div key="tabs" id="tabs" className="m-5 sm:m-9 sm:mt-4 sm:mb-0">
-            <ul
-              className={classNames(
-                "sm:flex rounded-md bg-theme-100/20 dark:bg-white/5",
-                settings.cardBlur !== undefined &&
-                  `backdrop-blur${settings.cardBlur.length ? "-" : ""}${settings.cardBlur}`,
-              )}
-              id="myTab"
-              data-tabs-toggle="#myTabContent"
-              role="tablist"
-            >
-              {tabs.map((tab) => (
-                <Tab key={tab} tab={tab} />
-              ))}
-            </ul>
-          </div>
-        )}
         {layoutGroups.length > 0 && (
           <div key="layoutGroups" id="layout-groups" className="flex flex-wrap m-4 sm:m-8 sm:mt-4 items-start mb-2">
             {layoutGroups.map((group) =>
@@ -399,7 +382,6 @@ function Home({ initialSettings }) {
       </>
     );
   }, [
-    tabs,
     activeTab,
     services,
     bookmarks,
@@ -409,7 +391,6 @@ function Home({ initialSettings }) {
     settings.maxBookmarkGroupColumns,
     settings.disableCollapse,
     settings.useEqualHeights,
-    settings.cardBlur,
     settings.groupsInitiallyCollapsed,
     settings.bookmarksStyle,
     initialSettings.layout,
@@ -418,7 +399,7 @@ function Home({ initialSettings }) {
   return (
     <>
       <Head>
-        <title>{initialSettings.title || "Homepage"}</title>
+        <title>{initialSettings.title || "Gather"}</title>
         <meta
           name="description"
           content={
@@ -436,11 +417,11 @@ function Home({ initialSettings }) {
           </>
         ) : (
           <>
-            <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=4" />
-            <link rel="shortcut icon" href="/homepage.ico" />
-            <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=4" />
-            <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=4" />
-            <link rel="mask-icon" href="/safari-pinned-tab.svg?v=4" color="#1e9cd7" />
+            <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=gather-1" />
+            <link rel="icon" type="image/svg+xml" href="/gather.svg" />
+            <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=gather-1" />
+            <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=gather-1" />
+            <link rel="mask-icon" href="/gather-mask.svg" color="#173c38" />
           </>
         )}
         <meta name="msapplication-TileColor" content={themes[settings.color || "slate"][settings.theme || "dark"]} />
@@ -456,6 +437,7 @@ function Home({ initialSettings }) {
           "relative m-auto flex flex-col justify-start z-10 h-full min-h-screen",
         )}
       >
+        <GatherHeader settings={settings} tabs={tabs} onSearch={() => setSearching(true)} />
         <QuickLaunch
           servicesAndBookmarks={servicesAndBookmarks}
           searchString={searchString}
@@ -463,56 +445,52 @@ function Home({ initialSettings }) {
           isOpen={searching}
           setSearching={setSearching}
         />
-        <div
-          id="information-widgets"
-          className={classNames(
-            "flex flex-row flex-wrap justify-between z-20",
-            headerStyles[headerStyle],
-            settings.cardBlur !== undefined &&
-              headerStyle === "boxed" &&
-              `backdrop-blur${settings.cardBlur.length ? "-" : ""}${settings.cardBlur}`,
-          )}
-        >
-          <div id="widgets-wrap" className={classNames("flex flex-row w-full flex-wrap justify-between gap-x-2")}>
-            {(settings.gather?.accountMenu || settings.gather?.notifications) && (
-              <div className={notificationStyles.header}>
-                {settings.gather?.notifications && <Inbox prefix={settings.gather.notificationPrefix} />}
-                {settings.gather?.accountMenu && <AccountMenu settingsUrl={settings.gather.accountSettingsUrl} />}
-              </div>
+        {showWelcome && (
+          <div
+            id="information-widgets"
+            className={classNames(
+              "flex flex-row flex-wrap justify-between z-20",
+              headerStyles[headerStyle],
+              settings.cardBlur !== undefined &&
+                headerStyle === "boxed" &&
+                `backdrop-blur${settings.cardBlur.length ? "-" : ""}${settings.cardBlur}`,
             )}
-            {widgets && (
-              <>
-                {widgets
-                  .filter((widget) => !rightAlignedWidgets.includes(widget.type))
-                  .map((widget, i) => (
-                    <Widget
-                      key={i}
-                      widget={widget}
-                      style={{ header: headerStyle, isRightAligned: false, cardBlur: settings.cardBlur }}
-                    />
-                  ))}
-
-                <div
-                  id="information-widgets-right"
-                  className={classNames(
-                    "m-auto flex flex-wrap grow sm:basis-auto justify-between md:justify-end",
-                    "m-auto flex flex-wrap grow sm:basis-auto justify-between md:justify-end gap-x-2",
-                  )}
-                >
+          >
+            <div id="widgets-wrap" className={classNames("flex flex-row w-full flex-wrap justify-between gap-x-2")}>
+              {widgets && (
+                <>
                   {widgets
-                    .filter((widget) => rightAlignedWidgets.includes(widget.type))
+                    .filter((widget) => !rightAlignedWidgets.includes(widget.type))
                     .map((widget, i) => (
                       <Widget
                         key={i}
                         widget={widget}
-                        style={{ header: headerStyle, isRightAligned: true, cardBlur: settings.cardBlur }}
+                        style={{ header: headerStyle, isRightAligned: false, cardBlur: settings.cardBlur }}
                       />
                     ))}
-                </div>
-              </>
-            )}
+
+                  <div
+                    id="information-widgets-right"
+                    className={classNames(
+                      "m-auto flex flex-wrap grow sm:basis-auto justify-between md:justify-end",
+                      "m-auto flex flex-wrap grow sm:basis-auto justify-between md:justify-end gap-x-2",
+                    )}
+                  >
+                    {widgets
+                      .filter((widget) => rightAlignedWidgets.includes(widget.type))
+                      .map((widget, i) => (
+                        <Widget
+                          key={i}
+                          widget={widget}
+                          style={{ header: headerStyle, isRightAligned: true, cardBlur: settings.cardBlur }}
+                        />
+                      ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {servicesAndBookmarksGroups}
 
@@ -520,7 +498,7 @@ function Home({ initialSettings }) {
           <div id="style" className="flex w-full justify-end">
             {!settings?.color && <ColorToggle />}
             <Revalidate />
-            {!settings.gather?.accountMenu && <SignOut />}
+            {settings.gather?.accountMenu === false && <SignOut />}
             {!settings.theme && <ThemeToggle />}
           </div>
 

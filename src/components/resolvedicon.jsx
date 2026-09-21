@@ -18,6 +18,7 @@ export default function ResolvedIcon({ icon, width = 32, height = 32, alt = "log
     return (
       <Image
         src={`${icon}`}
+        unoptimized={icon.startsWith("/api/gather/icons/")}
         width={width}
         height={height}
         style={{

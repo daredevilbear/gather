@@ -78,7 +78,7 @@ No automatic production cutover. Finish staging validation before proposing it.
 
 ## First implementation slice
 
-The native account disclosure is available behind an opt-in setting:
+The native account disclosure is enabled by default for signed-in users. Set `accountMenu: false` to opt out:
 
 ```yaml
 gather:
@@ -88,6 +88,6 @@ gather:
 
 It consumes the existing NextAuth session and sign-out flow, displays the signed-in
 user, and omits the account link unless a credential-free HTTPS URL is configured.
-The default remains disabled during migration. Enabling it should be paired with
+It lives in the dedicated application bar outside information widgets. Migration should be paired with
 removing the old custom.js account injection in the isolated staging config.
 The native notification inbox and shared responsive header are now implemented. See [notification setup](../gather/notifications.md) for companion service configuration.

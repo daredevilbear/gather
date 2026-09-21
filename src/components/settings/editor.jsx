@@ -1,17 +1,104 @@
 import * as yaml from "js-yaml";
 import Head from "next/head";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import styles from "./editor.module.css";
+import {
+  Catalog,
+  EditorPreviewContext,
+  GuidedFields,
+  HOME_WIDGETS,
+  IconPicker,
+  IntegrationPicker,
+  TokenList,
+} from "./pickers";
+import SystemSettings from "./system";
+
+import GatherIcon from "components/gather/icon";
+import GatherMark from "components/gather/mark";
+import themes from "utils/styles/themes";
 
 const SECTIONS = [
-  ["settings.yaml", "Dashboard", "Appearance, layout, account menu and notification inbox"],
-  ["services.yaml", "Services", "Service groups, links and integration widgets"],
-  ["bookmarks.yaml", "Bookmarks", "Organize your everyday links"],
-  ["widgets.yaml", "Header widgets", "Greeting, weather, search and information widgets"],
-  ["gather-notifications.json", "Push & topics", "Notification topics and push branding"],
-  ["custom.css", "Custom CSS", "Dashboard styles"],
-  ["custom.js", "Custom JavaScript", "Scripts run for every dashboard visitor"],
+  {
+    id: "appearance",
+    file: "settings.yaml",
+    label: "Appearance",
+    description: "A space that feels like yours. Choose your dashboard’s look and identity.",
+    icon: "palette",
+    group: "YOUR WORKSPACE",
+  },
+  {
+    id: "layout",
+    file: "settings.yaml",
+    label: "Layout & tabs",
+    description: "Give every service a place. Organize groups into tabs and choose how they’re displayed.",
+    icon: "layout",
+    group: "YOUR WORKSPACE",
+  },
+  {
+    id: "account",
+    file: "settings.yaml",
+    label: "Account & inbox",
+    description: "Keep account controls and notifications close at hand.",
+    icon: "person",
+    group: "YOUR WORKSPACE",
+  },
+  {
+    id: "services",
+    file: "services.yaml",
+    label: "Services",
+    description: "Your apps, organized. Add services, arrange groups, and connect integrations.",
+    icon: "grid",
+    group: "CONTENT",
+  },
+  {
+    id: "bookmarks",
+    file: "bookmarks.yaml",
+    label: "Bookmarks",
+    description: "A home for the links you reach for every day.",
+    icon: "bookmark",
+    group: "CONTENT",
+  },
+  {
+    id: "widgets",
+    file: "widgets.yaml",
+    label: "Home widgets",
+    description: "A useful welcome. Personalize the greeting, weather, and information on Home.",
+    icon: "home",
+    group: "CONTENT",
+  },
+  {
+    id: "notifications",
+    file: "gather-notifications.json",
+    label: "Notifications",
+    description: "Choose your topics and personalize push notifications.",
+    icon: "bell",
+    group: "PREFERENCES",
+  },
+  {
+    id: "css",
+    file: "custom.css",
+    label: "Custom CSS",
+    description: "Fine-tune the details with your own styles.",
+    icon: "code",
+    group: "ADVANCED",
+  },
+  {
+    id: "js",
+    file: "custom.js",
+    label: "Custom JavaScript",
+    description: "Extend dashboard behavior with your own scripts.",
+    icon: "code",
+    group: "ADVANCED",
+  },
+  {
+    id: "system",
+    file: null,
+    label: "System settings",
+    description: "Manage sign-in, connections and administrator access.",
+    icon: "settings",
+    group: "ADMINISTRATION",
+  },
 ];
 const object = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 const pretty = (s) => s.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/^./, (c) => c.toUpperCase());
@@ -30,134 +117,6 @@ async function api(body, file) {
   const result = await response.json();
   if (!response.ok) throw new Error(result.error || "Could not load settings. Sign in again and retry.");
   return result;
-}
-function AddProperty({ onAdd, keys }) {
-  const [name, setName] = useState("");
-  const [kind, setKind] = useState("text");
-  const invalid =
-    !name.trim() || keys.includes(name.trim()) || ["__proto__", "constructor", "prototype"].includes(name.trim());
-  return (
-    <div className={styles.add}>
-      <input
-        aria-label="New property name"
-        placeholder="Property name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
-      <select aria-label="New property type" value={kind} onChange={(e) => setKind(e.target.value)}>
-        {["text", "number", "checkbox", "object", "list"].map((k) => (
-          <option key={k}>{k}</option>
-        ))}
-      </select>
-      <button
-        type="button"
-        disabled={invalid}
-        onClick={() => {
-          onAdd(name.trim(), { text: "", number: 0, checkbox: false, object: {}, list: [] }[kind]);
-          setName("");
-        }}
-      >
-        Add property
-      </button>
-    </div>
-  );
-}
-export function Fields({ value, onChange, label = "Options", level = 0 }) {
-  if (level > 15) return <p>Edit this deeply nested value in the source view.</p>;
-  if (Array.isArray(value))
-    return (
-      <div className={styles.nested}>
-        <strong>{label}</strong>
-        {value.map((v, i) => (
-          <div key={i} className={styles.row}>
-            <Fields
-              label={`Item ${i + 1}`}
-              value={v}
-              level={level + 1}
-              onChange={(next) => onChange(value.map((x, n) => (n === i ? next : x)))}
-            />
-            <Move
-              index={i}
-              length={value.length}
-              move={(direction) => {
-                const copy = [...value];
-                [copy[i], copy[i + direction]] = [copy[i + direction], copy[i]];
-                onChange(copy);
-              }}
-              remove={() => onChange(value.filter((_, n) => n !== i))}
-            />
-          </div>
-        ))}
-        <button type="button" onClick={() => onChange([...value, typeof value[0] === "string" ? "" : {}])}>
-          Add item
-        </button>
-      </div>
-    );
-  if (object(value))
-    return (
-      <div className={styles.fields}>
-        {Object.entries(value).map(([key, v]) => (
-          <div className={styles.property} key={key}>
-            {typeof v === "object" && v !== null ? (
-              <details>
-                <summary>{pretty(key)}</summary>
-                <Fields
-                  value={v}
-                  label={pretty(key)}
-                  level={level + 1}
-                  onChange={(next) => onChange({ ...value, [key]: next })}
-                />
-              </details>
-            ) : (
-              <label>
-                {pretty(key)}
-                {typeof v === "boolean" ? (
-                  <input
-                    type="checkbox"
-                    checked={v}
-                    onChange={(e) => onChange({ ...value, [key]: e.target.checked })}
-                  />
-                ) : (
-                  <input
-                    type={
-                      typeof v === "number"
-                        ? "number"
-                        : /password|secret|token|apikey|^key$/i.test(key)
-                          ? "password"
-                          : "text"
-                    }
-                    autoComplete="off"
-                    value={v ?? ""}
-                    onChange={(e) =>
-                      onChange({ ...value, [key]: typeof v === "number" ? Number(e.target.value) : e.target.value })
-                    }
-                  />
-                )}
-              </label>
-            )}
-            <button
-              type="button"
-              className={styles.small}
-              aria-label={`Remove ${key}`}
-              onClick={() => {
-                const next = { ...value };
-                delete next[key];
-                onChange(next);
-              }}
-            >
-              Remove
-            </button>
-          </div>
-        ))}
-        <AddProperty keys={Object.keys(value)} onAdd={(k, v) => onChange({ ...value, [k]: v })} />
-      </div>
-    );
-  return (
-    <label>
-      {label}
-      <input value={value ?? ""} onChange={(e) => onChange(e.target.value)} />
-    </label>
-  );
 }
 function Move({ index, length, move, remove }) {
   return (
@@ -216,25 +175,11 @@ export function Groups({ value, onChange, bookmarks = false }) {
                       onChange={(e) => update(entries.map((x, n) => (n === j ? { [e.target.value]: config } : x)))}
                     />
                   </label>
-                  <Fields
+                  <EntryDetails
                     value={config}
-                    label="Details"
+                    bookmarks={bookmarks}
                     onChange={(next) => update(entries.map((x, n) => (n === j ? { [entryName]: next } : x)))}
                   />
-                  {!bookmarks && object(config) && !config.widget && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        update(
-                          entries.map((x, n) =>
-                            n === j ? { [entryName]: { ...config, widget: { type: "", url: "", key: "" } } } : x,
-                          ),
-                        )
-                      }
-                    >
-                      Add integration widget
-                    </button>
-                  )}
                   <Move
                     index={j}
                     length={entries.length}
@@ -268,135 +213,397 @@ export function Groups({ value, onChange, bookmarks = false }) {
     </div>
   );
 }
-function Dashboard({ value, onChange }) {
+function EntryDetails({ value, onChange, bookmarks }) {
+  const fields = bookmarks
+    ? [
+        ["href", "Link URL"],
+        ["abbr", "Short label"],
+        ["icon", "Icon"],
+      ]
+    : [
+        ["href", "Service URL"],
+        ["description", "Description"],
+        ["icon", "Icon"],
+      ];
+  const links = bookmarks && Array.isArray(value) ? value : [value];
+  return (
+    <>
+      {links.map((link, index) => {
+        if (!object(link)) return <p key={index}>This custom entry can be edited in Source.</p>;
+        const update = (next) =>
+          onChange(bookmarks && Array.isArray(value) ? value.map((item, n) => (n === index ? next : item)) : next);
+        return (
+          <div key={index}>
+            <div className={styles.grid}>
+              {fields.map(([key, label]) =>
+                key === "icon" ? (
+                  <IconPicker key={key} value={link.icon} onChange={(icon) => update({ ...link, icon })} />
+                ) : (
+                  <label key={key}>
+                    {label}
+                    <input
+                      type={key === "href" ? "url" : "text"}
+                      value={link[key] || ""}
+                      onChange={(e) => update({ ...link, [key]: e.target.value })}
+                    />
+                  </label>
+                ),
+              )}
+            </div>
+            {!bookmarks && (
+              <IntegrationPicker
+                value={link.widget}
+                onChange={(widget) => {
+                  const next = { ...link };
+                  if (widget) next.widget = widget;
+                  else delete next.widget;
+                  update(next);
+                }}
+              />
+            )}
+          </div>
+        );
+      })}
+      <p className={styles.sourceHint}>Custom options are preserved. Use Source to edit them.</p>
+    </>
+  );
+}
+function Dashboard({ value, onChange, view, request }) {
   if (!object(value)) return <p>Settings must be an object. Use the source view to repair it.</p>;
   const set = (key, next) => onChange({ ...value, [key]: next });
   const gather = value.gather || {};
   return (
     <>
-      <section className={styles.card}>
-        <h2>Appearance</h2>
-        <div className={styles.grid}>
-          {[
-            ["title", "Dashboard title"],
-            ["description", "Description"],
-            ["favicon", "Favicon / app icon URL"],
-          ].map(([key, label]) => (
-            <label key={key}>
-              {label}
-              <input value={value[key] || ""} onChange={(e) => set(key, e.target.value)} />
-            </label>
-          ))}
-          <label>
-            Theme
-            <select value={value.theme || ""} onChange={(e) => set("theme", e.target.value)}>
-              <option value="">System</option>
-              <option value="dark">Dark</option>
-              <option value="light">Light</option>
-            </select>
-          </label>
-          <label>
-            Color
-            <select value={value.color || "slate"} onChange={(e) => set("color", e.target.value)}>
+      {view === "appearance" && (
+        <>
+          <div
+            className={styles.appearancePreview}
+            data-theme={value.theme || "system"}
+            style={{
+              "--preview-light": themes[value.color]?.light || themes.slate.light,
+              "--preview-dark": themes[value.color]?.dark || themes.slate.dark,
+            }}
+          >
+            <div>
+              <GatherMark className={styles.mark} />
+              <strong>{value.title || "Gather"}</strong>
+              <span>LIVE PREVIEW</span>
+            </div>
+            <div className={styles.previewTabs}>
+              <b>Home</b>
+              <span>Media</span>
+              <span>Systems</span>
+            </div>
+            <h3>Welcome home.</h3>
+            <p>{value.description || "Your everyday, together."}</p>
+            <div className={styles.previewCards}>
+              <span>Your services</span>
+              <span>Your favorites</span>
+              <span>At a glance</span>
+            </div>
+          </div>
+          <section className={styles.card}>
+            <h2>Make it yours</h2>
+            <p>The name and icon that represent your dashboard.</p>
+            <div className={styles.grid}>
               {[
-                "slate",
-                "gray",
-                "zinc",
-                "neutral",
-                "stone",
-                "red",
-                "orange",
-                "amber",
-                "yellow",
-                "lime",
-                "green",
-                "emerald",
-                "teal",
-                "cyan",
-                "sky",
-                "blue",
-                "indigo",
-                "violet",
-                "purple",
-                "fuchsia",
-                "pink",
-                "rose",
-              ].map((c) => (
-                <option key={c}>{c}</option>
+                ["title", "Dashboard title"],
+                ["description", "Description"],
+              ].map(([key, label]) => (
+                <label key={key}>
+                  {label}
+                  <input value={value[key] || ""} onChange={(e) => set(key, e.target.value)} />
+                </label>
               ))}
-            </select>
+              <IconPicker title="App icon" localOnly value={value.favicon} onChange={(next) => set("favicon", next)} />
+              <label>
+                Theme
+                <select value={value.theme || ""} onChange={(e) => set("theme", e.target.value)}>
+                  <option value="">System</option>
+                  <option value="dark">Dark</option>
+                  <option value="light">Light</option>
+                </select>
+              </label>
+              <label>
+                Color
+                <select value={value.color || "slate"} onChange={(e) => set("color", e.target.value)}>
+                  {[
+                    "slate",
+                    "gray",
+                    "zinc",
+                    "neutral",
+                    "stone",
+                    "red",
+                    "orange",
+                    "amber",
+                    "yellow",
+                    "lime",
+                    "green",
+                    "emerald",
+                    "teal",
+                    "cyan",
+                    "sky",
+                    "blue",
+                    "indigo",
+                    "violet",
+                    "purple",
+                    "fuchsia",
+                    "pink",
+                    "rose",
+                  ].map((c) => (
+                    <option key={c}>{c}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          </section>
+          <p className={styles.sourceHint}>More appearance options are available in Source.</p>
+        </>
+      )}
+      {view === "account" && (
+        <section className={styles.card}>
+          <h2>Account and inbox</h2>
+          <p>These controls live in the Gather application bar.</p>
+          <label className={styles.check}>
+            <input
+              type="checkbox"
+              checked={gather.accountMenu !== false}
+              onChange={(e) => set("gather", { ...gather, accountMenu: e.target.checked })}
+            />
+            Show account in the application bar
           </label>
-        </div>
-      </section>
-      <section className={styles.card}>
-        <h2>Account and inbox</h2>
-        <label className={styles.check}>
-          <input
-            type="checkbox"
-            checked={gather.accountMenu === true}
-            onChange={(e) => set("gather", { ...gather, accountMenu: e.target.checked })}
-          />
-          Show expandable account menu
-        </label>
-        <label className={styles.check}>
-          <input
-            type="checkbox"
-            checked={gather.notifications === true}
-            onChange={(e) => set("gather", { ...gather, notifications: e.target.checked })}
-          />
-          Show notification inbox
-        </label>
-        <label>
-          Account settings URL
-          <input
-            type="url"
-            value={gather.accountSettingsUrl || ""}
-            placeholder="https://accounts.example.com"
-            onChange={(e) => set("gather", { ...gather, accountSettingsUrl: e.target.value })}
-          />
-        </label>
-        <p>
-          Sign-in providers and administrator access are managed by the server operator. Push permission is enabled
-          separately on each device from the inbox.
-        </p>
-      </section>
-      <section className={styles.card}>
-        <h2>Layout and tabs</h2>
-        <p>Use group names matching Services and Bookmarks. Each group can have a tab, style and columns.</p>
-        <Fields value={value.layout || {}} onChange={(next) => set("layout", next)} />
-      </section>
-      <details className={styles.card}>
-        <summary>All dashboard options</summary>
-        <Fields value={value} onChange={onChange} />
-      </details>
+          <label className={styles.check}>
+            <input
+              type="checkbox"
+              checked={gather.notifications === true}
+              onChange={(e) => set("gather", { ...gather, notifications: e.target.checked })}
+            />
+            Enable notifications in the application bar
+          </label>
+          <label>
+            Account settings URL
+            <input
+              type="url"
+              value={gather.accountSettingsUrl || ""}
+              placeholder="https://accounts.example.com"
+              onChange={(e) => set("gather", { ...gather, accountSettingsUrl: e.target.value })}
+            />
+          </label>
+          <p>
+            Sign-in providers and administrator access are managed by the server operator. Push permission is enabled
+            separately on each device from the inbox.
+          </p>
+        </section>
+      )}
+      {view === "layout" && (
+        <Layout request={request} value={value.layout || {}} onChange={(next) => set("layout", next)} />
+      )}
     </>
   );
 }
-const WIDGETS = {
-  greeting: { text: "Welcome home.", personalize: true },
-  search: { provider: "google", target: "_blank" },
-  datetime: { text_size: "xl", format: { dateStyle: "long", timeStyle: "short" } },
-  openmeteo: { label: "Weather", latitude: 0, longitude: 0, units: "metric" },
-  resources: { cpu: true, memory: true },
-};
-function Widgets({ value, onChange }) {
-  const [type, setType] = useState("greeting");
+function Layout({ value, onChange, request }) {
+  const [name, setName] = useState("");
+  const [groups, setGroups] = useState([]);
+  useEffect(() => {
+    let active = true;
+    Promise.all(
+      ["services.yaml", "bookmarks.yaml"].map((file) =>
+        request(null, file).then((doc) => yaml.load(doc.text, { schema: yaml.JSON_SCHEMA })),
+      ),
+    )
+      .then((files) => {
+        if (active)
+          setGroups([
+            ...new Set(
+              files.flatMap((file) => (Array.isArray(file) ? file.flatMap((group) => Object.keys(group)) : [])),
+            ),
+          ]);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [request]);
+  if (!object(value)) return <p>This layout uses a custom structure. Edit it in Source.</p>;
+  const update = (group, patch) => onChange({ ...value, [group]: { ...value[group], ...patch } });
   return (
     <>
-      <Fields value={value} label="Header widgets (in display order)" onChange={onChange} />
-      <div className={styles.add}>
-        <select aria-label="Widget preset" value={type} onChange={(e) => setType(e.target.value)}>
-          {Object.keys(WIDGETS).map((k) => (
-            <option key={k}>{k}</option>
-          ))}
-        </select>
-        <button
-          onClick={() => onChange([...(Array.isArray(value) ? value : []), { [type]: structuredClone(WIDGETS[type]) }])}
-        >
-          Add widget preset
+      {Object.entries(value).map(([group, options]) => (
+        <section className={styles.card} key={group}>
+          <div className={styles.heading}>
+            <h2>{group}</h2>
+            <button
+              type="button"
+              aria-label={`Remove layout for ${group}`}
+              onClick={() => {
+                const next = { ...value };
+                delete next[group];
+                onChange(next);
+              }}
+            >
+              Remove layout
+            </button>
+          </div>
+          <p>
+            Choose where this group appears and how its services are arranged. Removing this layout keeps its services
+            and restores their default placement.
+          </p>
+          <div className={styles.grid}>
+            <label>
+              Tab name
+              <input
+                value={options?.tab || ""}
+                placeholder="Visible on every tab"
+                onChange={(e) => update(group, { tab: e.target.value })}
+              />
+            </label>
+            <label>
+              Arrangement
+              <select value={options?.style || "column"} onChange={(e) => update(group, { style: e.target.value })}>
+                <option value="column">Vertical list</option>
+                <option value="row">Card grid</option>
+              </select>
+            </label>
+            <label>
+              Columns
+              <select
+                value={options?.columns || ""}
+                onChange={(e) => {
+                  const next = { ...options };
+                  if (e.target.value) next.columns = Number(e.target.value);
+                  else delete next.columns;
+                  onChange({ ...value, [group]: next });
+                }}
+              >
+                <option value="">Automatic</option>
+                {Array.from({ length: 12 }, (_, i) => (
+                  <option key={i + 1} value={i + 1}>
+                    {i + 1}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <GuidedFields
+            fields={[
+              { key: "header", kind: "boolean", title: "Show group heading" },
+              { key: "initiallyCollapsed", kind: "boolean", title: "Start collapsed" },
+            ]}
+            value={{ header: true, ...options }}
+            onChange={(next) => onChange({ ...value, [group]: next })}
+          />
+        </section>
+      ))}
+      <section className={styles.card}>
+        <h2>Add a group layout</h2>
+        <p>Use the same group name as in Services or Bookmarks.</p>
+        <div className={styles.add}>
+          <select aria-label="Group to arrange" value={name} onChange={(e) => setName(e.target.value)}>
+            <option value="">Choose an existing group</option>
+            {groups
+              .filter((group) => !Object.hasOwn(value, group))
+              .map((group) => (
+                <option key={group}>{group}</option>
+              ))}
+          </select>
+          <button
+            type="button"
+            disabled={
+              !name.trim() ||
+              Object.hasOwn(value, name.trim()) ||
+              ["__proto__", "constructor", "prototype"].includes(name.trim())
+            }
+            onClick={() => {
+              onChange({ ...value, [name.trim()]: { tab: "Home", style: "row", columns: 3 } });
+              setName("");
+            }}
+          >
+            Add layout
+          </button>
+        </div>
+      </section>
+    </>
+  );
+}
+function Widgets({ value, onChange }) {
+  const [library, setLibrary] = useState(false);
+  if (!Array.isArray(value)) return <p>Use Source to repair this widget list.</p>;
+  return (
+    <section className={styles.card}>
+      <div className={styles.heading}>
+        <div>
+          <h2>Your Home widgets</h2>
+          <p>Shown on Home, in this order.</p>
+        </div>
+        <button type="button" onClick={() => setLibrary(!library)}>
+          {library ? "Close library" : "Add Home widget"}
         </button>
       </div>
-    </>
+      {library && (
+        <Catalog
+          title="Home widget library"
+          items={HOME_WIDGETS}
+          onSelect={(item) => {
+            onChange([...value, { [item.id]: structuredClone(item.defaults) }]);
+            setLibrary(false);
+          }}
+        />
+      )}
+      {value.map((widget, index) => {
+        const [type, config] = Object.entries(widget)[0] || [];
+        const item = HOME_WIDGETS.find((entry) => entry.id === type);
+        return (
+          <details className={styles.entry} key={index}>
+            <summary>
+              {item?.name || pretty(type || "Widget")}
+              <span className={styles.entryMeta}>Widget {index + 1}</span>
+            </summary>
+            {type === "logo" && (
+              <IconPicker
+                value={config.icon}
+                onChange={(icon) =>
+                  onChange(value.map((entry, i) => (i === index ? { [type]: { ...config, icon } } : entry)))
+                }
+              />
+            )}
+            {type === "stocks" && (
+              <TokenList
+                title="Watchlist"
+                values={Array.isArray(config.watchlist) ? config.watchlist : []}
+                pattern="^[A-Z0-9.^:-]+$"
+                limit={8}
+                placeholder="Ticker, e.g. AAPL"
+                onChange={(watchlist) =>
+                  onChange(value.map((entry, i) => (i === index ? { [type]: { ...config, watchlist } } : entry)))
+                }
+              />
+            )}
+            {item ? (
+              <GuidedFields
+                fields={[
+                  ...item.fields,
+                  ...(type === "search" && config.provider === "custom"
+                    ? [{ key: "url", kind: "url", title: "Search URL" }]
+                    : []),
+                ]}
+                value={config}
+                onChange={(next) => onChange(value.map((entry, i) => (i === index ? { [type]: next } : entry)))}
+              />
+            ) : (
+              <p>This widget uses custom settings. Edit them in Source.</p>
+            )}
+            {type === "openmeteo" && <p>Leave coordinates empty to use the browser’s location.</p>}
+            <Move
+              index={index}
+              length={value.length}
+              move={(direction) => onChange(reorder(value, index, direction))}
+              remove={() => onChange(value.filter((_, i) => i !== index))}
+            />
+          </details>
+        );
+      })}
+      <p className={styles.sourceHint}>Additional widget options remain available in Source.</p>
+    </section>
   );
 }
 function Notifications({ value, onChange }) {
@@ -407,20 +614,21 @@ function Notifications({ value, onChange }) {
         Choose the topics you want to receive and how push notifications look. Leave a field empty to use the default.
         Connection credentials are managed by your server administrator.
       </p>
-      <label>
-        Subscribed topics
-        <input
-          value={value.topics || ""}
-          placeholder="Server default"
-          onChange={(e) => {
-            const next = { ...value };
-            if (e.target.value) next.topics = e.target.value;
-            else delete next.topics;
-            onChange(next);
-          }}
-        />
-        <small>Comma-separated. The companion’s ntfy account needs read access to every topic.</small>
-      </label>
+      <TokenList
+        title="Subscribed topics"
+        values={value.topics ? value.topics.split(",") : []}
+        pattern="^[A-Za-z0-9_-]+$"
+        placeholder="Topic name"
+        onChange={(topics) => {
+          const next = { ...value };
+          if (topics.length) next.topics = topics.join(",");
+          else delete next.topics;
+          onChange(next);
+        }}
+      />
+      <p className={styles.sourceHint}>
+        Leave empty to use server defaults. The notification account needs access to these topics.
+      </p>
       <label>
         Push app name
         <input
@@ -434,26 +642,34 @@ function Notifications({ value, onChange }) {
           }}
         />
       </label>
-      <label>
-        Push icon path
-        <input
-          value={value.icon || ""}
-          placeholder="/android-chrome-512x512.png"
-          onChange={(e) => {
-            const next = { ...value };
-            if (e.target.value) next.icon = e.target.value;
-            else delete next.icon;
-            onChange(next);
-          }}
-        />
-        <small>
-          Use an existing image on this dashboard. Installed iPhone app icons also use Dashboard’s favicon setting.
-        </small>
-      </label>
+      <IconPicker
+        title="Push icon"
+        localOnly
+        value={value.icon}
+        onChange={(icon) => {
+          const next = { ...value };
+          if (icon) next.icon = icon;
+          else delete next.icon;
+          onChange(next);
+        }}
+      />
     </section>
   );
 }
-export default function SettingsEditor() {
+export default function SettingsEditor({ request = api, preview = false }) {
+  const [section, setSection] = useState("appearance");
+  const [canManageSystem, setCanManageSystem] = useState(preview);
+  const [systemDirty, setSystemDirty] = useState(false);
+  const formRef = useRef(null);
+  const sectionTitle = useRef(null);
+  const previousSection = useRef(section);
+  useEffect(() => {
+    if (previousSection.current !== section) {
+      sectionTitle.current?.focus({ preventScroll: true });
+      sectionTitle.current?.scrollIntoView?.({ block: "start" });
+      previousSection.current = section;
+    }
+  }, [section]);
   const [file, setFile] = useState("settings.yaml");
   const [doc, setDoc] = useState(null);
   const [text, setText] = useState("");
@@ -480,7 +696,23 @@ export default function SettingsEditor() {
     setText(
       file.endsWith(".json") ? `${JSON.stringify(next, null, 2)}\n` : yaml.dump(next, { noRefs: true, lineWidth: 120 }),
     );
-  const load = async (next) => {
+  function resetChanges() {
+    setText(doc.text);
+    setError("");
+    setPending(null);
+    setBackup("");
+    setConfirmRestore(false);
+    setStatus(`Unsaved changes in ${file} reset to the last saved version.`);
+  }
+  const load = async (id) => {
+    if (id === "system") {
+      setSection(id);
+      setText(doc?.text || "");
+      setStatus("");
+      setError("");
+      return;
+    }
+    const next = SECTIONS.find((item) => item.id === id).file;
     setBusy(true);
     setError("");
     setStatus("");
@@ -488,7 +720,9 @@ export default function SettingsEditor() {
     setBackup("");
     setConfirmRestore(false);
     try {
-      const result = await api(null, next);
+      const result = await request(null, next);
+      setSection(id);
+      setSystemDirty(false);
       setFile(next);
       setDoc(result);
       setText(result.text);
@@ -500,11 +734,17 @@ export default function SettingsEditor() {
   };
   useEffect(() => {
     let active = true;
-    api(null, "settings.yaml")
+    request(null, "settings.yaml")
       .then((result) => {
         if (active) {
           setDoc(result);
           setText(result.text);
+          setCanManageSystem(preview || result.capabilities?.system === true);
+          if (
+            (preview || result.capabilities?.system === true) &&
+            new URLSearchParams(window.location.search).get("section") === "system"
+          )
+            setSection("system");
         }
       })
       .catch((e) => {
@@ -516,7 +756,7 @@ export default function SettingsEditor() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [request, preview]);
   useEffect(() => {
     if (!dirty) return undefined;
     const warn = (event) => {
@@ -527,11 +767,21 @@ export default function SettingsEditor() {
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
   async function save(action = "save") {
+    if (action !== "restore" && mode === "visual" && !rawOnly) {
+      const invalid = formRef.current?.querySelector(":invalid");
+      if (invalid) {
+        const details = invalid.closest("details");
+        if (details) details.open = true;
+        invalid.reportValidity();
+        invalid.focus();
+        return;
+      }
+    }
     setBusy(true);
     setError("");
     setStatus("");
     try {
-      const result = await api({ action, file, text, revision: doc.revision, backup });
+      const result = await request({ action, file, text, revision: doc.revision, backup });
       if (action === "validate") setStatus("Validation passed. No changes saved.");
       else {
         setDoc(result);
@@ -551,6 +801,10 @@ export default function SettingsEditor() {
     }
   }
   async function checks() {
+    if (preview) {
+      setStatus("Local preview is ready. Live connections are tested on your deployed dashboard.");
+      return;
+    }
     setBusy(true);
     setError("");
     setStatus("");
@@ -569,182 +823,222 @@ export default function SettingsEditor() {
       setBusy(false);
     }
   }
+  const current = SECTIONS.find((item) => item.id === section);
+  function selectSection(item) {
+    if (item.id === section) return;
+    if (section !== "system" && item.file === file) {
+      setSection(item.id);
+      return;
+    }
+    if (dirty || systemDirty) setPending(item.id);
+    else load(item.id);
+  }
   return (
-    <main className={styles.editor}>
-      <Head>
-        <title>Gather settings</title>
-      </Head>
-      <header className={styles.top}>
-        <div>
-          <p className={styles.eyebrow}>GATHER / ADMINISTRATION</p>
-          <h1>Dashboard settings</h1>
-          <p>Make it yours. Changes are saved one section at a time.</p>
-        </div>
-        {/* A full navigation preserves the unsaved-edit beforeunload warning. */}
-        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-        <a href="/">Back to dashboard</a>
-      </header>
-      <div className={styles.shell}>
-        <nav aria-label="Settings sections">
-          {/* Full navigation retains the unsaved-edit warning. */}
-          {/* Full navigation preserves the unsaved-change warning. */}
+    <EditorPreviewContext.Provider value={preview}>
+      <main className={styles.editor}>
+        <Head>
+          <title>Gather settings</title>
+        </Head>
+        <header className={styles.top}>
+          <div className={styles.brand}>
+            <GatherMark className={styles.mark} />
+            <strong>Gather</strong>
+            <span>/</span>
+            <span>Settings</span>
+          </div>
+          {/* Full navigation preserves the unsaved-edit beforeunload warning. */}
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-          <a href="/system">System configuration ↗</a>
-          {SECTIONS.map(([key, label]) => (
-            <button
-              key={key}
-              aria-current={file === key ? "page" : undefined}
-              disabled={busy}
-              onClick={() => (dirty ? setPending(key) : load(key))}
-            >
-              {label}
-            </button>
-          ))}
-          <button disabled={busy} onClick={checks}>
-            Check connections
-          </button>
-        </nav>
-        <div className={styles.content}>
-          {pending && (
-            <section className={styles.notice} role="alert">
-              <p>You have unsaved changes. Discard them and open another section?</p>
-              <button
-                onClick={() => {
-                  const next = pending;
-                  setPending(null);
-                  load(next);
-                }}
-              >
-                Discard changes
-              </button>
-              <button onClick={() => setPending(null)}>Keep editing</button>
-            </section>
-          )}
-          {error && (
-            <p className={styles.error} role="alert">
-              {error}
-            </p>
-          )}
-          {status && (
-            <p className={styles.notice} role="status">
-              {status}
-            </p>
-          )}
-          {!doc && !busy && (
-            <p>
-              Ask the server operator to enable GATHER_EDITOR_ENABLED and authorize your account’s stable identity in
-              GATHER_ADMIN_IDS.
-            </p>
-          )}
-          {!doc && busy && <p role="status">Loading settings…</p>}
-          {doc && (
-            <>
-              <div className={styles.heading}>
-                <div>
-                  <h2>{SECTIONS.find(([key]) => key === file)[1]}</h2>
-                  <p>{SECTIONS.find(([key]) => key === file)[2]}</p>
+          <a href="/" className={styles.back}>
+            <GatherIcon name="arrowLeft" /> Back to dashboard
+          </a>
+        </header>
+        <div className={styles.shell}>
+          <aside className={styles.sidebar}>
+            <div className={styles.sidebarTitle}>
+              <h1>Dashboard settings</h1>
+              <p>A little more you.</p>
+            </div>
+            <nav aria-label="Settings sections">
+              {[
+                ...new Set(
+                  SECTIONS.filter((item) => item.id !== "system" || canManageSystem).map((item) => item.group),
+                ),
+              ].map((group) => (
+                <div key={group} className={styles.navGroup}>
+                  <span className={styles.eyebrow}>{group}</span>
+                  {SECTIONS.filter((item) => item.group === group && (item.id !== "system" || canManageSystem)).map(
+                    (item) => (
+                      <button
+                        key={item.id}
+                        aria-current={section === item.id ? "page" : undefined}
+                        disabled={busy}
+                        onClick={() => selectSection(item)}
+                      >
+                        <GatherIcon name={item.icon} />
+                        <span>{item.label}</span>
+                        {item.file === file && dirty && <i aria-hidden="true" title="Unsaved changes" />}
+                      </button>
+                    ),
+                  )}
                 </div>
-                {!rawOnly && (
-                  <div className={styles.moves}>
-                    <button aria-pressed={mode === "visual"} onClick={() => setMode("visual")}>
-                      Visual
-                    </button>
-                    <button aria-pressed={mode === "source"} onClick={() => setMode("source")}>
-                      Source
-                    </button>
-                  </div>
-                )}
-              </div>
-              <fieldset disabled={busy} className={styles.form}>
-                {rawOnly || mode === "source" ? (
-                  <>
-                    <p>
-                      {rawOnly
-                        ? "Custom code changes dashboard behavior for visitors. JavaScript runs with their signed-in access; only save code you trust."
-                        : "Environment placeholders are preserved. Resolved environment secrets are never loaded into this editor."}
-                    </p>
-                    <label>
-                      {file}
-                      <textarea
-                        className={styles.source}
-                        spellCheck={false}
-                        value={text}
-                        onChange={(e) => setText(e.target.value)}
-                      />
-                    </label>
-                  </>
-                ) : parseError ? (
-                  <p role="alert">Invalid syntax. Switch to Source to repair the file.</p>
-                ) : (
-                  <>
-                    <p className={styles.hint}>
-                      Visual edits preserve existing fields and environment placeholders, but normalize YAML formatting
-                      and comments. A backup is created on every save.
-                    </p>
-                    {file === "settings.yaml" && <Dashboard value={value} onChange={change} />}
-                    {["services.yaml", "bookmarks.yaml"].includes(file) && (
-                      <Groups value={value} onChange={change} bookmarks={file === "bookmarks.yaml"} />
-                    )}
-                    {file === "widgets.yaml" && <Widgets value={value} onChange={change} />}
-                    {file === "gather-notifications.json" && <Notifications value={value} onChange={change} />}
-                  </>
-                )}
-              </fieldset>
-              <div className={styles.toolbar}>
-                <span>{dirty ? "Unsaved changes" : "Up to date"}</span>
-                <button disabled={busy} onClick={() => save("validate")}>
-                  Validate
-                </button>
-                <button disabled={busy || !dirty} className={styles.primary} onClick={() => save()}>
-                  Save & apply
-                </button>
-                <button disabled={busy} onClick={() => (dirty ? setPending(file) : load(file))}>
-                  Reload file
-                </button>
-              </div>
-              <details className={styles.card}>
-                <summary>Backups & restore</summary>
-                <p>
-                  Restore a previous version of this section. Restoring also backs up the current version. The most
-                  recent 50 backups are listed.
-                </p>
-                <select
-                  aria-label="Backup to restore"
-                  value={backup}
-                  onChange={(e) => {
-                    setBackup(e.target.value);
-                    setConfirmRestore(false);
+              ))}
+            </nav>
+            <div className={styles.sidebarTools}>
+              <button disabled={busy} onClick={checks}>
+                <GatherIcon name="check" /> Check connections
+              </button>
+            </div>
+          </aside>
+          <div className={styles.content}>
+            {pending && (
+              <section className={styles.notice} role="alert">
+                <p>You have unsaved changes. Discard them and open another section?</p>
+                <button
+                  onClick={() => {
+                    const next = pending;
+                    setPending(null);
+                    load(next);
                   }}
                 >
-                  <option value="">Choose a backup</option>
-                  {doc.backups?.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {new Date(b.date).toLocaleString()} · {b.id.slice(-8)}
-                    </option>
-                  ))}
-                </select>
-                <button disabled={!backup || busy} onClick={() => setConfirmRestore(true)}>
-                  Restore selected backup
+                  Discard changes
                 </button>
-                {confirmRestore && (
-                  <div role="alert">
-                    <p>Replace this file with the selected backup? Unsaved edits will be discarded.</p>
-                    <button disabled={busy} onClick={() => save("restore")}>
-                      Confirm restore
-                    </button>
-                    <button onClick={() => setConfirmRestore(false)}>Cancel</button>
-                  </div>
-                )}
-              </details>
-              <p>
-                <a href="/" target="_blank" rel="noreferrer">
-                  Open dashboard to verify changes ↗
-                </a>
+                <button onClick={() => setPending(null)}>Keep editing</button>
+              </section>
+            )}
+            {error && (
+              <p className={styles.error} role="alert">
+                {error}
               </p>
-            </>
-          )}
+            )}
+            {status && (
+              <p className={styles.notice} role="status">
+                {status}
+              </p>
+            )}
+            {!doc && !busy && (
+              <p>
+                Ask the server operator to enable GATHER_EDITOR_ENABLED and authorize your account’s stable identity in
+                GATHER_ADMIN_IDS.
+              </p>
+            )}
+            {!doc && busy && <p role="status">Loading settings…</p>}
+            {section === "system" && canManageSystem && (
+              <SystemSettings embedded preview={preview} onDirtyChange={setSystemDirty} titleRef={sectionTitle} />
+            )}
+            {doc && section !== "system" && (
+              <>
+                <div className={styles.heading}>
+                  <div>
+                    <h2 ref={sectionTitle} tabIndex={-1} className={styles.sectionTitle}>
+                      {current.label}
+                    </h2>
+                    <p>{current.description}</p>
+                  </div>
+                  {!rawOnly && (
+                    <div className={styles.moves}>
+                      <button aria-pressed={mode === "visual"} onClick={() => setMode("visual")}>
+                        Visual
+                      </button>
+                      <button aria-pressed={mode === "source"} onClick={() => setMode("source")}>
+                        Source
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <fieldset ref={formRef} disabled={busy} className={styles.form}>
+                  {rawOnly || mode === "source" ? (
+                    <>
+                      <p>
+                        {rawOnly
+                          ? "Custom code changes dashboard behavior for visitors. JavaScript runs with their signed-in access; only save code you trust."
+                          : "Environment placeholders are preserved. Resolved environment secrets are never loaded into this editor."}
+                      </p>
+                      <label>
+                        {file}
+                        <textarea
+                          className={styles.source}
+                          spellCheck={false}
+                          value={text}
+                          onChange={(e) => setText(e.target.value)}
+                        />
+                      </label>
+                    </>
+                  ) : parseError ? (
+                    <p role="alert">Invalid syntax. Switch to Source to repair the file.</p>
+                  ) : (
+                    <>
+                      {file === "settings.yaml" && (
+                        <Dashboard value={value} onChange={change} view={section} request={request} />
+                      )}
+                      {["services.yaml", "bookmarks.yaml"].includes(file) && (
+                        <Groups value={value} onChange={change} bookmarks={file === "bookmarks.yaml"} />
+                      )}
+                      {file === "widgets.yaml" && <Widgets value={value} onChange={change} />}
+                      {file === "gather-notifications.json" && <Notifications value={value} onChange={change} />}
+                    </>
+                  )}
+                </fieldset>
+                <div className={styles.toolbar}>
+                  <span className={styles.saveState}>
+                    <GatherIcon name={dirty ? "edit" : "check"} />
+                    {dirty ? "Unsaved changes" : "All changes saved"}
+                    <small>
+                      {preview ? "This preview stays in your browser" : "A backup is created with every save"}
+                    </small>
+                  </span>
+                  <button disabled={busy} onClick={() => save("validate")}>
+                    Validate
+                  </button>
+                  <button disabled={busy || !dirty} className={styles.primary} onClick={() => save()}>
+                    Save & apply
+                  </button>
+                  <button disabled={busy || !dirty} onClick={resetChanges} title={`Reset unsaved changes in ${file}`}>
+                    Reset changes
+                  </button>
+                </div>
+                <details className={styles.card}>
+                  <summary>Backups & restore</summary>
+                  <p>
+                    Restore a previous version of this section. Restoring also backs up the current version. The most
+                    recent 50 backups are listed.
+                  </p>
+                  <select
+                    aria-label="Backup to restore"
+                    value={backup}
+                    onChange={(e) => {
+                      setBackup(e.target.value);
+                      setConfirmRestore(false);
+                    }}
+                  >
+                    <option value="">Choose a backup</option>
+                    {doc.backups?.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {new Date(b.date).toLocaleString()} · {b.id.slice(-8)}
+                      </option>
+                    ))}
+                  </select>
+                  <button disabled={!backup || busy} onClick={() => setConfirmRestore(true)}>
+                    Restore selected backup
+                  </button>
+                  {confirmRestore && (
+                    <div role="alert">
+                      <p>Replace this file with the selected backup? Unsaved edits will be discarded.</p>
+                      <button disabled={busy} onClick={() => save("restore")}>
+                        Confirm restore
+                      </button>
+                      <button onClick={() => setConfirmRestore(false)}>Cancel</button>
+                    </div>
+                  )}
+                </details>
+                <p className={styles.hint}>
+                  Visual edits preserve your configuration values and placeholders. YAML formatting and comments may be
+                  normalized; previous versions are available in Backups & restore.
+                </p>
+              </>
+            )}
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </EditorPreviewContext.Provider>
   );
 }
