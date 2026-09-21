@@ -101,13 +101,28 @@ export default function PushControls({ api, prefix }) {
     }
   }
   async function test() {
+    if (!ready || busy) return;
     setBusy(true);
     try {
       const subscription = await ready.registration.pushManager.getSubscription();
+      if (!subscription) {
+        setEnabled(false);
+        setMessage("Push is no longer enabled on this device. Enable notifications again before testing.");
+        return;
+      }
       await api("test", subscription.toJSON());
-      setMessage("Test notification queued.");
-    } catch {
-      setMessage("Could not send test notification.");
+      setMessage("Test notification queued. Wait one minute before sending another test.");
+    } catch (error) {
+      if (error.status === 429) {
+        setMessage("Tests are limited to one per minute. Wait one minute after your last test, then try again.");
+      } else if (error.status === 404) {
+        setEnabled(false);
+        setMessage("Push is no longer enabled on this device. Enable notifications again before testing.");
+      } else if (error.status === 401) {
+        setMessage("Your session has expired. Sign in again before sending a test.");
+      } else {
+        setMessage("Could not send test notification. Try again shortly.");
+      }
     } finally {
       setBusy(false);
     }
