@@ -1,8 +1,11 @@
+import handler from "pages/api/gather/system";
 import { administrator, validEditorOrigin } from "utils/gather/admin";
 import { publicConfig, stage } from "utils/gather/system-store";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import handler from "./system";
-vi.mock("utils/gather/admin", () => ({ administrator: vi.fn(), validEditorOrigin: vi.fn() }));
+vi.mock("utils/gather/admin", () => {
+  const admin = vi.fn();
+  return { administrator: admin, systemAdministrator: admin, validEditorOrigin: vi.fn() };
+});
 vi.mock("utils/gather/system-store", () => ({
   candidate: vi.fn(),
   checkConnections: vi.fn(),

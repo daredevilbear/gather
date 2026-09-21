@@ -106,10 +106,25 @@ def owner_for_cookie(cookie):
     with urlopen(request, timeout=5) as response:
         session = json.loads(response.read(32768))
     user = session.get('user') or {}
-    identity = user.get('id') or user.get('email')
+    identity = user.get('gatherIdentity') or user.get('id') or user.get('email')
     if not isinstance(identity, str) or not identity:
         return None
-    return hashlib.sha256(identity.encode()).hexdigest()
+    owner = hashlib.sha256(identity.encode()).hexdigest()
+    # Upgrade email-keyed installations only when the identity provider verified the email.
+    email = user.get('email')
+    if user.get('gatherIdentity') and user.get('emailVerified') is True and isinstance(email, str) and email:
+        legacy = hashlib.sha256(email.encode()).hexdigest()
+        if legacy != owner:
+            with connect() as db:
+                db.execute('UPDATE subscriptions SET owner=? WHERE owner=?', (owner,legacy))
+                db.execute('''INSERT INTO inbox_state SELECT ?,message,status,updated FROM inbox_state WHERE owner=?
+                  ON CONFLICT(owner,message) DO UPDATE SET
+                  status=CASE WHEN inbox_state.status='dismissed' OR excluded.status='dismissed' THEN 'dismissed' ELSE 'read' END,
+                  updated=MAX(inbox_state.updated,excluded.updated)''', (owner,legacy))
+                db.execute('DELETE FROM inbox_state WHERE owner=?', (legacy,))
+                db.execute('INSERT OR IGNORE INTO preferences SELECT ?,body FROM preferences WHERE owner=?', (owner,legacy))
+                db.execute('DELETE FROM preferences WHERE owner=?', (legacy,))
+    return owner
 
 def validate_subscription(value):
     if not isinstance(value, dict):

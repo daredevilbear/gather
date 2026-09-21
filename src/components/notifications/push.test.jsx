@@ -47,3 +47,17 @@ it("recovers when the browser subscription disappears before testing", async () 
   expect(screen.getByRole("button", { name: "Enable push notifications" })).toBeInTheDocument();
   expect(api).not.toHaveBeenCalledWith("test", expect.anything());
 });
+
+it("offers a local browser subscription reset after an account conflict", async () => {
+  const unsubscribe = vi.fn().mockResolvedValue(true);
+  getSubscription.mockResolvedValue({ toJSON: () => ({ endpoint: "test" }), unsubscribe });
+  api.mockImplementation(async (path) => {
+    if (path === "status") throw Object.assign(Error("Conflict"), { status: 409 });
+    return { publicKey: "key" };
+  });
+  render(<PushControls api={api} prefix="/gather-notifications/" />);
+  fireEvent.click(await screen.findByRole("button", { name: "Reset browser push" }));
+  expect(await screen.findByText(/Browser push reset/)).toBeInTheDocument();
+  expect(unsubscribe).toHaveBeenCalledOnce();
+  expect(api).not.toHaveBeenCalledWith("unsubscribe", expect.anything());
+});

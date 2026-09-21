@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
 import { useTranslation } from "next-i18next/pages";
+import Link from "next/link";
 import { useEffect, useRef } from "react";
 
 import styles from "./menu.module.css";
@@ -75,8 +75,13 @@ export function AccountMenuView({ user, settingsUrl, dashboardSettings, signOutL
       <div className={styles.panel}>
         <strong>{user.name || name}</strong>
         {user.email && <small>{user.email}</small>}
+        <Link href="/dashboard" className="flex min-h-11 items-center gap-2">
+          <GatherIcon name="home" />
+          My dashboard
+        </Link>
         <Link href="/account" className="flex min-h-11 items-center gap-2">
-          <GatherIcon name="settings" />My preferences
+          <GatherIcon name="settings" />
+          My preferences
         </Link>
         {dashboardSettings}
         {settings && (

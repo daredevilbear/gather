@@ -1,8 +1,11 @@
+import handler from "pages/api/gather/settings";
 import { administrator, validEditorOrigin } from "utils/gather/admin";
 import { createStore } from "utils/gather/config-store";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import handler from "./settings";
-vi.mock("utils/gather/admin", () => ({ administrator: vi.fn(), validEditorOrigin: vi.fn() }));
+vi.mock("utils/gather/admin", () => {
+  const admin = vi.fn();
+  return { administrator: admin, systemAdministrator: admin, validEditorOrigin: vi.fn() };
+});
 vi.mock("utils/config/config", () => ({ CONF_DIR: "/test" }));
 vi.mock("utils/gather/config-store", async (importOriginal) => {
   const original = await importOriginal();

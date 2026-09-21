@@ -1,5 +1,5 @@
 import { CONF_DIR } from "utils/config/config";
-import { administrator, validEditorOrigin } from "utils/gather/admin";
+import { administrator, systemAdministrator, validEditorOrigin } from "utils/gather/admin";
 import { ConfigError, createStore, FILES, validate } from "utils/gather/config-store";
 
 export const config = { api: { bodyParser: { sizeLimit: "600kb" } } };
@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   if (!(await administrator(req)))
     return res.status(403).json({ error: "Dashboard settings require an explicitly authorized administrator." });
   const store = createStore(CONF_DIR);
-  const capabilities = { system: true };
+  const capabilities = { system: await systemAdministrator(req) };
   try {
     if (req.method === "GET") {
       if (!req.query.file) return res.json({ administrator: true, files: FILES, capabilities });

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 export default function PushControls({ api, prefix }) {
   const [ready, setReady] = useState(null);
   const [enabled, setEnabled] = useState(false);
+  const [needsReset, setNeedsReset] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("Checking push support…");
   const prepare = useCallback(async () => {
@@ -48,16 +49,23 @@ export default function PushControls({ api, prefix }) {
         });
       }
       const subscription = await registration.pushManager.getSubscription();
-      const active = subscription && (await api("status", subscription.toJSON())).enabled;
       setReady({ registration, publicKey: config.publicKey });
+      const active = subscription && (await api("status", subscription.toJSON())).enabled;
+      setNeedsReset(false);
       setEnabled(Boolean(active));
       setMessage(
         active
           ? "Push is on for this device, including when the dashboard is closed."
           : "Receive new notifications on this device, even when the dashboard is closed.",
       );
-    } catch {
-      setMessage("Push settings unavailable. Refresh to try again.");
+    } catch (error) {
+      if (error.status === 409) {
+        setEnabled(false);
+        setNeedsReset(true);
+        setMessage(
+          "This browser subscription belongs to a previous sign-in. Reset browser push, then enable it for this account.",
+        );
+      } else setMessage("Push settings unavailable. Refresh to try again.");
     }
   }, [api, prefix]);
   useEffect(() => {
@@ -100,6 +108,21 @@ export default function PushControls({ api, prefix }) {
       setBusy(false);
     }
   }
+  async function resetBrowserPush() {
+    if (!ready || busy) return;
+    setBusy(true);
+    try {
+      const subscription = await ready.registration.pushManager.getSubscription();
+      if (subscription && !(await subscription.unsubscribe())) throw Error();
+      setEnabled(false);
+      setNeedsReset(false);
+      setMessage("Browser push reset. Enable notifications for this account.");
+    } catch {
+      setMessage("Could not reset browser push. Check the notification permission in your browser settings.");
+    } finally {
+      setBusy(false);
+    }
+  }
   async function test() {
     if (!ready || busy) return;
     setBusy(true);
@@ -130,7 +153,12 @@ export default function PushControls({ api, prefix }) {
   return (
     <section aria-label="Push notifications">
       <div>
-        <button type="button" disabled={busy || !ready} onClick={toggle}>
+        {needsReset && (
+          <button type="button" disabled={busy || !ready} onClick={resetBrowserPush}>
+            Reset browser push
+          </button>
+        )}
+        <button type="button" disabled={busy || !ready || needsReset} onClick={toggle}>
           {enabled ? "Disable push on this device" : "Enable push notifications"}
         </button>
         {enabled && (

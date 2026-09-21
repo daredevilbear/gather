@@ -1,8 +1,7 @@
-import Link from "next/link";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import useSWR from "swr";
-
 
 import styles from "./inbox.module.css";
 import Message from "./message";
@@ -13,7 +12,7 @@ import GatherIcon from "components/gather/icon";
 const validId = (value) => typeof value === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(value);
 export default function Inbox({ prefix = "/gather-notifications/", fullPage = false }) {
   const { data: session, status } = useSession();
-  const identity = session?.user?.id || session?.user?.email;
+  const identity = session?.user?.gatherIdentity || session?.user?.id || session?.user?.email;
   const [open, setOpen] = useState(fullPage);
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState(null);
@@ -169,7 +168,11 @@ export default function Inbox({ prefix = "/gather-notifications/", fullPage = fa
     setBusy(true);
     setSaveError("");
     try {
-      const saved = await api("inbox-state", { account: data.account, updates: {}, preferences: { ...preferences, ...patch } });
+      const saved = await api("inbox-state", {
+        account: data.account,
+        updates: {},
+        preferences: { ...preferences, ...patch },
+      });
       if (current === generation.current) await mutate((previous) => ({ ...previous, ...saved }), false);
     } catch {
       if (current === generation.current) setSaveError("Could not save notification preferences. Try again.");
@@ -204,25 +207,42 @@ export default function Inbox({ prefix = "/gather-notifications/", fullPage = fa
             ? "Latest 200 · 30-day history"
             : "Loading notifications…");
   return (
-    <details ref={box} open={fullPage || open} className={fullPage ? styles.fullPage : styles.inbox} onToggle={(event) => setOpen(event.currentTarget.open)}>
-      <summary hidden={fullPage} className={styles.summary} aria-label={`${unread} unread notifications`}
+    <details
+      ref={box}
+      open={fullPage || open}
+      className={fullPage ? styles.fullPage : styles.inbox}
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+    >
+      <summary
+        hidden={fullPage}
+        className={styles.summary}
+        aria-label={`${unread} unread notifications`}
         onClick={(event) => {
           if (preferences.inboxView === "page" && !fullPage) {
             event.preventDefault();
             // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- Full navigation remounts the independent inbox page and clears popup state.
             window.location.assign("/notifications");
           }
-        }}>
+        }}
+      >
         <GatherIcon name="bell" />
         Notifications{unread ? ` · ${unread}` : ""}
       </summary>
       <section className={styles.panel} aria-label="Notification inbox">
         <div className={styles.actions}>
           <strong>Notifications</strong>
-          {fullPage ? <Link href="/">Back to dashboard</Link> : <>
-            <Link href={`/notifications${selected ? `?notification=${encodeURIComponent(selected)}` : ""}`}>Expand inbox</Link>
-            <button type="button" onClick={() => setOpen(false)}>Close</button>
-          </>}
+          {fullPage ? (
+            <Link href="/">Back to dashboard</Link>
+          ) : (
+            <>
+              <Link href={`/notifications${selected ? `?notification=${encodeURIComponent(selected)}` : ""}`}>
+                Expand inbox
+              </Link>
+              <button type="button" onClick={() => setOpen(false)}>
+                Close
+              </button>
+            </>
+          )}
         </div>
         <div className={styles.actions}>
           <select
@@ -260,18 +280,30 @@ export default function Inbox({ prefix = "/gather-notifications/", fullPage = fa
         <details className={styles.preferences}>
           <summary>Notification preferences</summary>
           <label>
-            <input type="checkbox" checked={preferences.badge} disabled={busy || !data}
-              onChange={(e) => savePreferences({ badge: e.target.checked })} />
+            <input
+              type="checkbox"
+              checked={preferences.badge}
+              disabled={busy || !data}
+              onChange={(e) => savePreferences({ badge: e.target.checked })}
+            />
             Show unread count on the app icon
           </label>
           <label>
-            <input type="checkbox" checked={preferences.pushPage} disabled={busy || !data}
-              onChange={(e) => savePreferences({ pushPage: e.target.checked })} />
+            <input
+              type="checkbox"
+              checked={preferences.pushPage}
+              disabled={busy || !data}
+              onChange={(e) => savePreferences({ pushPage: e.target.checked })}
+            />
             Open push notifications in the full-page inbox
           </label>
-          <label>Open inbox as
-            <select value={preferences.inboxView} disabled={busy || !data}
-              onChange={(e) => savePreferences({ inboxView: e.target.value })}>
+          <label>
+            Open inbox as
+            <select
+              value={preferences.inboxView}
+              disabled={busy || !data}
+              onChange={(e) => savePreferences({ inboxView: e.target.value })}
+            >
               <option value="panel">Compact panel</option>
               <option value="page">Full page</option>
             </select>

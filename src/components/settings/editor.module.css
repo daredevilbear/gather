@@ -815,3 +815,21 @@
     background: #fff9;
   }
 }
+
+.editor input:not([type="checkbox"]),
+.editor select,
+.editor textarea {
+  border-color: #667c8b;
+}
+.appearancePreview > div:first-child > span {
+  opacity: 1;
+  font-size: 11px;
+}
+.previewTabs,
+.previewCards,
+.appearancePreview p {
+  font-size: 13px;
+}
+.editor label {
+  font-size: 14px;
+}

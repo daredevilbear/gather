@@ -1,7 +1,7 @@
+import handler from "pages/api/gather/icons/index";
 import { administrator, validEditorOrigin } from "utils/gather/admin";
 import { iconStore } from "utils/gather/icon-store";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import handler from "./index";
 vi.mock("utils/config/config", () => ({ CONF_DIR: "/test" }));
 vi.mock("utils/gather/admin", () => ({ administrator: vi.fn(), validEditorOrigin: vi.fn() }));
 vi.mock("utils/gather/icon-store", () => ({ iconStore: vi.fn() }));

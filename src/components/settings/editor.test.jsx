@@ -181,7 +181,6 @@ describe("reset changes", () => {
   });
 });
 
-
 it("updates the appearance sample from unsaved title, icon, theme and layout values", async () => {
   render(<SettingsEditor request={createPreviewStore()} preview />);
   fireEvent.change(await screen.findByLabelText("Dashboard title"), { target: { value: "My preview" } });
@@ -223,10 +222,27 @@ it("offers all file backups from a dedicated section and restores a saved versio
 
 it("groups services by tab while editing the original service index", () => {
   const onChange = vi.fn();
-  render(<Groups value={[{ Media: [{ Plex: { href: "https://media.test" } }] }, { Home: [] }]}
-    onChange={onChange} layout={{ Media: { tab: "Watch" }, Home: { tab: "Everyday" } }} tabs={["Everyday", "Watch"]} />);
+  render(
+    <Groups
+      value={[{ Media: [{ Plex: { href: "https://media.test" } }] }, { Home: [] }]}
+      onChange={onChange}
+      layout={{ Media: { tab: "Watch" }, Home: { tab: "Everyday" } }}
+      tabs={["Everyday", "Watch"]}
+    />,
+  );
   expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual(["Everyday", "Watch"]);
   fireEvent.change(screen.getAllByLabelText("Group name")[0], { target: { value: "Renamed" } });
   expect(onChange.mock.calls[0][0][0]).toEqual({ Media: [{ Plex: { href: "https://media.test" } }] });
   expect(onChange.mock.calls[0][0][1]).toEqual({ Renamed: [] });
+});
+
+it("opens the native user, variables and migration screens from navigation", async () => {
+  render(<SettingsEditor request={createPreviewStore()} preview />);
+  await screen.findByLabelText("Dashboard title");
+  fireEvent.click(screen.getByRole("button", { name: "Users & access", exact: true }));
+  expect(await screen.findByText("Protected server administrator.")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Secrets & variables", exact: true }));
+  expect(await screen.findByLabelText("Secret value")).toHaveAttribute("type", "password");
+  fireEvent.click(screen.getByRole("button", { name: "Import from Homepage", exact: true }));
+  expect(await screen.findByLabelText("Homepage YAML file")).toHaveAttribute("type", "file");
 });

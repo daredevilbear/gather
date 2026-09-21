@@ -108,9 +108,27 @@ it("matches icon names, filenames, tags and punctuation without case sensitivity
   expect(matchesIcon(icon, "media")).toBe(false);
 });
 it("finds library icons by category tags", () => {
-  render(<EditorPreviewContext.Provider value><IconPicker onChange={vi.fn()} /></EditorPreviewContext.Provider>);
+  render(
+    <EditorPreviewContext.Provider value>
+      <IconPicker onChange={vi.fn()} />
+    </EditorPreviewContext.Provider>,
+  );
   fireEvent.click(screen.getByRole("button", { name: "Choose icon" }));
   fireEvent.change(screen.getByRole("searchbox", { name: "Search icons" }), { target: { value: "vpn" } });
   expect(screen.getByRole("button", { name: "Wireguard" })).toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Plex" })).not.toBeInTheDocument();
+});
+
+it("focuses icon search and restores the chooser on Escape", () => {
+  render(
+    <EditorPreviewContext.Provider value>
+      <IconPicker onChange={vi.fn()} />
+    </EditorPreviewContext.Provider>,
+  );
+  const trigger = screen.getByRole("button", { name: "Choose icon" });
+  fireEvent.click(trigger);
+  expect(screen.getByRole("searchbox", { name: "Search icons" })).toHaveFocus();
+  fireEvent.keyDown(screen.getByRole("searchbox", { name: "Search icons" }), { key: "Escape" });
+  expect(screen.queryByRole("searchbox", { name: "Search icons" })).not.toBeInTheDocument();
+  expect(trigger).toHaveFocus();
 });

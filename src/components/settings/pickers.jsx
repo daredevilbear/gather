@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element -- Native images also support local preview uploads and authenticated assets. */
-import { createContext, useContext, useId, useState } from "react";
+import { createContext, useContext, useEffect, useId, useRef, useState } from "react";
 
 import styles from "./editor.module.css";
 import integrations from "./widget-catalog.json";
@@ -101,7 +101,12 @@ const symbols = [
 const iconTags = {
   media: "plex jellyfin emby sonarr radarr prowlarr sabnzbd transmission qbittorrent calibre-web music movie",
   "home automation smart iot": "home-assistant esphome zigbee2mqtt node-red mosquitto homebridge lightbulb",
-  "network internet dns vpn": "adguard-home pi-hole unifi tailscale wireguard nginx-proxy-manager traefik cloudflare network wifi",
+  "network internet":
+    "adguard-home pi-hole unifi tailscale wireguard nginx-proxy-manager traefik cloudflare network wifi",
+  "vpn remote access": "tailscale wireguard",
+  "dns filtering": "adguard-home pi-hole cloudflare",
+  "homeassistant hass hassio": "home-assistant",
+  pihole: "pi-hole",
   "security authentication identity passwords": "vaultwarden bitwarden authentik authelia keycloak shield-check lock",
   "storage files backup sync": "nextcloud syncthing truenas unraid synology folder database",
   "monitoring metrics status": "grafana prometheus uptime-kuma chart-line",
@@ -116,16 +121,26 @@ const iconTags = {
   "favorites saved": "bookmark heart",
   "settings configuration": "cog",
 };
-const tagsFor = (name) => Object.entries(iconTags)
-  .filter(([, names]) => names.split(" ").includes(name)).map(([tags]) => tags).join(" ");
+const tagsFor = (name) =>
+  Object.entries(iconTags)
+    .filter(([, names]) => names.split(" ").includes(name))
+    .map(([tags]) => tags)
+    .join(" ");
 const ICONS = [
   ...services.map((name) => ({ name: label(name.replaceAll("-", " ")), value: `${name}.png`, tags: tagsFor(name) })),
   ...symbols.map((name) => ({ name: label(name.replaceAll("-", " ")), value: `mdi-${name}`, tags: tagsFor(name) })),
 ];
 export function matchesIcon(item, query) {
-  const normalize = (text) => text.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, " ").trim();
+  const normalize = (text) =>
+    text
+      .toLowerCase()
+      .normalize("NFKD")
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
   const haystack = normalize([item.name, item.value, item.tags || ""].join(" "));
-  return normalize(query).split(/\s+/).every((word) => haystack.includes(word));
+  return normalize(query)
+    .split(/\s+/)
+    .every((word) => haystack.includes(word));
 }
 export function iconURL(value) {
   if (!value) return "";
@@ -145,6 +160,15 @@ export function IconPicker({ value = "", onChange, title = "Icon", localOnly = f
     [busy, setBusy] = useState(false),
     [uploads, setUploads] = useState([]);
   const id = useId();
+  const trigger = useRef(null),
+    search = useRef(null);
+  useEffect(() => {
+    if (open) search.current?.focus();
+  }, [open]);
+  const closeLibrary = () => {
+    setOpen(false);
+    trigger.current?.focus();
+  };
   async function browse() {
     setOpen(!open);
     if (!open && !preview) {
@@ -186,7 +210,7 @@ export function IconPicker({ value = "", onChange, title = "Icon", localOnly = f
       }
       setUploads((items) => [...items, { name: file.name, value: url }]);
       onChange(url);
-      setOpen(false);
+      closeLibrary();
     } catch (e) {
       setError(e.message || "Could not read this image.");
     } finally {
@@ -212,7 +236,13 @@ export function IconPicker({ value = "", onChange, title = "Icon", localOnly = f
         ) : (
           <span className={styles.iconPlaceholder}>◇</span>
         )}
-        <button type="button" aria-expanded={open} aria-label={`Choose ${title.toLowerCase()}`} onClick={browse}>
+        <button
+          ref={trigger}
+          type="button"
+          aria-expanded={open}
+          aria-label={`Choose ${title.toLowerCase()}`}
+          onClick={browse}
+        >
           {value ? "Change icon" : "Choose icon"}
         </button>
         {value && (
@@ -222,10 +252,19 @@ export function IconPicker({ value = "", onChange, title = "Icon", localOnly = f
         )}
       </div>
       {open && (
-        <section className={styles.library} aria-labelledby={id}>
+        <section
+          className={styles.library}
+          aria-labelledby={id}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              event.stopPropagation();
+              closeLibrary();
+            }
+          }}
+        >
           <div className={styles.heading}>
             <strong>Icon library</strong>
-            <button type="button" onClick={() => setOpen(false)}>
+            <button type="button" onClick={closeLibrary}>
               Close library
             </button>
           </div>
@@ -233,6 +272,7 @@ export function IconPicker({ value = "", onChange, title = "Icon", localOnly = f
             Search icons
             <input
               type="search"
+              ref={search}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search names, filenames or tags, like media or VPN"
@@ -246,7 +286,7 @@ export function IconPicker({ value = "", onChange, title = "Icon", localOnly = f
                 aria-pressed={value === item.value}
                 onClick={() => {
                   onChange(localOnly ? iconURL(item.value) : item.value);
-                  setOpen(false);
+                  closeLibrary();
                 }}
               >
                 <img
@@ -261,7 +301,9 @@ export function IconPicker({ value = "", onChange, title = "Icon", localOnly = f
               </button>
             ))}
           </div>
-          <p role="status">{items.length ? `${items.length} icons found` : "No matching icons. Try another search or upload your own."}</p>
+          <p role="status">
+            {items.length ? `${items.length} icons found` : "No matching icons. Try another search or upload your own."}
+          </p>
           <label className={styles.upload}>
             Upload an icon
             <input

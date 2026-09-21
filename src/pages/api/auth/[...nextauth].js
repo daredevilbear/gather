@@ -4,6 +4,7 @@ import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
 import { applyNextAuthEnv, isAuthEnabled } from "utils/env";
+import { userAccess, usersStore } from "utils/gather/users-store";
 import createLogger from "utils/logger";
 
 const MIN_AUTH_SECRET_LENGTH = 32;
@@ -142,8 +143,27 @@ if (authEnabled) {
 export const authOptions = {
   providers,
   callbacks: {
-    async jwt({ token, account }) {
+    async session({ session, token }) {
+      const access = userAccess(token?.sub);
+      if (!access.enabled) return { ...session, user: null };
+      if (session.user) {
+        session.user.role = access.role;
+        session.user.gatherIdentity = token?.sub;
+        session.user.emailVerified = token?.emailVerified === true;
+      }
+      return session;
+    },
+    async jwt({ token, account, profile }) {
       if (account) {
+        token.emailVerified = profile?.email_verified === true;
+        if (token.sub) {
+          const directory = usersStore();
+          try {
+            directory.identify({ ...token, emailVerified: token.emailVerified }, true);
+          } finally {
+            directory.close();
+          }
+        }
         token.gatherLoginRevision = process.env.GATHER_SYSTEM_REVISION || "legacy";
         token.gatherLoginAt = Math.floor(Date.now() / 1000);
       }

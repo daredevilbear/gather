@@ -256,8 +256,11 @@ export default function SystemSettings({ embedded = false, preview = false, onDi
                   Choose notification topics and icons in Notifications.
                 </p>
               </section>
-              <section className={styles.card}>
-                <h2>Administrators</h2>
+              <details className={styles.card}>
+                <summary>Bootstrap administrators (advanced)</summary>
+                <p>
+                  Manage people and roles in Users & access. These server identities provide protected recovery access.
+                </p>
                 <label>
                   Account subject IDs (one per line)
                   <textarea
@@ -270,7 +273,7 @@ export default function SystemSettings({ embedded = false, preview = false, onDi
                   Use stable OIDC subject IDs, not names or email addresses. Your current administrator identity must
                   remain authorized.
                 </p>
-              </section>
+              </details>
               <div className={styles.toolbar}>
                 <button onClick={() => run("test")}>Test connections</button>
                 <button

@@ -3,6 +3,7 @@ import Head from "next/head";
 import { useEffect, useRef, useState } from "react";
 
 import styles from "./editor.module.css";
+import Migration from "./migration";
 import {
   Catalog,
   EditorPreviewContext,
@@ -14,11 +15,13 @@ import {
   TokenList,
 } from "./pickers";
 import SystemSettings from "./system";
+import Users from "./users";
+import Variables from "./variables";
 
 import GatherIcon from "components/gather/icon";
 import GatherMark from "components/gather/mark";
-import { dashboardTabs, renameDashboardTab } from "utils/gather/tabs";
 import { slugifyAndEncode } from "components/tab";
+import { dashboardTabs, renameDashboardTab } from "utils/gather/tabs";
 import themes from "utils/styles/themes";
 
 const SECTIONS = [
@@ -103,6 +106,30 @@ const SECTIONS = [
     group: "ADVANCED",
   },
   {
+    id: "users",
+    file: null,
+    label: "Users & access",
+    description: "Manage people, roles and activity.",
+    icon: "person",
+    group: "ADMINISTRATION",
+  },
+  {
+    id: "migration",
+    file: null,
+    label: "Import from Homepage",
+    description: "Bring an existing Homepage dashboard into Gather.",
+    icon: "import",
+    group: "ADMINISTRATION",
+  },
+  {
+    id: "variables",
+    file: null,
+    label: "Secrets & variables",
+    description: "Manage reusable connection values.",
+    icon: "lock",
+    group: "ADMINISTRATION",
+  },
+  {
     id: "backups",
     file: null,
     label: "Backup & restore",
@@ -137,16 +164,16 @@ async function api(body, file) {
   if (!response.ok) throw new Error(result.error || "Could not load settings. Sign in again and retry.");
   return result;
 }
-function Move({ index, length, move, remove }) {
+function Move({ index, length, move, remove, label = "item" }) {
   return (
     <div className={styles.moves}>
-      <button type="button" aria-label="Move up" disabled={index === 0} onClick={() => move(-1)}>
+      <button type="button" aria-label={`Move ${label} up`} disabled={index === 0} onClick={() => move(-1)}>
         ↑
       </button>
-      <button type="button" aria-label="Move down" disabled={index === length - 1} onClick={() => move(1)}>
+      <button type="button" aria-label={`Move ${label} down`} disabled={index === length - 1} onClick={() => move(1)}>
         ↓
       </button>
-      <button type="button" onClick={remove}>
+      <button type="button" aria-label={`Remove ${label}`} onClick={remove}>
         Remove
       </button>
     </div>
@@ -161,76 +188,83 @@ export function Groups({ value, onChange, bookmarks = false, layout = {}, tabs =
   if (!Array.isArray(value)) return <p>Use the source view to repair this configuration.</p>;
   return (
     <div>
-      {value.map((group, i) => ({ group, i })).sort((a, b) => {
-        const rank = (group) => tabs.indexOf(layout[Object.keys(group)[0]]?.tab);
-        return rank(a.group) - rank(b.group);
-      }).map(({ group, i }, displayIndex, ordered) => {
-        const [name, entries] = Object.entries(group)[0] || ["", []];
-        if (!Array.isArray(entries)) return <p key={i}>Group {name} requires a list. Use the source view.</p>;
-        const update = (list) => onChange(value.map((g, n) => (n === i ? { [name]: list } : g)));
-        return (
-          <section className={styles.card} key={i}>
-            {(displayIndex === 0 || layout[Object.keys(ordered[displayIndex - 1].group)[0]]?.tab !== layout[name]?.tab) &&
-              <h2>{layout[name]?.tab || "Every tab"}</h2>}
-            <div className={styles.heading}>
-              <label>
-                Group name
-                <input
-                  value={name}
-                  onChange={(e) => onChange(value.map((g, n) => (n === i ? { [e.target.value]: entries } : g)))}
+      {value
+        .map((group, i) => ({ group, i }))
+        .sort((a, b) => {
+          const rank = (group) => tabs.indexOf(layout[Object.keys(group)[0]]?.tab);
+          return rank(a.group) - rank(b.group);
+        })
+        .map(({ group, i }, displayIndex, ordered) => {
+          const [name, entries] = Object.entries(group)[0] || ["", []];
+          if (!Array.isArray(entries)) return <p key={i}>Group {name} requires a list. Use the source view.</p>;
+          const update = (list) => onChange(value.map((g, n) => (n === i ? { [name]: list } : g)));
+          return (
+            <section className={styles.card} key={i}>
+              {(displayIndex === 0 ||
+                layout[Object.keys(ordered[displayIndex - 1].group)[0]]?.tab !== layout[name]?.tab) && (
+                <h2>{layout[name]?.tab || "Every tab"}</h2>
+              )}
+              <div className={styles.heading}>
+                <label>
+                  Group name
+                  <input
+                    value={name}
+                    onChange={(e) => onChange(value.map((g, n) => (n === i ? { [e.target.value]: entries } : g)))}
+                  />
+                </label>
+                <Move
+                  label={name || "group"}
+                  index={i}
+                  length={value.length}
+                  move={(d) => onChange(reorder(value, i, d))}
+                  remove={() => onChange(value.filter((_, n) => n !== i))}
                 />
-              </label>
-              <Move
-                index={i}
-                length={value.length}
-                move={(d) => onChange(reorder(value, i, d))}
-                remove={() => onChange(value.filter((_, n) => n !== i))}
-              />
-            </div>
-            {entries.map((entry, j) => {
-              const [entryName, config] = Object.entries(entry)[0] || ["", {}];
-              return (
-                <details className={styles.entry} key={j}>
-                  <summary>{entryName || "Unnamed entry"}</summary>
-                  <label>
-                    {bookmarks ? "Bookmark name" : "Service name"}
-                    <input
-                      value={entryName}
-                      onChange={(e) => update(entries.map((x, n) => (n === j ? { [e.target.value]: config } : x)))}
+              </div>
+              {entries.map((entry, j) => {
+                const [entryName, config] = Object.entries(entry)[0] || ["", {}];
+                return (
+                  <details className={styles.entry} key={j}>
+                    <summary>{entryName || "Unnamed entry"}</summary>
+                    <label>
+                      {bookmarks ? "Bookmark name" : "Service name"}
+                      <input
+                        value={entryName}
+                        onChange={(e) => update(entries.map((x, n) => (n === j ? { [e.target.value]: config } : x)))}
+                      />
+                    </label>
+                    <EntryDetails
+                      value={config}
+                      bookmarks={bookmarks}
+                      onChange={(next) => update(entries.map((x, n) => (n === j ? { [entryName]: next } : x)))}
                     />
-                  </label>
-                  <EntryDetails
-                    value={config}
-                    bookmarks={bookmarks}
-                    onChange={(next) => update(entries.map((x, n) => (n === j ? { [entryName]: next } : x)))}
-                  />
-                  <Move
-                    index={j}
-                    length={entries.length}
-                    move={(d) => update(reorder(entries, j, d))}
-                    remove={() => update(entries.filter((_, n) => n !== j))}
-                  />
-                </details>
-              );
-            })}
-            <button
-              type="button"
-              onClick={() =>
-                update([
-                  ...entries,
-                  {
-                    [bookmarks ? "New bookmark" : "New service"]: bookmarks
-                      ? [{ href: "https://", icon: "", abbr: "" }]
-                      : { href: "https://", description: "", icon: "" },
-                  },
-                ])
-              }
-            >
-              Add {bookmarks ? "bookmark" : "service"}
-            </button>
-          </section>
-        );
-      })}
+                    <Move
+                      label={entryName || "entry"}
+                      index={j}
+                      length={entries.length}
+                      move={(d) => update(reorder(entries, j, d))}
+                      remove={() => update(entries.filter((_, n) => n !== j))}
+                    />
+                  </details>
+                );
+              })}
+              <button
+                type="button"
+                onClick={() =>
+                  update([
+                    ...entries,
+                    {
+                      [bookmarks ? "New bookmark" : "New service"]: bookmarks
+                        ? [{ href: "https://", icon: "", abbr: "" }]
+                        : { href: "https://", description: "", icon: "" },
+                    },
+                  ])
+                }
+              >
+                Add {bookmarks ? "bookmark" : "service"}
+              </button>
+            </section>
+          );
+        })}
       <button type="button" onClick={() => onChange([...value, { [`New group ${value.length + 1}`]: [] }])}>
         Add group
       </button>
@@ -242,15 +276,24 @@ function OrganizedGroups({ request, ...props }) {
   const [error, setError] = useState("");
   useEffect(() => {
     let active = true;
-    request(null, "settings.yaml").then((doc) => {
-      const next = yaml.load(doc.text, { schema: yaml.JSON_SCHEMA });
-      if (active) setSettings(next || {});
-    }).catch(() => { if (active) setError("Tab grouping could not be loaded. Groups are shown in configuration order."); });
-    return () => { active = false; };
+    request(null, "settings.yaml")
+      .then((doc) => {
+        const next = yaml.load(doc.text, { schema: yaml.JSON_SCHEMA });
+        if (active) setSettings(next || {});
+      })
+      .catch(() => {
+        if (active) setError("Tab grouping could not be loaded. Groups are shown in configuration order.");
+      });
+    return () => {
+      active = false;
+    };
   }, [request]);
-  return <>{error && <p role="status">{error}</p>}
-    <Groups {...props} layout={settings.layout || {}} tabs={dashboardTabs(settings)} />
-  </>;
+  return (
+    <>
+      {error && <p role="status">{error}</p>}
+      <Groups {...props} layout={settings.layout || {}} tabs={dashboardTabs(settings)} />
+    </>
+  );
 }
 function EntryDetails({ value, onChange, bookmarks }) {
   const fields = bookmarks
@@ -329,7 +372,9 @@ function Dashboard({ value, onChange, view, request }) {
               {value.favicon ? (
                 // eslint-disable-next-line @next/next/no-img-element -- Preview supports uploaded icons.
                 <img className={styles.mark} src={iconURL(value.favicon)} alt="Dashboard icon" />
-              ) : <GatherMark className={styles.mark} />}
+              ) : (
+                <GatherMark className={styles.mark} />
+              )}
               <strong>{value.title || "Gather"}</strong>
               <span>APPEARANCE PREVIEW</span>
             </div>
@@ -341,11 +386,20 @@ function Dashboard({ value, onChange, view, request }) {
             <h3>Welcome home.</h3>
             <p>{value.description || "Your everyday, together."}</p>
             <div className={styles.previewCards}>
-              {(Object.keys(value.layout || {}).length ? Object.keys(value.layout) : ["Your services", "Your favorites", "At a glance"])
-                .slice(0, 3).map((group) => <span key={group}>{group}</span>)}
+              {(Object.keys(value.layout || {}).length
+                ? Object.keys(value.layout)
+                : ["Your services", "Your favorites", "At a glance"]
+              )
+                .slice(0, 3)
+                .map((group) => (
+                  <span key={group}>{group}</span>
+                ))}
             </div>
           </div>
-          <p className={styles.sourceHint}>Title, icon, theme and color update as you edit. Service content is illustrative; save to apply changes to your dashboard.</p>
+          <p className={styles.sourceHint}>
+            Title, icon, theme and color update as you edit. Service content is illustrative; save to apply changes to
+            your dashboard.
+          </p>
           <section className={styles.card}>
             <h2>Make it yours</h2>
             <p>The name and icon that represent your dashboard.</p>
@@ -441,7 +495,12 @@ function Dashboard({ value, onChange, view, request }) {
       )}
       {view === "tabs" && <Tabs value={value} onChange={onChange} />}
       {view === "layout" && (
-        <Layout request={request} tabs={dashboardTabs(value)} value={value.layout || {}} onChange={(next) => set("layout", next)} />
+        <Layout
+          request={request}
+          tabs={dashboardTabs(value)}
+          value={value.layout || {}}
+          onChange={(next) => set("layout", next)}
+        />
       )}
     </>
   );
@@ -453,34 +512,89 @@ function Tabs({ value, onChange }) {
   const clean = name.trim();
   const duplicate = tabs.some((tab) => tab !== editing && slugifyAndEncode(tab) === slugifyAndEncode(clean));
   const valid = clean && clean.length <= 80 && slugifyAndEncode(clean) && !duplicate;
-  return <section className={styles.card}>
-    <h2>Dashboard tabs</h2>
-    <p>Groups are assigned in Layout. Removing a tab keeps its groups and shows them on every tab.</p>
-    {tabs.map((tab, index) => <div className={styles.heading} key={tab}>
-      <strong>{tab}</strong>
-      <div className={styles.moves}>
-        <button type="button" aria-label={`Rename ${tab}`} onClick={() => { setEditing(tab); setName(tab); }}>Rename</button>
-        <button type="button" aria-label={`Move ${tab} up`} disabled={index === 0}
-          onClick={() => onChange({ ...value, gather: { ...value.gather, tabs: reorder(tabs, index, -1) } })}>↑</button>
-        <button type="button" aria-label={`Move ${tab} down`} disabled={index === tabs.length - 1}
-          onClick={() => onChange({ ...value, gather: { ...value.gather, tabs: reorder(tabs, index, 1) } })}>↓</button>
-        <button type="button" aria-label={`Remove tab ${tab}`} onClick={() => {
-          onChange(renameDashboardTab(value, tab, ""));
-          if (editing === tab) { setEditing(null); setName(""); }
-        }}>Remove</button>
-      </div>
-    </div>)}
-    <label>{editing ? "New tab name" : "Tab name"}
-      <input value={name} maxLength={80} onChange={(e) => setName(e.target.value)} />
-    </label>
-    {duplicate && <p role="alert">A tab with that name or URL already exists.</p>}
-    <button type="button" disabled={!valid} onClick={() => {
-      onChange(editing ? renameDashboardTab(value, editing, clean) :
-        { ...value, gather: { ...value.gather, tabs: [...tabs, clean] } });
-      setName(""); setEditing(null);
-    }}>{editing ? "Save tab name" : "Add tab"}</button>
-    {editing && <button type="button" onClick={() => { setName(""); setEditing(null); }}>Cancel rename</button>}
-  </section>;
+  return (
+    <section className={styles.card}>
+      <h2>Dashboard tabs</h2>
+      <p>Groups are assigned in Layout. Removing a tab keeps its groups and shows them on every tab.</p>
+      {tabs.map((tab, index) => (
+        <div className={styles.heading} key={tab}>
+          <strong>{tab}</strong>
+          <div className={styles.moves}>
+            <button
+              type="button"
+              aria-label={`Rename ${tab}`}
+              onClick={() => {
+                setEditing(tab);
+                setName(tab);
+              }}
+            >
+              Rename
+            </button>
+            <button
+              type="button"
+              aria-label={`Move ${tab} up`}
+              disabled={index === 0}
+              onClick={() => onChange({ ...value, gather: { ...value.gather, tabs: reorder(tabs, index, -1) } })}
+            >
+              ↑
+            </button>
+            <button
+              type="button"
+              aria-label={`Move ${tab} down`}
+              disabled={index === tabs.length - 1}
+              onClick={() => onChange({ ...value, gather: { ...value.gather, tabs: reorder(tabs, index, 1) } })}
+            >
+              ↓
+            </button>
+            <button
+              type="button"
+              aria-label={`Remove tab ${tab}`}
+              onClick={() => {
+                onChange(renameDashboardTab(value, tab, ""));
+                if (editing === tab) {
+                  setEditing(null);
+                  setName("");
+                }
+              }}
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+      ))}
+      <label>
+        {editing ? "New tab name" : "Tab name"}
+        <input value={name} maxLength={80} onChange={(e) => setName(e.target.value)} />
+      </label>
+      {duplicate && <p role="alert">A tab with that name or URL already exists.</p>}
+      <button
+        type="button"
+        disabled={!valid}
+        onClick={() => {
+          onChange(
+            editing
+              ? renameDashboardTab(value, editing, clean)
+              : { ...value, gather: { ...value.gather, tabs: [...tabs, clean] } },
+          );
+          setName("");
+          setEditing(null);
+        }}
+      >
+        {editing ? "Save tab name" : "Add tab"}
+      </button>
+      {editing && (
+        <button
+          type="button"
+          onClick={() => {
+            setName("");
+            setEditing(null);
+          }}
+        >
+          Cancel rename
+        </button>
+      )}
+    </section>
+  );
 }
 function Layout({ value, onChange, request, tabs }) {
   const [name, setName] = useState("");
@@ -532,12 +646,11 @@ function Layout({ value, onChange, request, tabs }) {
           <div className={styles.grid}>
             <label>
               Tab
-              <select
-                value={options?.tab || ""}
-                onChange={(e) => update(group, { tab: e.target.value })}
-              >
+              <select value={options?.tab || ""} onChange={(e) => update(group, { tab: e.target.value })}>
                 <option value="">Every tab</option>
-                {tabs.map((tab) => <option key={tab}>{tab}</option>)}
+                {tabs.map((tab) => (
+                  <option key={tab}>{tab}</option>
+                ))}
               </select>
             </label>
             <label>
@@ -788,7 +901,7 @@ export default function SettingsEditor({ request = api, preview = false }) {
     setStatus(`Unsaved changes in ${file} reset to the last saved version.`);
   }
   const load = async (id, backupFile = file) => {
-    if (id === "system") {
+    if (["system", "variables", "migration", "users"].includes(id)) {
       setSection(id);
       setText(doc?.text || "");
       setStatus("");
@@ -909,7 +1022,7 @@ export default function SettingsEditor({ request = api, preview = false }) {
   const current = SECTIONS.find((item) => item.id === section);
   function selectSection(item) {
     if (item.id === section) return;
-    if (section !== "system" && item.file === file) {
+    if (!["system", "variables", "migration", "users"].includes(section) && item.file === file) {
       setSection(item.id);
       return;
     }
@@ -1008,7 +1121,16 @@ export default function SettingsEditor({ request = api, preview = false }) {
             {section === "system" && canManageSystem && (
               <SystemSettings embedded preview={preview} onDirtyChange={setSystemDirty} titleRef={sectionTitle} />
             )}
-            {doc && section !== "system" && (
+            {doc && section === "users" && (
+              <Users preview={preview} titleRef={sectionTitle} onDirtyChange={setSystemDirty} />
+            )}
+            {doc && section === "variables" && (
+              <Variables preview={preview} titleRef={sectionTitle} onDirtyChange={setSystemDirty} />
+            )}
+            {doc && section === "migration" && (
+              <Migration request={request} titleRef={sectionTitle} onDirtyChange={setSystemDirty} />
+            )}
+            {doc && !["system", "users", "variables", "migration"].includes(section) && (
               <>
                 <div className={styles.heading}>
                   <div>
@@ -1028,98 +1150,116 @@ export default function SettingsEditor({ request = api, preview = false }) {
                     </div>
                   )}
                 </div>
-                {section !== "backups" && <><fieldset ref={formRef} disabled={busy} className={styles.form}>
-                  {rawOnly || mode === "source" ? (
-                    <>
-                      <p>
-                        {rawOnly
-                          ? "Custom code changes dashboard behavior for visitors. JavaScript runs with their signed-in access; only save code you trust."
-                          : "Environment placeholders are preserved. Resolved environment secrets are never loaded into this editor."}
-                      </p>
-                      <label>
-                        {file}
-                        <textarea
-                          className={styles.source}
-                          spellCheck={false}
-                          value={text}
-                          onChange={(e) => setText(e.target.value)}
-                        />
-                      </label>
-                    </>
-                  ) : parseError ? (
-                    <p role="alert">Invalid syntax. Switch to Source to repair the file.</p>
-                  ) : (
-                    <>
-                      {file === "settings.yaml" && (
-                        <Dashboard value={value} onChange={change} view={section} request={request} />
+                {section !== "backups" && (
+                  <>
+                    <fieldset ref={formRef} disabled={busy} className={styles.form}>
+                      {rawOnly || mode === "source" ? (
+                        <>
+                          <p>
+                            {rawOnly
+                              ? "Custom code changes dashboard behavior for visitors. JavaScript runs with their signed-in access; only save code you trust."
+                              : "Environment placeholders are preserved. Resolved environment secrets are never loaded into this editor."}
+                          </p>
+                          <label>
+                            {file}
+                            <textarea
+                              className={styles.source}
+                              spellCheck={false}
+                              value={text}
+                              onChange={(e) => setText(e.target.value)}
+                            />
+                          </label>
+                        </>
+                      ) : parseError ? (
+                        <p role="alert">Invalid syntax. Switch to Source to repair the file.</p>
+                      ) : (
+                        <>
+                          {file === "settings.yaml" && (
+                            <Dashboard value={value} onChange={change} view={section} request={request} />
+                          )}
+                          {["services.yaml", "bookmarks.yaml"].includes(file) && (
+                            <OrganizedGroups
+                              request={request}
+                              value={value}
+                              onChange={change}
+                              bookmarks={file === "bookmarks.yaml"}
+                            />
+                          )}
+                          {file === "widgets.yaml" && <Widgets value={value} onChange={change} />}
+                          {file === "gather-notifications.json" && <Notifications value={value} onChange={change} />}
+                        </>
                       )}
-                      {["services.yaml", "bookmarks.yaml"].includes(file) && (
-                        <OrganizedGroups request={request} value={value} onChange={change} bookmarks={file === "bookmarks.yaml"} />
-                      )}
-                      {file === "widgets.yaml" && <Widgets value={value} onChange={change} />}
-                      {file === "gather-notifications.json" && <Notifications value={value} onChange={change} />}
-                    </>
-                  )}
-                </fieldset>
-                <div className={styles.toolbar}>
-                  <span className={styles.saveState}>
-                    <GatherIcon name={dirty ? "edit" : "check"} />
-                    {dirty ? "Unsaved changes" : "All changes saved"}
-                    <small>
-                      {preview ? "This preview stays in your browser" : "A backup is created with every save"}
-                    </small>
-                  </span>
-                  <button disabled={busy} onClick={() => save("validate")}>
-                    Validate
-                  </button>
-                  <button disabled={busy || !dirty} className={styles.primary} onClick={() => save()}>
-                    Save & apply
-                  </button>
-                  <button disabled={busy || !dirty} onClick={resetChanges} title={`Reset unsaved changes in ${file}`}>
-                    Reset changes
-                  </button>
-                </div>
-                </>}
-                {section === "backups" && <section className={styles.card}>
-                  <label>Configuration to restore
-                    <select value={file} disabled={busy} onChange={(e) => load("backups", e.target.value)}>
-                      {[...new Set(SECTIONS.map((item) => item.file).filter(Boolean))].map((name) =>
-                        <option key={name} value={name}>{name}</option>)}
-                    </select>
-                  </label>
-                  <h3>Saved versions</h3>
-                  <p>
-                    Restore a previous version of this section. Restoring also backs up the current version. The most
-                    recent 50 backups are listed.
-                  </p>
-                  <select
-                    aria-label="Backup to restore"
-                    value={backup}
-                    onChange={(e) => {
-                      setBackup(e.target.value);
-                      setConfirmRestore(false);
-                    }}
-                  >
-                    <option value="">Choose a backup</option>
-                    {doc.backups?.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {new Date(b.date).toLocaleString()} · {b.id.slice(-8)}
-                      </option>
-                    ))}
-                  </select>
-                  <button disabled={!backup || busy} onClick={() => setConfirmRestore(true)}>
-                    Restore selected backup
-                  </button>
-                  {confirmRestore && (
-                    <div role="alert">
-                      <p>Replace this file with the selected backup? Unsaved edits will be discarded.</p>
-                      <button disabled={busy} onClick={() => save("restore")}>
-                        Confirm restore
+                    </fieldset>
+                    <div className={styles.toolbar}>
+                      <span className={styles.saveState}>
+                        <GatherIcon name={dirty ? "edit" : "check"} />
+                        {dirty ? "Unsaved changes" : "All changes saved"}
+                        <small>
+                          {preview ? "This preview stays in your browser" : "A backup is created with every save"}
+                        </small>
+                      </span>
+                      <button disabled={busy} onClick={() => save("validate")}>
+                        Validate
                       </button>
-                      <button onClick={() => setConfirmRestore(false)}>Cancel</button>
+                      <button disabled={busy || !dirty} className={styles.primary} onClick={() => save()}>
+                        Save & apply
+                      </button>
+                      <button
+                        disabled={busy || !dirty}
+                        onClick={resetChanges}
+                        title={`Reset unsaved changes in ${file}`}
+                      >
+                        Reset changes
+                      </button>
                     </div>
-                  )}
-                </section>}
+                  </>
+                )}
+                {section === "backups" && (
+                  <section className={styles.card}>
+                    <label>
+                      Configuration to restore
+                      <select value={file} disabled={busy} onChange={(e) => load("backups", e.target.value)}>
+                        {[...new Set(SECTIONS.map((item) => item.file).filter(Boolean))].map((name) => (
+                          <option key={name} value={name}>
+                            {name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <h3>Saved versions</h3>
+                    <p>
+                      Restore a previous version of this section. Restoring also backs up the current version. The most
+                      recent 50 backups are listed.
+                    </p>
+                    <select
+                      aria-label="Backup to restore"
+                      value={backup}
+                      onChange={(e) => {
+                        setBackup(e.target.value);
+                        setConfirmRestore(false);
+                      }}
+                    >
+                      <option value="">Choose a backup</option>
+                      {doc.backups?.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {new Date(b.date).toLocaleString()} · {b.id.slice(-8)}
+                        </option>
+                      ))}
+                    </select>
+                    <button disabled={!backup || busy} onClick={() => setConfirmRestore(true)}>
+                      Restore selected backup
+                    </button>
+                    {confirmRestore && (
+                      <div role="alert">
+                        <p>Replace this file with the selected backup? Unsaved edits will be discarded.</p>
+                        <button disabled={busy} onClick={() => save("restore")}>
+                          Confirm restore
+                        </button>
+                        <button onClick={() => setConfirmRestore(false)}>Cancel</button>
+                      </div>
+                    )}
+                  </section>
+                )}
                 <p className={styles.hint}>
                   Visual edits preserve your configuration values and placeholders. YAML formatting and comments may be
                   normalized; previous versions are available in Backup & restore.

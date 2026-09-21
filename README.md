@@ -23,6 +23,10 @@ in this repository.
 
 ## Configuration editor
 
+Start with the [setup guide](docs/gather/setup.md). Existing Homepage installations
+can use the [migration guide](docs/gather/administration.md#homepage-migration).
+See [administration](docs/gather/administration.md) for users, secrets and account preferences.
+
 The administrator-only [settings editor](docs/gather/settings.md) supports dashboard
 configuration, services, bookmarks, widgets, notification preferences, custom code,
 and versioned backup/restore. Enable it explicitly in deployment configuration.

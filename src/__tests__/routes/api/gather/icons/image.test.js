@@ -1,7 +1,7 @@
 import { getToken } from "next-auth/jwt";
+import handler from "pages/api/gather/icons/[name]";
 import { iconStore } from "utils/gather/icon-store";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import handler from "./[name]";
 vi.mock("next-auth/jwt", () => ({ getToken: vi.fn() }));
 vi.mock("utils/config/config", () => ({ CONF_DIR: "/test" }));
 vi.mock("utils/env", () => ({ isAuthEnabled: () => true }));

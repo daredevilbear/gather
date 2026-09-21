@@ -4,6 +4,7 @@ import { join } from "path";
 import cache from "memory-cache";
 
 import { loadYaml } from "utils/config/yaml";
+import { managedVariables } from "utils/gather/variables-store";
 
 const cacheKey = "homepageEnvironmentVariables";
 const homepageVarPrefix = "HOMEPAGE_VAR_";
@@ -66,7 +67,10 @@ export function substituteEnvironmentVars(str) {
   let result = str;
   if (result.includes("{{")) {
     // crude check if we have vars to replace
-    const cachedVars = getCachedEnvironmentVars();
+    const cachedVars = [
+      ...getCachedEnvironmentVars(),
+      ...managedVariables(CONF_DIR).filter(([name]) => !Object.hasOwn(process.env, name)),
+    ];
     cachedVars.forEach(([key, value]) => {
       if (key.startsWith(homepageVarPrefix)) {
         result = result.replaceAll(`{{${key}}}`, value);
