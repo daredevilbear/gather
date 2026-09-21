@@ -76,11 +76,13 @@ export function AccountMenuView({ user, settingsUrl, dashboardSettings, signOutL
         {user.email && <small>{user.email}</small>}
         {dashboardSettings}
         {settings && (
-          <a href={settings} className="flex min-h-11 items-center underline">
+          <a href={settings} className="flex min-h-11 items-center gap-2 underline">
+            <GatherIcon name="person" />
             Account settings
           </a>
         )}
-        <button type="button" className="min-h-11" onClick={onSignOut}>
+        <button type="button" className="flex min-h-11 items-center gap-2" onClick={onSignOut}>
+          <GatherIcon name="signOut" />
           {signOutLabel}
         </button>
       </div>

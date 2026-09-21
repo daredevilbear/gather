@@ -14,6 +14,7 @@ import ErrorBoundary from "components/errorboundry";
 import GatherHeader from "components/gather/header";
 import QuickLaunch from "components/quicklaunch";
 import ServicesGroup from "components/services/group";
+import { dashboardTabs } from "utils/gather/tabs";
 import { initialTabFromPath, slugifyAndEncode } from "components/tab";
 import Revalidate from "components/toggles/revalidate";
 import Widget from "components/widgets/widget";
@@ -286,16 +287,8 @@ function Home({ initialSettings }) {
     };
   });
 
-  const tabs = useMemo(
-    () => [
-      ...new Set(
-        Object.keys(settings.layout ?? {})
-          .map((groupName) => settings.layout[groupName]?.tab?.toString())
-          .filter((group) => group),
-      ),
-    ],
-    [settings.layout],
-  );
+  const tabs = useMemo(() => dashboardTabs(settings), [settings]);
+
 
   useEffect(() => {
     if (!activeTab) {

@@ -98,10 +98,35 @@ const symbols = [
   "cog",
   "chart-line",
 ];
+const iconTags = {
+  media: "plex jellyfin emby sonarr radarr prowlarr sabnzbd transmission qbittorrent calibre-web music movie",
+  "home automation smart iot": "home-assistant esphome zigbee2mqtt node-red mosquitto homebridge lightbulb",
+  "network internet dns vpn": "adguard-home pi-hole unifi tailscale wireguard nginx-proxy-manager traefik cloudflare network wifi",
+  "security authentication identity passwords": "vaultwarden bitwarden authentik authelia keycloak shield-check lock",
+  "storage files backup sync": "nextcloud syncthing truenas unraid synology folder database",
+  "monitoring metrics status": "grafana prometheus uptime-kuma chart-line",
+  "server containers infrastructure": "docker portainer proxmox server cloud",
+  "development code git": "gitea github gitlab",
+  "notifications alerts": "ntfy gotify bell",
+  "photos camera surveillance": "immich frigate camera",
+  "documents books knowledge": "paperless-ngx bookstack calibre-web",
+  "food recipes cooking": "mealie",
+  "weather forecast": "weather-partly-cloudy",
+  "finance cryptocurrency": "bitcoin",
+  "favorites saved": "bookmark heart",
+  "settings configuration": "cog",
+};
+const tagsFor = (name) => Object.entries(iconTags)
+  .filter(([, names]) => names.split(" ").includes(name)).map(([tags]) => tags).join(" ");
 const ICONS = [
-  ...services.map((name) => ({ name: label(name.replaceAll("-", " ")), value: `${name}.png` })),
-  ...symbols.map((name) => ({ name: label(name.replaceAll("-", " ")), value: `mdi-${name}` })),
+  ...services.map((name) => ({ name: label(name.replaceAll("-", " ")), value: `${name}.png`, tags: tagsFor(name) })),
+  ...symbols.map((name) => ({ name: label(name.replaceAll("-", " ")), value: `mdi-${name}`, tags: tagsFor(name) })),
 ];
+export function matchesIcon(item, query) {
+  const normalize = (text) => text.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, " ").trim();
+  const haystack = normalize([item.name, item.value, item.tags || ""].join(" "));
+  return normalize(query).split(/\s+/).every((word) => haystack.includes(word));
+}
 export function iconURL(value) {
   if (!value) return "";
   if (/^(https?:\/\/|\/(?!\/)|data:image\/(png|jpeg|webp);base64,)/i.test(value)) return value;
@@ -171,7 +196,7 @@ export function IconPicker({ value = "", onChange, title = "Icon", localOnly = f
   const items = [
     ...(localOnly ? [{ name: "Gather", value: "/android-chrome-512x512.png" }] : ICONS),
     ...uploads,
-  ].filter((item) => item.name.toLowerCase().includes(query.toLowerCase()));
+  ].filter((item) => matchesIcon(item, query));
   return (
     <div className={styles.iconPicker}>
       <span id={id}>{title}</span>
@@ -210,7 +235,7 @@ export function IconPicker({ value = "", onChange, title = "Icon", localOnly = f
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Try home, server or Plex"
+              placeholder="Search names, filenames or tags, like media or VPN"
             />
           </label>
           <div className={styles.iconGrid}>
@@ -236,7 +261,7 @@ export function IconPicker({ value = "", onChange, title = "Icon", localOnly = f
               </button>
             ))}
           </div>
-          {!items.length && <p>No matching icons. Try another search or upload your own.</p>}
+          <p role="status">{items.length ? `${items.length} icons found` : "No matching icons. Try another search or upload your own."}</p>
           <label className={styles.upload}>
             Upload an icon
             <input

@@ -76,6 +76,10 @@ export function validate(file, text) {
     for (const field of ["accountMenu", "notifications"])
       if (value.gather?.[field] !== undefined && typeof value.gather[field] !== "boolean")
         fail(`${field} must be a checkbox value.`);
+    const tabs = value.gather?.tabs;
+    if (tabs !== undefined && (!Array.isArray(tabs) || tabs.length > 100 ||
+      tabs.some((tab) => typeof tab !== "string" || !tab.trim() || tab.length > 80) ||
+      new Set(tabs).size !== tabs.length)) fail("Tabs must be a list of unique names, up to 80 characters each.");
     const url = value.gather?.accountSettingsUrl;
     if (url) {
       try {

@@ -64,6 +64,9 @@ const paths = {
       <path d="M5 17h14l-2-3V9a5 5 0 0 0-10 0v5l-2 3ZM10 21h4M12 2v2" />
     </>
   ),
+  history: <path d="M3 11a9 9 0 1 1 2 7M3 4v7h7m2-5v6l4 2" />,
+  tabs: <path d="M3 8h18v13H3V8ZM3 8V3h7v5m0-3h6v3m0-3h5v3" />,
+  signOut: <path d="M10 3H4v18h6M9 12h12m-5-5 5 5-5 5" />,
   chevron: <path d="m8 10 4 4 4-4" />,
 };
 export default function GatherIcon({ name }) {

@@ -9,6 +9,7 @@ import {
   GuidedFields,
   HOME_WIDGETS,
   IconPicker,
+  iconURL,
   IntegrationPicker,
   TokenList,
 } from "./pickers";
@@ -16,6 +17,8 @@ import SystemSettings from "./system";
 
 import GatherIcon from "components/gather/icon";
 import GatherMark from "components/gather/mark";
+import { dashboardTabs, renameDashboardTab } from "utils/gather/tabs";
+import { slugifyAndEncode } from "components/tab";
 import themes from "utils/styles/themes";
 
 const SECTIONS = [
@@ -28,10 +31,18 @@ const SECTIONS = [
     group: "YOUR WORKSPACE",
   },
   {
+    id: "tabs",
+    file: "settings.yaml",
+    label: "Tabs",
+    description: "Add, rename and order your dashboard tabs.",
+    icon: "tabs",
+    group: "YOUR WORKSPACE",
+  },
+  {
     id: "layout",
     file: "settings.yaml",
-    label: "Layout & tabs",
-    description: "Give every service a place. Organize groups into tabs and choose how they’re displayed.",
+    label: "Layout",
+    description: "Assign groups to tabs and choose how their services are displayed.",
     icon: "layout",
     group: "YOUR WORKSPACE",
   },
@@ -92,6 +103,14 @@ const SECTIONS = [
     group: "ADVANCED",
   },
   {
+    id: "backups",
+    file: null,
+    label: "Backup & restore",
+    description: "Restore saved configuration versions in one place.",
+    icon: "history",
+    group: "ADMINISTRATION",
+  },
+  {
     id: "system",
     file: null,
     label: "System settings",
@@ -138,16 +157,21 @@ function reorder(list, index, direction) {
   [next[index], next[index + direction]] = [next[index + direction], next[index]];
   return next;
 }
-export function Groups({ value, onChange, bookmarks = false }) {
+export function Groups({ value, onChange, bookmarks = false, layout = {}, tabs = [] }) {
   if (!Array.isArray(value)) return <p>Use the source view to repair this configuration.</p>;
   return (
     <div>
-      {value.map((group, i) => {
+      {value.map((group, i) => ({ group, i })).sort((a, b) => {
+        const rank = (group) => tabs.indexOf(layout[Object.keys(group)[0]]?.tab);
+        return rank(a.group) - rank(b.group);
+      }).map(({ group, i }, displayIndex, ordered) => {
         const [name, entries] = Object.entries(group)[0] || ["", []];
         if (!Array.isArray(entries)) return <p key={i}>Group {name} requires a list. Use the source view.</p>;
         const update = (list) => onChange(value.map((g, n) => (n === i ? { [name]: list } : g)));
         return (
           <section className={styles.card} key={i}>
+            {(displayIndex === 0 || layout[Object.keys(ordered[displayIndex - 1].group)[0]]?.tab !== layout[name]?.tab) &&
+              <h2>{layout[name]?.tab || "Every tab"}</h2>}
             <div className={styles.heading}>
               <label>
                 Group name
@@ -213,6 +237,21 @@ export function Groups({ value, onChange, bookmarks = false }) {
     </div>
   );
 }
+function OrganizedGroups({ request, ...props }) {
+  const [settings, setSettings] = useState({});
+  const [error, setError] = useState("");
+  useEffect(() => {
+    let active = true;
+    request(null, "settings.yaml").then((doc) => {
+      const next = yaml.load(doc.text, { schema: yaml.JSON_SCHEMA });
+      if (active) setSettings(next || {});
+    }).catch(() => { if (active) setError("Tab grouping could not be loaded. Groups are shown in configuration order."); });
+    return () => { active = false; };
+  }, [request]);
+  return <>{error && <p role="status">{error}</p>}
+    <Groups {...props} layout={settings.layout || {}} tabs={dashboardTabs(settings)} />
+  </>;
+}
 function EntryDetails({ value, onChange, bookmarks }) {
   const fields = bookmarks
     ? [
@@ -277,6 +316,8 @@ function Dashboard({ value, onChange, view, request }) {
       {view === "appearance" && (
         <>
           <div
+            role="region"
+            aria-label="Appearance preview"
             className={styles.appearancePreview}
             data-theme={value.theme || "system"}
             style={{
@@ -285,23 +326,26 @@ function Dashboard({ value, onChange, view, request }) {
             }}
           >
             <div>
-              <GatherMark className={styles.mark} />
+              {value.favicon ? (
+                // eslint-disable-next-line @next/next/no-img-element -- Preview supports uploaded icons.
+                <img className={styles.mark} src={iconURL(value.favicon)} alt="Dashboard icon" />
+              ) : <GatherMark className={styles.mark} />}
               <strong>{value.title || "Gather"}</strong>
-              <span>LIVE PREVIEW</span>
+              <span>APPEARANCE PREVIEW</span>
             </div>
             <div className={styles.previewTabs}>
-              <b>Home</b>
-              <span>Media</span>
-              <span>Systems</span>
+              {dashboardTabs(value).map((tab, index) =>
+                index === 0 ? <b key={tab}>{tab}</b> : <span key={tab}>{tab}</span>,
+              )}
             </div>
             <h3>Welcome home.</h3>
             <p>{value.description || "Your everyday, together."}</p>
             <div className={styles.previewCards}>
-              <span>Your services</span>
-              <span>Your favorites</span>
-              <span>At a glance</span>
+              {(Object.keys(value.layout || {}).length ? Object.keys(value.layout) : ["Your services", "Your favorites", "At a glance"])
+                .slice(0, 3).map((group) => <span key={group}>{group}</span>)}
             </div>
           </div>
+          <p className={styles.sourceHint}>Title, icon, theme and color update as you edit. Service content is illustrative; save to apply changes to your dashboard.</p>
           <section className={styles.card}>
             <h2>Make it yours</h2>
             <p>The name and icon that represent your dashboard.</p>
@@ -395,13 +439,50 @@ function Dashboard({ value, onChange, view, request }) {
           </p>
         </section>
       )}
+      {view === "tabs" && <Tabs value={value} onChange={onChange} />}
       {view === "layout" && (
-        <Layout request={request} value={value.layout || {}} onChange={(next) => set("layout", next)} />
+        <Layout request={request} tabs={dashboardTabs(value)} value={value.layout || {}} onChange={(next) => set("layout", next)} />
       )}
     </>
   );
 }
-function Layout({ value, onChange, request }) {
+function Tabs({ value, onChange }) {
+  const [name, setName] = useState("");
+  const [editing, setEditing] = useState(null);
+  const tabs = dashboardTabs(value);
+  const clean = name.trim();
+  const duplicate = tabs.some((tab) => tab !== editing && slugifyAndEncode(tab) === slugifyAndEncode(clean));
+  const valid = clean && clean.length <= 80 && slugifyAndEncode(clean) && !duplicate;
+  return <section className={styles.card}>
+    <h2>Dashboard tabs</h2>
+    <p>Groups are assigned in Layout. Removing a tab keeps its groups and shows them on every tab.</p>
+    {tabs.map((tab, index) => <div className={styles.heading} key={tab}>
+      <strong>{tab}</strong>
+      <div className={styles.moves}>
+        <button type="button" aria-label={`Rename ${tab}`} onClick={() => { setEditing(tab); setName(tab); }}>Rename</button>
+        <button type="button" aria-label={`Move ${tab} up`} disabled={index === 0}
+          onClick={() => onChange({ ...value, gather: { ...value.gather, tabs: reorder(tabs, index, -1) } })}>↑</button>
+        <button type="button" aria-label={`Move ${tab} down`} disabled={index === tabs.length - 1}
+          onClick={() => onChange({ ...value, gather: { ...value.gather, tabs: reorder(tabs, index, 1) } })}>↓</button>
+        <button type="button" aria-label={`Remove tab ${tab}`} onClick={() => {
+          onChange(renameDashboardTab(value, tab, ""));
+          if (editing === tab) { setEditing(null); setName(""); }
+        }}>Remove</button>
+      </div>
+    </div>)}
+    <label>{editing ? "New tab name" : "Tab name"}
+      <input value={name} maxLength={80} onChange={(e) => setName(e.target.value)} />
+    </label>
+    {duplicate && <p role="alert">A tab with that name or URL already exists.</p>}
+    <button type="button" disabled={!valid} onClick={() => {
+      onChange(editing ? renameDashboardTab(value, editing, clean) :
+        { ...value, gather: { ...value.gather, tabs: [...tabs, clean] } });
+      setName(""); setEditing(null);
+    }}>{editing ? "Save tab name" : "Add tab"}</button>
+    {editing && <button type="button" onClick={() => { setName(""); setEditing(null); }}>Cancel rename</button>}
+  </section>;
+}
+function Layout({ value, onChange, request, tabs }) {
   const [name, setName] = useState("");
   const [groups, setGroups] = useState([]);
   useEffect(() => {
@@ -450,12 +531,14 @@ function Layout({ value, onChange, request }) {
           </p>
           <div className={styles.grid}>
             <label>
-              Tab name
-              <input
+              Tab
+              <select
                 value={options?.tab || ""}
-                placeholder="Visible on every tab"
                 onChange={(e) => update(group, { tab: e.target.value })}
-              />
+              >
+                <option value="">Every tab</option>
+                {tabs.map((tab) => <option key={tab}>{tab}</option>)}
+              </select>
             </label>
             <label>
               Arrangement
@@ -514,7 +597,7 @@ function Layout({ value, onChange, request }) {
               ["__proto__", "constructor", "prototype"].includes(name.trim())
             }
             onClick={() => {
-              onChange({ ...value, [name.trim()]: { tab: "Home", style: "row", columns: 3 } });
+              onChange({ ...value, [name.trim()]: { tab: tabs[0] || "", style: "row", columns: 3 } });
               setName("");
             }}
           >
@@ -704,7 +787,7 @@ export default function SettingsEditor({ request = api, preview = false }) {
     setConfirmRestore(false);
     setStatus(`Unsaved changes in ${file} reset to the last saved version.`);
   }
-  const load = async (id) => {
+  const load = async (id, backupFile = file) => {
     if (id === "system") {
       setSection(id);
       setText(doc?.text || "");
@@ -712,7 +795,7 @@ export default function SettingsEditor({ request = api, preview = false }) {
       setError("");
       return;
     }
-    const next = SECTIONS.find((item) => item.id === id).file;
+    const next = id === "backups" ? backupFile : SECTIONS.find((item) => item.id === id).file;
     setBusy(true);
     setError("");
     setStatus("");
@@ -790,7 +873,7 @@ export default function SettingsEditor({ request = api, preview = false }) {
         setConfirmRestore(false);
         setStatus(
           result.applied
-            ? "Saved and applied. A backup of the previous version is available below."
+            ? "Saved and applied. The previous version is available in Backup & restore."
             : "Saved. Dashboard refresh failed; use Reload dashboard or ask the operator to restart the app.",
         );
       }
@@ -934,7 +1017,7 @@ export default function SettingsEditor({ request = api, preview = false }) {
                     </h2>
                     <p>{current.description}</p>
                   </div>
-                  {!rawOnly && (
+                  {section !== "backups" && !rawOnly && (
                     <div className={styles.moves}>
                       <button aria-pressed={mode === "visual"} onClick={() => setMode("visual")}>
                         Visual
@@ -945,7 +1028,7 @@ export default function SettingsEditor({ request = api, preview = false }) {
                     </div>
                   )}
                 </div>
-                <fieldset ref={formRef} disabled={busy} className={styles.form}>
+                {section !== "backups" && <><fieldset ref={formRef} disabled={busy} className={styles.form}>
                   {rawOnly || mode === "source" ? (
                     <>
                       <p>
@@ -971,7 +1054,7 @@ export default function SettingsEditor({ request = api, preview = false }) {
                         <Dashboard value={value} onChange={change} view={section} request={request} />
                       )}
                       {["services.yaml", "bookmarks.yaml"].includes(file) && (
-                        <Groups value={value} onChange={change} bookmarks={file === "bookmarks.yaml"} />
+                        <OrganizedGroups request={request} value={value} onChange={change} bookmarks={file === "bookmarks.yaml"} />
                       )}
                       {file === "widgets.yaml" && <Widgets value={value} onChange={change} />}
                       {file === "gather-notifications.json" && <Notifications value={value} onChange={change} />}
@@ -996,8 +1079,15 @@ export default function SettingsEditor({ request = api, preview = false }) {
                     Reset changes
                   </button>
                 </div>
-                <details className={styles.card}>
-                  <summary>Backups & restore</summary>
+                </>}
+                {section === "backups" && <section className={styles.card}>
+                  <label>Configuration to restore
+                    <select value={file} disabled={busy} onChange={(e) => load("backups", e.target.value)}>
+                      {[...new Set(SECTIONS.map((item) => item.file).filter(Boolean))].map((name) =>
+                        <option key={name} value={name}>{name}</option>)}
+                    </select>
+                  </label>
+                  <h3>Saved versions</h3>
                   <p>
                     Restore a previous version of this section. Restoring also backs up the current version. The most
                     recent 50 backups are listed.
@@ -1029,10 +1119,10 @@ export default function SettingsEditor({ request = api, preview = false }) {
                       <button onClick={() => setConfirmRestore(false)}>Cancel</button>
                     </div>
                   )}
-                </details>
+                </section>}
                 <p className={styles.hint}>
                   Visual edits preserve your configuration values and placeholders. YAML formatting and comments may be
-                  normalized; previous versions are available in Backups & restore.
+                  normalized; previous versions are available in Backup & restore.
                 </p>
               </>
             )}

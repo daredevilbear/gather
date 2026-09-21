@@ -2,7 +2,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { EditorPreviewContext, IconPicker, IntegrationPicker, TokenList } from "./pickers";
+import { EditorPreviewContext, IconPicker, IntegrationPicker, TokenList, matchesIcon } from "./pickers";
 
 afterEach(() => vi.unstubAllGlobals());
 describe("guided settings pickers", () => {
@@ -98,4 +98,19 @@ describe("guided settings pickers", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add" }));
     expect(screen.getByRole("button", { name: "Remove services" })).toBeInTheDocument();
   });
+});
+
+it("matches icon names, filenames, tags and punctuation without case sensitivity", () => {
+  const icon = { name: "Home Assistant", value: "home-assistant.png", tags: "smart home automation" };
+  for (const query of ["HOME", "home-assistant.png", " smart automation ", "home assistant"]) {
+    expect(matchesIcon(icon, query)).toBe(true);
+  }
+  expect(matchesIcon(icon, "media")).toBe(false);
+});
+it("finds library icons by category tags", () => {
+  render(<EditorPreviewContext.Provider value><IconPicker onChange={vi.fn()} /></EditorPreviewContext.Provider>);
+  fireEvent.click(screen.getByRole("button", { name: "Choose icon" }));
+  fireEvent.change(screen.getByRole("searchbox", { name: "Search icons" }), { target: { value: "vpn" } });
+  expect(screen.getByRole("button", { name: "Wireguard" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Plex" })).not.toBeInTheDocument();
 });

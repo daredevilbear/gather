@@ -791,3 +791,27 @@
 .symbolIcon {
   filter: invert(0.85);
 }
+
+/* Keep multiline fields usable before the user manually resizes them. */
+.editor textarea {
+  min-height: 12rem;
+  resize: vertical;
+  line-height: 1.6;
+}
+.editor textarea.source {
+  min-height: min(55vh, 36rem);
+}
+.editor input::placeholder {
+  color: #9aaeba;
+}
+.appearancePreview[data-theme="light"] :is(h3, p) {
+  color: #203c32;
+}
+@media (prefers-color-scheme: light) {
+  .appearancePreview[data-theme="system"] :is(h3, p, .previewTabs b) {
+    color: #203c32;
+  }
+  .appearancePreview[data-theme="system"] .previewCards > span {
+    background: #fff9;
+  }
+}

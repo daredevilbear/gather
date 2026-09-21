@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import SettingsEditor, { Groups } from "./editor";
 import { createPreviewStore } from "./preview-store";
@@ -62,16 +62,16 @@ describe("settings editor", () => {
     const request = createPreviewStore();
     render(<SettingsEditor request={request} preview />);
     fireEvent.change(await screen.findByLabelText("Dashboard title"), { target: { value: "My workspace" } });
-    fireEvent.click(screen.getByRole("button", { name: "Layout & tabs" }));
+    fireEvent.click(screen.getByRole("button", { name: "Layout", exact: true }));
     expect(screen.queryByText(/You have unsaved changes/)).not.toBeInTheDocument();
-    fireEvent.change(screen.getAllByLabelText("Tab name")[0], { target: { value: "Everyday" } });
+    fireEvent.change(screen.getAllByLabelText("Tab", { exact: true })[0], { target: { value: "Media" } });
     fireEvent.click(screen.getByRole("button", { name: "Appearance" }));
     expect(screen.getByLabelText("Dashboard title")).toHaveValue("My workspace");
     fireEvent.click(screen.getByRole("button", { name: "Save & apply" }));
     await screen.findByText(/Saved and applied/);
     const saved = await request(null, "settings.yaml");
     expect(saved.text).toContain("My workspace");
-    expect(saved.text).toContain("Everyday");
+    expect(saved.text).toContain("Media");
   });
   it("shows a permission error without rendering configuration", async () => {
     vi.stubGlobal(
@@ -130,7 +130,7 @@ describe("guided editor navigation", () => {
     const before = await request(null, "services.yaml");
     render(<SettingsEditor request={request} preview />);
     await screen.findByLabelText("Dashboard title");
-    fireEvent.click(screen.getByRole("button", { name: "Layout & tabs" }));
+    fireEvent.click(screen.getByRole("button", { name: "Layout", exact: true }));
     fireEvent.click(screen.getByRole("button", { name: "Remove layout for Your everyday" }));
     fireEvent.click(screen.getByRole("button", { name: "Save & apply" }));
     await screen.findByText(/Saved and applied/);
@@ -169,14 +169,64 @@ describe("reset changes", () => {
   it("repairs invalid source and restores shared appearance/layout drafts together", async () => {
     render(<SettingsEditor request={createPreviewStore()} preview />);
     fireEvent.change(await screen.findByLabelText("Dashboard title"), { target: { value: "Unsaved title" } });
-    fireEvent.click(screen.getByRole("button", { name: "Layout & tabs" }));
-    fireEvent.change(screen.getAllByLabelText("Tab name")[0], { target: { value: "Unsaved tab" } });
+    fireEvent.click(screen.getByRole("button", { name: "Layout", exact: true }));
+    fireEvent.change(screen.getAllByLabelText("Tab", { exact: true })[0], { target: { value: "Media" } });
     fireEvent.click(screen.getByRole("button", { name: "Source", exact: true }));
     fireEvent.change(screen.getByLabelText("settings.yaml"), { target: { value: "broken: [" } });
     fireEvent.click(screen.getByRole("button", { name: "Reset changes" }));
     fireEvent.click(screen.getByRole("button", { name: "Visual", exact: true }));
-    expect(screen.getAllByLabelText("Tab name")[0]).toHaveValue("Home");
+    expect(screen.getAllByLabelText("Tab", { exact: true })[0]).toHaveValue("Home");
     fireEvent.click(screen.getByRole("button", { name: "Appearance" }));
     expect(screen.getByLabelText("Dashboard title")).toHaveValue("Gather");
   });
+});
+
+
+it("updates the appearance sample from unsaved title, icon, theme and layout values", async () => {
+  render(<SettingsEditor request={createPreviewStore()} preview />);
+  fireEvent.change(await screen.findByLabelText("Dashboard title"), { target: { value: "My preview" } });
+  fireEvent.change(screen.getByLabelText("Theme"), { target: { value: "light" } });
+  const sample = screen.getByRole("region", { name: "Appearance preview" });
+  expect(within(sample).getByText("My preview")).toBeInTheDocument();
+  expect(sample).toHaveAttribute("data-theme", "light");
+  expect(within(sample).getByText("Your everyday")).toBeInTheDocument();
+});
+
+it("renames tabs and updates layout dropdowns without losing the shared draft", async () => {
+  render(<SettingsEditor request={createPreviewStore()} preview />);
+  await screen.findByLabelText("Dashboard title");
+  fireEvent.click(screen.getByRole("button", { name: "Tabs", exact: true }));
+  fireEvent.click(screen.getByRole("button", { name: "Rename Home" }));
+  fireEvent.change(screen.getByLabelText("New tab name"), { target: { value: "Everyday" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save tab name" }));
+  fireEvent.click(screen.getByRole("button", { name: "Layout", exact: true }));
+  expect(screen.getAllByLabelText("Tab", { exact: true })[0]).toHaveValue("Everyday");
+  expect(screen.getAllByLabelText("Tab", { exact: true })[0].tagName).toBe("SELECT");
+});
+
+it("offers all file backups from a dedicated section and restores a saved version", async () => {
+  render(<SettingsEditor request={createPreviewStore()} preview />);
+  fireEvent.change(await screen.findByLabelText("Dashboard title"), { target: { value: "New title" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save & apply" }));
+  await screen.findByText(/Saved and applied/);
+  fireEvent.click(screen.getByRole("button", { name: "Backup & restore", exact: true }));
+  const files = await screen.findByLabelText("Configuration to restore");
+  expect(files).toHaveValue("settings.yaml");
+  const selector = screen.getByLabelText("Backup to restore");
+  fireEvent.change(selector, { target: { value: selector.options[1].value } });
+  fireEvent.click(screen.getByRole("button", { name: "Restore selected backup" }));
+  fireEvent.click(screen.getByRole("button", { name: "Confirm restore" }));
+  await screen.findByText(/Saved and applied/);
+  fireEvent.click(screen.getByRole("button", { name: "Appearance", exact: true }));
+  expect(screen.getByLabelText("Dashboard title")).toHaveValue("Gather");
+});
+
+it("groups services by tab while editing the original service index", () => {
+  const onChange = vi.fn();
+  render(<Groups value={[{ Media: [{ Plex: { href: "https://media.test" } }] }, { Home: [] }]}
+    onChange={onChange} layout={{ Media: { tab: "Watch" }, Home: { tab: "Everyday" } }} tabs={["Everyday", "Watch"]} />);
+  expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual(["Everyday", "Watch"]);
+  fireEvent.change(screen.getAllByLabelText("Group name")[0], { target: { value: "Renamed" } });
+  expect(onChange.mock.calls[0][0][0]).toEqual({ Media: [{ Plex: { href: "https://media.test" } }] });
+  expect(onChange.mock.calls[0][0][1]).toEqual({ Renamed: [] });
 });
