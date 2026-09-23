@@ -69,3 +69,34 @@ bash scripts/ci/smoke-container.sh gather:test
 
 Official references: [GitHub container publishing](https://docs.github.com/en/actions/tutorials/publish-packages/publish-docker-images)
 and [Docker build attestations](https://docs.docker.com/build/ci/github-actions/attestations/).
+
+## Gateway recovery after container replacement
+
+`deploy/nginx-docker.conf` is a gateway template for a Compose network containing
+service names `gather` (port 3000) and `notifications` (port 8080). It listens on
+8080 and assumes TLS terminates at the external reverse proxy. Keep the gateway
+and both services on the same Docker network; adjust service names if your Compose
+file uses different names.
+
+Use Nginx 1.27.3 or newer. The template uses Docker DNS (`127.0.0.11`) and upstream
+`resolve` with shared zones so container IP changes do not leave the gateway
+pointing at a dead address. It preserves notification paths and query parameters.
+See the [Nginx upstream resolve documentation](https://nginx.org/en/docs/http/ngx_http_upstream_module.html#resolve).
+
+To roll out, back up the deployed gateway config, compare its routes and headers
+with the template, and update the existing mounted config. Check `nginx -t` in
+the gateway, then reload it with `nginx -s reload`. If the config is mounted as an
+individual file and was atomically replaced on the host, recreate only the gateway
+so Docker mounts the new file. Do not recreate the whole stack or remove volumes.
+Verify the application health endpoint and notification routes after rollout.
+This repository change does not update an already deployed gateway automatically.
+
+An isolated regression test deliberately replaces each upstream with a new IP and
+checks recovery without restarting the gateway:
+
+```sh
+python3 scripts/ci/test-gateway-dns.py
+```
+
+The test creates disposable containers and a network, exposes no host ports,
+mounts no deployment data, and removes its own resources on completion.
