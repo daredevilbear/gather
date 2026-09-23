@@ -220,7 +220,7 @@ it("offers all file backups from a dedicated section and restores a saved versio
   expect(screen.getByLabelText("Dashboard title")).toHaveValue("Gather");
 });
 
-it("groups services by tab while editing the original service index", () => {
+it("groups services by tab while moving the original service index", () => {
   const onChange = vi.fn();
   render(
     <Groups
@@ -232,9 +232,9 @@ it("groups services by tab while editing the original service index", () => {
   );
   expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)).toEqual(["Everyday", "Watch"]);
   fireEvent.click(screen.getByRole("button", { name: "Edit group Home" }));
-  fireEvent.change(screen.getAllByLabelText("Group name")[0], { target: { value: "Renamed" } });
-  expect(onChange.mock.calls[0][0][0]).toEqual({ Media: [{ Plex: { href: "https://media.test" } }] });
-  expect(onChange.mock.calls[0][0][1]).toEqual({ Renamed: [] });
+  fireEvent.click(screen.getByRole("button", { name: "Move Home up" }));
+  expect(onChange.mock.calls[0][0][0]).toEqual({ Home: [] });
+  expect(onChange.mock.calls[0][0][1]).toEqual({ Media: [{ Plex: { href: "https://media.test" } }] });
 });
 
 it("opens the native user, variables and migration screens from navigation", async () => {
@@ -245,7 +245,7 @@ it("opens the native user, variables and migration screens from navigation", asy
   fireEvent.click(screen.getByRole("button", { name: "Secrets & variables", exact: true }));
   expect(await screen.findByLabelText("Secret value")).toHaveAttribute("type", "password");
   fireEvent.click(screen.getByRole("button", { name: "Import from Homepage", exact: true }));
-  expect(await screen.findByLabelText("Homepage YAML file")).toHaveAttribute("type", "file");
+  expect(await screen.findByLabelText("Homepage configuration file")).toHaveAttribute("type", "file");
 });
 
 it("shows compact service metadata and lets groups collapse without losing entries", () => {
@@ -335,4 +335,36 @@ it("saves dragged Home widget order and resets subsequent keyboard moves", async
     "Reorder Search",
     "Reorder Greeting",
   ]);
+});
+
+it("renames the visible group from Layout while preserving service and tab references", async () => {
+  const request = createPreviewStore();
+  const services = await request(null, "services.yaml");
+  render(<SettingsEditor request={request} preview />);
+  await screen.findByLabelText("Dashboard title");
+  fireEvent.click(screen.getByRole("button", { name: "Layout", exact: true }));
+  fireEvent.change(await screen.findByLabelText("Group name for Your everyday"), { target: { value: "My home" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save & apply" }));
+  await screen.findByText(/Saved and applied/);
+  expect((await request(null, "services.yaml")).text).toBe(services.text);
+  fireEvent.click(screen.getByRole("button", { name: "Services", exact: true }));
+  expect(await screen.findByText("My home")).toBeInTheDocument();
+});
+
+it("uses only the bookmark origin for its favicon and preserves the rest of its settings", () => {
+  const change = vi.fn();
+  render(
+    <Groups
+      bookmarks
+      value={[{ Links: [{ Docs: [{ href: "https://docs.example.test/private?token=example", abbr: "D" }] }] }]}
+      onChange={change}
+    />,
+  );
+  fireEvent.click(screen.getByLabelText("Edit Docs"));
+  fireEvent.click(screen.getByRole("button", { name: "Use website favicon" }));
+  expect(change.mock.calls[0][0][0].Links[0].Docs[0]).toEqual({
+    href: "https://docs.example.test/private?token=example",
+    abbr: "D",
+    icon: "https://docs.example.test/favicon.ico",
+  });
 });

@@ -48,7 +48,7 @@ export default function ServicesGroup({
                   </div>
                 )}
                 <h2 className="flex text-theme-800 dark:text-theme-300 text-xl font-medium service-group-name">
-                  {group.name}
+                  {layout?.displayName || group.name}
                 </h2>
                 <MdKeyboardArrowDown
                   className={classNames(

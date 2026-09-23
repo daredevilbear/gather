@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import styles from "./editor.module.css";
 
@@ -8,6 +8,8 @@ export default function Variables({ preview = false, onDirtyChange, titleRef }) 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
+  const valueInput = useRef(null);
+  const [editing, setEditing] = useState(null);
   const [name, setName] = useState("");
   const [kind, setKind] = useState("secret");
   const [value, setValue] = useState("");
@@ -77,6 +79,7 @@ export default function Variables({ preview = false, onDirtyChange, titleRef }) 
         setItems(result.variables);
         setStatus(result.applied ? "Saved and applied." : "Saved. Reload the dashboard to refresh its configuration.");
       }
+      setEditing(null);
       setName("");
       setValue("");
       setKind("secret");
@@ -86,6 +89,12 @@ export default function Variables({ preview = false, onDirtyChange, titleRef }) 
       setBusy(false);
     }
   }
+  useEffect(() => {
+    if (editing) {
+      valueInput.current?.scrollIntoView?.({ block: "center", behavior: "smooth" });
+      valueInput.current?.focus({ preventScroll: true });
+    }
+  }, [editing]);
   const fullName = name.startsWith("HOMEPAGE_VAR_") ? name : `HOMEPAGE_VAR_${name}`;
   const existing = items.find((item) => item.name === fullName);
   const valid =
@@ -102,46 +111,14 @@ export default function Variables({ preview = false, onDirtyChange, titleRef }) 
         </p>
       )}
       {status && <p role="status">{status}</p>}
-      <section className={styles.card}>
-        <h3>Saved values</h3>
-        {!items.length && <p>No managed values yet.</p>}
-        {items.map((item) => (
-          <div key={item.name} className={styles.card}>
-            <strong>{item.name}</strong>
-            <p>
-              {item.kind === "secret" ? "Secret · value hidden" : `Variable · ${item.value}`} ·{" "}
-              {item.enabled ? "Enabled" : "Disabled"}
-            </p>
-            <code>{`{{${item.name}}}`}</code>
-            <div className={styles.moves}>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => {
-                  setName(item.name);
-                  setKind(item.kind);
-                  setValue(item.kind === "variable" ? item.value : "");
-                }}
-              >
-                Replace value
-              </button>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => update({ action: "toggle", name: item.name, enabled: !item.enabled })}
-              >
-                {item.enabled ? "Disable" : "Enable"}
-              </button>
-            </div>
-          </div>
-        ))}
-      </section>
       <fieldset className={styles.card} disabled={busy || !available}>
-        <legend>{existing ? "Replace value" : "Add a value"}</legend>
+        <legend>{editing ? `Replace ${editing}` : "Add a value"}</legend>
+        {editing && <p>Enter the new value below. The current value stays active until you save.</p>}
         <label>
           Name
           <input
             autoComplete="off"
+            readOnly={Boolean(editing)}
             value={name}
             maxLength={93}
             placeholder="MEDIA_API_KEY"
@@ -161,6 +138,7 @@ export default function Variables({ preview = false, onDirtyChange, titleRef }) 
         <label>
           {kind === "secret" ? "Secret value" : "Variable value"}
           <input
+            ref={valueInput}
             type={kind === "secret" ? "password" : "text"}
             autoComplete="new-password"
             value={value}
@@ -173,19 +151,55 @@ export default function Variables({ preview = false, onDirtyChange, titleRef }) 
           disabled={!valid || busy}
           onClick={() => update({ action: "save", name: fullName, kind, value })}
         >
-          Save value
+          {editing ? "Save replacement" : "Save value"}
         </button>
         <button
           type="button"
           onClick={() => {
+            setEditing(null);
             setName("");
             setValue("");
             setKind("secret");
           }}
         >
-          Clear form
+          {editing ? "Cancel replacement" : "Clear form"}
         </button>
       </fieldset>
+      <section className={styles.card}>
+        <h3>Saved values</h3>
+        {!items.length && <p>No managed values yet.</p>}
+        {items.map((item) => (
+          <div key={item.name} className={styles.savedValue}>
+            <strong>{item.name}</strong>
+            <p>
+              {item.kind === "secret" ? "Secret · value hidden" : `Variable · ${item.value}`} ·{" "}
+              {item.enabled ? "Enabled" : "Disabled"}
+            </p>
+            <code>{`{{${item.name}}}`}</code>
+            <div className={styles.moves}>
+              <button
+                type="button"
+                disabled={busy || !available || Boolean(editing)}
+                onClick={() => {
+                  setEditing(item.name);
+                  setName(item.name);
+                  setKind(item.kind);
+                  setValue(item.kind === "variable" ? item.value : "");
+                }}
+              >
+                Replace value
+              </button>
+              <button
+                type="button"
+                disabled={busy || !available || Boolean(editing)}
+                onClick={() => update({ action: "toggle", name: item.name, enabled: !item.enabled })}
+              >
+                {item.enabled ? "Disable" : "Enable"}
+              </button>
+            </div>
+          </div>
+        ))}
+      </section>
     </section>
   );
 }

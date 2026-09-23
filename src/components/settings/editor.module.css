@@ -1035,3 +1035,103 @@
   touch-action: none;
   user-select: none;
 }
+
+.savedValue {
+  padding: 18px 0;
+  border-top: 1px solid var(--line);
+}
+.savedValue strong,
+.savedValue code {
+  overflow-wrap: anywhere;
+}
+.savedValue code {
+  display: block;
+  margin: 8px 0 16px;
+  color: #bcd9cf;
+}
+.editor input[readonly] {
+  background: #ffffff08;
+  color: var(--muted);
+}
+.preferencesPage {
+  max-width: 860px;
+  margin: 40px auto;
+}
+.preferenceChoices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.editor .preferenceChoices > button {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  text-align: left;
+  padding: 18px;
+  gap: 10px;
+}
+.placementPreview {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: #111b24;
+  font-size: 11px;
+}
+.mockTabs,
+.mockWidgets,
+.mockContent {
+  padding: 7px;
+  border-radius: 4px;
+  background: #ffffff0a;
+}
+.mockWidgets {
+  border: 1px solid #a8d8c840;
+  color: #b9dcca;
+}
+.placementPreview[data-position="above"] .mockWidgets {
+  order: -1;
+}
+.mockContent {
+  height: 40px;
+  color: var(--muted);
+}
+.selectionMark {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #b9dcca;
+}
+.preferenceLink {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  margin: 12px 0;
+  background: var(--surface);
+}
+.preferenceLink > span:first-of-type {
+  flex: 1;
+}
+.preferenceLink small {
+  display: block;
+  color: var(--muted);
+  margin-top: 6px;
+}
+.faviconChoice {
+  margin: 12px 0;
+}
+.faviconChoice p {
+  margin-top: 8px;
+  font-size: 12px;
+}
+@media (max-width: 550px) {
+  .preferenceChoices {
+    grid-template-columns: 1fr;
+  }
+}

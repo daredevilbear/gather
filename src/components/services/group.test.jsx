@@ -85,3 +85,9 @@ describe("components/services/group", () => {
     });
   });
 });
+
+it("uses the visible label for the heading while preserving the integration lookup key", () => {
+  render(<ServicesGroup group={{ name: "Stable key", services: [] }} layout={{ displayName: "New label" }} />);
+  expect(screen.getByRole("heading", { name: "New label" })).toBeInTheDocument();
+  expect(screen.getByTestId("services-list-mock")).toHaveTextContent("Stable key:0");
+});

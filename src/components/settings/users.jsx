@@ -24,6 +24,9 @@ export default function Users({ preview = false, titleRef, onDirtyChange }) {
     activity: [],
     canAddUsers: preview,
   });
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [adding, setAdding] = useState(false);
   const [name, setName] = useState(""),
     [email, setEmail] = useState(""),
     [role, setRole] = useState("editor");
@@ -84,6 +87,7 @@ export default function Users({ preview = false, titleRef, onDirtyChange }) {
               : previous.users.map((user) => (user.id === body.id ? { ...user, ...body } : user)),
         }));
       } else setData(await request(body));
+      setAdding(false);
       setName("");
       setEmail("");
       setReview(null);
@@ -103,48 +107,83 @@ export default function Users({ preview = false, titleRef, onDirtyChange }) {
         this does not create an identity-provider account or send an invitation.
       </p>
       {error && <p role="alert">{error}</p>}
-      <section className={styles.card}>
-        <h3>Add user</h3>
-        {!data.canAddUsers && <p>Individual users require OIDC sign-in. A shared password represents one account.</p>}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            setReview({ action: "add", name, email, role });
-          }}
-        >
-          <fieldset disabled={busy || !data.canAddUsers}>
-            <label>
-              Name
-              <input required maxLength={120} value={name} onChange={(e) => setName(e.target.value)} />
-            </label>
-            <label>
-              Email
-              <input required type="email" maxLength={254} value={email} onChange={(e) => setEmail(e.target.value)} />
-            </label>
-            <label>
-              Role
-              <select value={role} onChange={(e) => setRole(e.target.value)}>
-                {ROLES.map(([key, label]) => (
-                  <option key={key} value={key}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button disabled={busy || !name.trim() || !email}>Review new user</button>
-            <button
-              type="button"
-              onClick={() => {
-                setName("");
-                setEmail("");
-                setReview(null);
-              }}
-            >
-              Clear form
-            </button>
-          </fieldset>
-        </form>
-      </section>
+      <details className={styles.card}>
+        <summary>Understand access levels</summary>
+        <p>
+          <strong>Viewer:</strong> browse dashboards and manage personal notification preferences.
+        </p>
+        <p>
+          <strong>Editor:</strong> viewer access plus editing their own dashboard.
+        </p>
+        <p>
+          <strong>Administrator:</strong> manage shared dashboard content, users and secrets. Server configuration and
+          connection files require a protected server administrator.
+        </p>
+      </details>
+      <div className={styles.grid}>
+        <label>
+          Find a person
+          <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Name or email" />
+        </label>
+        <label>
+          Access status
+          <select value={filter} onChange={(e) => setFilter(e.target.value)}>
+            <option value="all">Everyone</option>
+            <option value="active">Active</option>
+            <option value="pending">Awaiting sign-in</option>
+            <option value="disabled">Disabled</option>
+          </select>
+        </label>
+        <button disabled={busy || adding || !data.canAddUsers} onClick={() => setAdding(true)}>
+          Add user
+        </button>
+      </div>
+      {!data.canAddUsers && <p>Configure OIDC sign-in in System settings to add individual users.</p>}
+      {adding && (
+        <section className={styles.card}>
+          <h3>Prepare a user’s access</h3>
+          {!data.canAddUsers && <p>Individual users require OIDC sign-in. A shared password represents one account.</p>}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              setReview({ action: "add", name, email, role });
+            }}
+          >
+            <fieldset disabled={busy || !data.canAddUsers}>
+              <label>
+                Name
+                <input required maxLength={120} value={name} onChange={(e) => setName(e.target.value)} />
+              </label>
+              <label>
+                Email
+                <input required type="email" maxLength={254} value={email} onChange={(e) => setEmail(e.target.value)} />
+              </label>
+              <label>
+                Role
+                <select value={role} onChange={(e) => setRole(e.target.value)}>
+                  {ROLES.map(([key, label]) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button disabled={busy || !name.trim() || !email}>Review new user</button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAdding(false);
+                  setName("");
+                  setEmail("");
+                  setReview(null);
+                }}
+              >
+                Cancel adding user
+              </button>
+            </fieldset>
+          </form>
+        </section>
+      )}
       {review && (
         <section className={styles.notice} role="alert">
           <h3>Review access change</h3>
@@ -160,50 +199,71 @@ export default function Users({ preview = false, titleRef, onDirtyChange }) {
           </button>
         </section>
       )}
-      {data.users.map((user) => (
-        <section key={user.id} className={styles.card}>
-          <h3>{user.name}</h3>
-          <p>
-            {user.email || "No email supplied"} ·{" "}
-            {user.pending ? "Awaiting verified sign-in" : user.enabled ? "Active" : "Disabled"}
-          </p>
-          <label>
-            Role for {user.name}
-            <select
-              disabled={busy || user.protected}
-              value={user.role}
-              onChange={(e) =>
-                setReview({
-                  action: "update",
-                  id: user.id,
-                  name: user.name,
-                  role: e.target.value,
-                  enabled: user.enabled,
-                })
-              }
-            >
-              {ROLES.map(([key, label]) => (
-                <option key={key} value={key}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          {user.protected ? (
-            <p>Protected server administrator.</p>
-          ) : (
-            <button
-              disabled={busy}
-              onClick={() =>
-                setReview({ action: "update", id: user.id, name: user.name, role: user.role, enabled: !user.enabled })
-              }
-            >
-              {user.enabled ? "Disable access" : "Enable access"}
-            </button>
-          )}
-          {user.lastSeen && <p>Last active: {new Date(user.lastSeen).toLocaleString()}</p>}
-        </section>
-      ))}
+      <p role="status">
+        {data.users.length} {data.users.length === 1 ? "person" : "people"}
+      </p>
+      {data.users
+        .filter(
+          (user) =>
+            `${user.name} ${user.email}`.toLowerCase().includes(query.toLowerCase()) &&
+            (filter === "all" ||
+              (filter === "disabled"
+                ? !user.enabled
+                : filter === "pending"
+                  ? user.enabled && user.pending
+                  : user.enabled && !user.pending)),
+        )
+        .map((user) => (
+          <details key={user.id} className={styles.card}>
+            <summary>
+              <strong>{user.name}</strong> · {user.email || "No email supplied"} · {user.role}
+              {user.id === data.currentUserId ? " · You" : ""}
+            </summary>
+            <p>
+              {user.email || "No email supplied"} ·{" "}
+              {!user.enabled ? "Disabled" : user.pending ? "Awaiting verified sign-in" : "Active"}
+            </p>
+            <label>
+              Role for {user.name}
+              <select
+                disabled={busy || user.protected || user.id === data.currentUserId}
+                value={user.role}
+                onChange={(e) =>
+                  setReview({
+                    action: "update",
+                    id: user.id,
+                    name: user.name,
+                    role: e.target.value,
+                    enabled: user.enabled,
+                  })
+                }
+              >
+                {ROLES.map(([key, label]) => (
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {user.protected || user.id === data.currentUserId ? (
+              <p>
+                {user.protected
+                  ? "Protected server administrator."
+                  : "Ask another administrator to change your access."}
+              </p>
+            ) : (
+              <button
+                disabled={busy}
+                onClick={() =>
+                  setReview({ action: "update", id: user.id, name: user.name, role: user.role, enabled: !user.enabled })
+                }
+              >
+                {user.enabled ? "Disable access" : "Enable access"}
+              </button>
+            )}
+            {user.lastSeen && <p>Last active: {new Date(user.lastSeen).toLocaleString()}</p>}
+          </details>
+        ))}
       <section className={styles.card}>
         <h3>Recent activity</h3>
         <p>Sign-ins, user-access changes and personal dashboard saves are recorded here.</p>

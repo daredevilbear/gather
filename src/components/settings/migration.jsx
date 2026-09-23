@@ -3,8 +3,10 @@ import { useEffect, useState } from "react";
 
 import styles from "./editor.module.css";
 
-const FILES = ["settings.yaml", "services.yaml", "bookmarks.yaml", "widgets.yaml"];
-export default function Migration({ request, onDirtyChange, titleRef }) {
+import { CONNECTION_FILES, HOMEPAGE_FILES } from "utils/gather/config-files";
+export default function Migration({ request, onDirtyChange, titleRef, canManageConnections = false }) {
+  const files = HOMEPAGE_FILES.filter((file) => canManageConnections || !CONNECTION_FILES.includes(file));
+  const [acknowledged, setAcknowledged] = useState(false);
   const [review, setReview] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -25,9 +27,10 @@ export default function Migration({ request, onDirtyChange, titleRef }) {
     setError("");
     setStatus("");
     setReview(null);
+    setAcknowledged(false);
     try {
-      if (!FILES.includes(file.name) || file.size > 512 * 1024)
-        throw Error("Choose settings.yaml, services.yaml, bookmarks.yaml or widgets.yaml, up to 512 KB.");
+      if (!files.includes(file.name) || file.size > 512 * 1024)
+        throw Error(`Choose ${files.join(", ")}, up to 512 KB.`);
       let text = await file.text();
       const current = await request(null, file.name);
       await request({ action: "validate", file: file.name, text, revision: current.revision });
@@ -39,7 +42,7 @@ export default function Migration({ request, onDirtyChange, titleRef }) {
           text = yaml.dump({ ...incoming, gather: existing.gather }, { noRefs: true, lineWidth: 120 });
         await request({ action: "validate", file: file.name, text, revision: current.revision });
       }
-      const parsed = yaml.load(text, { schema: yaml.JSON_SCHEMA });
+      const parsed = file.name.endsWith(".yaml") ? yaml.load(text, { schema: yaml.JSON_SCHEMA }) : null;
       const count = Array.isArray(parsed) ? parsed.length : Object.keys(parsed || {}).length;
       setReview({ file: file.name, text, revision: current.revision, count });
     } catch (e) {
@@ -49,6 +52,7 @@ export default function Migration({ request, onDirtyChange, titleRef }) {
     }
   }
   async function apply() {
+    if (review?.file === "custom.js" && !acknowledged) return;
     setBusy(true);
     setError("");
     try {
@@ -75,10 +79,10 @@ export default function Migration({ request, onDirtyChange, titleRef }) {
       <section className={styles.card}>
         <h3>1. Choose a configuration file</h3>
         <label>
-          Homepage YAML file
+          Homepage configuration file
           <input
             type="file"
-            accept=".yaml"
+            accept=".yaml,.css,.js"
             disabled={busy}
             onChange={(e) => {
               inspect(e.target.files?.[0]);
@@ -86,13 +90,12 @@ export default function Migration({ request, onDirtyChange, titleRef }) {
             }}
           />
         </label>
-        <p>
-          Supported: settings.yaml, services.yaml, bookmarks.yaml and widgets.yaml. Settings imports retain this
-          installation’s Gather preferences.
-        </p>
+        <p>Supported: {files.join(", ")}. Settings imports retain this installation’s Gather preferences.</p>
         <p>
           Environment placeholders stay intact. Configure their values in Secrets & variables or on the server, and copy
-          local images and Docker/Kubernetes connection files separately.
+          local images, TLS certificate/key files and kubeconfig mounts separately. Connection YAML is supported for
+          protected server administrators. MCP is configured through server environment settings; there is no mcp.yaml
+          file to import.
         </p>
       </section>
       {error && (
@@ -105,13 +108,29 @@ export default function Migration({ request, onDirtyChange, titleRef }) {
         <section className={styles.card}>
           <h3>2. Review and import</h3>
           <p>
-            <strong>{review.file}</strong> passed validation with {review.count} top-level entries.
+            <strong>{review.file}</strong>{" "}
+            {review.file.endsWith(".yaml")
+              ? `passed syntax and structure validation with ${review.count} top-level entries`
+              : "is ready for review"}
+            .
           </p>
           <p>
             This replaces the current file. It does not merge services or bookmarks. Use Backup & restore to undo an
             import.
           </p>
-          <button type="button" disabled={busy} onClick={apply}>
+          {CONNECTION_FILES.includes(review.file) && (
+            <p>
+              Connection settings can change discovery and service access. Referenced credentials, network access and
+              mounted files must already exist. Validation does not contact these systems.
+            </p>
+          )}
+          {review.file === "custom.js" && (
+            <label>
+              <input type="checkbox" checked={acknowledged} onChange={(e) => setAcknowledged(e.target.checked)} />I have
+              reviewed this JavaScript and trust it to run for dashboard users.
+            </label>
+          )}
+          <button type="button" disabled={busy || (review.file === "custom.js" && !acknowledged)} onClick={apply}>
             Import {review.file}
           </button>
           <button type="button" disabled={busy} onClick={() => setReview(null)}>

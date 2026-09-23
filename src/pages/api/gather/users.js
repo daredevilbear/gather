@@ -19,12 +19,10 @@ export default async function handler(req, res) {
     process.env.HOMEPAGE_OIDC_ISSUER && process.env.HOMEPAGE_OIDC_CLIENT_ID && process.env.HOMEPAGE_OIDC_CLIENT_SECRET,
   );
   if (req.method === "POST" && req.body?.action === "add" && !canAddUsers)
-    return res
-      .status(409)
-      .json({
-        error:
-          "Configure OIDC sign-in before adding individual users. A shared password identifies everyone as one account.",
-      });
+    return res.status(409).json({
+      error:
+        "Configure OIDC sign-in before adding individual users. A shared password identifies everyone as one account.",
+    });
   let store;
   try {
     store = usersStore();
@@ -34,7 +32,7 @@ export default async function handler(req, res) {
       else if (req.body?.action === "update") store.update(req.body.id, req.body, token.sub, actor.name);
       else return res.status(400).json({ error: "Unsupported user action." });
     }
-    return res.json({ users: store.list(), activity: store.activity(), canAddUsers });
+    return res.json({ users: store.list(), activity: store.activity(), canAddUsers, currentUserId: actor.id });
   } catch (e) {
     const safe = [
       "Enter a name, email and valid role.",

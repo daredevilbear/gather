@@ -3,6 +3,9 @@ import * as yaml from "js-yaml";
 // Browser-local fixtures. No credentials, live endpoints, or server-side writes.
 export function createPreviewStore() {
   const fixtures = {
+    "docker.yaml": {},
+    "kubernetes.yaml": { mode: "disabled" },
+    "proxmox.yaml": {},
     "settings.yaml": {
       title: "Gather",
       description: "Your everyday, together.",

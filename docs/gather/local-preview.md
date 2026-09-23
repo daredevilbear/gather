@@ -46,3 +46,7 @@ administrator capability. `/system` redirects to `/settings?section=system`.
 The original system API authorization, origin checks, encrypted storage and
 rollback workflow remain in force. The local preview uses a sample administrator
 and simulated system actions, with no live authentication changes.
+
+The development-only `/preview/account` route previews My preferences with in-memory
+account data. Selecting above/below tabs exercises saving locally; it does not
+write account preferences on staging. Refresh resets the sample.

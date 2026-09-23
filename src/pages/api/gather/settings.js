@@ -1,5 +1,6 @@
 import { CONF_DIR } from "utils/config/config";
 import { administrator, systemAdministrator, validEditorOrigin } from "utils/gather/admin";
+import { CONNECTION_FILES } from "utils/gather/config-files";
 import { ConfigError, createStore, FILES, validate } from "utils/gather/config-store";
 
 export const config = { api: { bodyParser: { sizeLimit: "600kb" } } };
@@ -10,8 +11,16 @@ export default async function handler(req, res) {
   const store = createStore(CONF_DIR);
   const capabilities = { system: await systemAdministrator(req) };
   try {
+    const requestedFile = req.method === "GET" ? req.query?.file : req.body?.file;
+    if (CONNECTION_FILES.includes(requestedFile) && !capabilities.system)
+      return res.status(403).json({ error: "Connection configuration requires a protected server administrator." });
     if (req.method === "GET") {
-      if (!req.query.file) return res.json({ administrator: true, files: FILES, capabilities });
+      if (!req.query.file)
+        return res.json({
+          administrator: true,
+          files: FILES.filter((file) => capabilities.system || !CONNECTION_FILES.includes(file)),
+          capabilities,
+        });
       const doc = await store.document(req.query.file);
       return res.json({ ...doc, capabilities, backups: await store.backups(req.query.file) });
     }

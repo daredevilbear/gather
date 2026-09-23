@@ -11,12 +11,12 @@ The appearance sample updates title, icon, theme, color and tab/group labels, bu
 1. Back up the original Homepage configuration directory and keep the original installation available.
 2. Configure Gather's existing sign-in provider and authorize an administrator.
 3. Open Dashboard settings → Import from Homepage.
-4. Upload and review each of `settings.yaml`, `services.yaml`, `bookmarks.yaml` and `widgets.yaml` separately.
+4. Upload and review each file separately: `settings.yaml`, `services.yaml`, `bookmarks.yaml`, `widgets.yaml`, `custom.css` and `custom.js`. A protected server administrator can also import `docker.yaml`, `kubernetes.yaml` and `proxmox.yaml`.
 5. Import replaces one complete file at a time, with a version check and a backup. Settings imports retain destination Gather preferences.
-6. Copy local images and server-side Docker/Kubernetes connection files separately. Configure referenced environment values before relying on integrations.
+6. Copy local images, certificates, kubeconfig files and other referenced mounted files separately. Configure referenced environment values before relying on integrations. Connection files remain editable under Connections for protected server administrators.
 7. Verify tabs, links and service connections. Use Backup & restore to undo individual file imports.
 
-Environment placeholders are retained. Uploaded source is validated; custom JavaScript, Compose files, environment files and arbitrary archives are not imported by this flow.
+Environment placeholders are retained. YAML syntax and document structure are validated; this does not test connection credentials or network access. Custom JavaScript requires an explicit trust acknowledgment because it executes in visitors’ browsers. Compose files, environment files and arbitrary archives are not imported. MCP remains configured through its existing server environment settings, not a dashboard YAML file.
 
 ## Secrets and variables
 
@@ -28,6 +28,7 @@ Names use `HOMEPAGE_VAR_` so existing Homepage placeholders continue to work, fo
 Secret values are masked and never returned by the management API. Non-secret variables are visible to administrators.
 Use secrets in private integration credential fields, not in titles, descriptions or destination links that appear on the dashboard.
 The server environment retains precedence; the editor rejects names already configured there.
+Replace value opens and focuses a replacement form above the saved list; the existing value remains active until Save replacement succeeds. Cancel replacement discards the draft.
 Disable is reversible; it retains the encrypted value. Changing a value's secret/variable type requires a new name.
 
 ## Account preferences and notifications
@@ -69,3 +70,8 @@ Personal dashboard data and named activity history live in `config/.gather-users
 
 Notification identities use the stable sign-in subject. Legacy email-based notification state is migrated only for verified email claims.
 An unverified legacy sign-in may need to reset browser push and enable it again. That resets the local browser subscription without deleting another account's server records.
+
+## Group names
+
+Layout edits each group’s visible name using `layout.<configuration key>.displayName`.
+Services, Bookmarks and the dashboard render that label. The configuration key stays stable, preserving service API references and discovery labels. Advanced source edits can still change the underlying key, but must coordinate every reference. Removing a layout also removes its display-name override.

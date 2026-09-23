@@ -80,7 +80,7 @@ export function AccountMenuView({ user, settingsUrl, dashboardSettings, signOutL
           My dashboard
         </Link>
         <Link href="/account" className="flex min-h-11 items-center gap-2">
-          <GatherIcon name="settings" />
+          <GatherIcon name="palette" />
           My preferences
         </Link>
         {dashboardSettings}

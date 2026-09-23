@@ -4,7 +4,10 @@ import path from "node:path";
 
 import * as yaml from "js-yaml";
 
+import { CONNECTION_FILES } from "./config-files";
+
 export const FILES = [
+  ...CONNECTION_FILES,
   "settings.yaml",
   "services.yaml",
   "bookmarks.yaml",
@@ -68,18 +71,33 @@ export function validate(file, text) {
     fail("Invalid YAML or JSON. Check syntax before saving.");
   }
   safeTree(value);
+  if (CONNECTION_FILES.includes(file) && value != null && !object(value))
+    fail("Connection configuration must be an object or an empty file.");
   if (file === "settings.yaml") {
     if (!object(value)) fail("Settings must be an object.");
     if (value.layout !== undefined && !object(value.layout) && !Array.isArray(value.layout))
       fail("Layout must be an object or list.");
+    for (const options of Object.values(value.layout || {})) {
+      if (
+        object(options) &&
+        options.displayName !== undefined &&
+        (typeof options.displayName !== "string" || !options.displayName.trim() || options.displayName.length > 120)
+      )
+        fail("Group display names must contain 1–120 characters.");
+    }
     if (value.gather !== undefined && !object(value.gather)) fail("Gather settings must be an object.");
     for (const field of ["accountMenu", "notifications"])
       if (value.gather?.[field] !== undefined && typeof value.gather[field] !== "boolean")
         fail(`${field} must be a checkbox value.`);
     const tabs = value.gather?.tabs;
-    if (tabs !== undefined && (!Array.isArray(tabs) || tabs.length > 100 ||
-      tabs.some((tab) => typeof tab !== "string" || !tab.trim() || tab.length > 80) ||
-      new Set(tabs).size !== tabs.length)) fail("Tabs must be a list of unique names, up to 80 characters each.");
+    if (
+      tabs !== undefined &&
+      (!Array.isArray(tabs) ||
+        tabs.length > 100 ||
+        tabs.some((tab) => typeof tab !== "string" || !tab.trim() || tab.length > 80) ||
+        new Set(tabs).size !== tabs.length)
+    )
+      fail("Tabs must be a list of unique names, up to 80 characters each.");
     const url = value.gather?.accountSettingsUrl;
     if (url) {
       try {
@@ -137,7 +155,7 @@ export function createStore(directory) {
         return file === "gather-notifications.json"
           ? "{}\n"
           : file.endsWith(".yaml")
-            ? file === "settings.yaml"
+            ? file === "settings.yaml" || CONNECTION_FILES.includes(file)
               ? "{}\n"
               : "[]\n"
             : "";

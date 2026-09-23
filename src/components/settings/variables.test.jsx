@@ -16,3 +16,19 @@ it("offers a masked secret editor and never shows saved preview secrets", async 
   fireEvent.click(screen.getByRole("button", { name: "Disable" }));
   expect(await screen.findByText("Secret · value hidden · Disabled")).toBeInTheDocument();
 });
+
+it("opens and focuses a replacement, locks its identity and saves without exposing the secret", async () => {
+  render(<Variables preview />);
+  fireEvent.change(screen.getByLabelText("Name"), { target: { value: "API_TOKEN" } });
+  fireEvent.change(screen.getByLabelText("Secret value"), { target: { value: "old-value" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save value" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Replace value" }));
+  expect(screen.getByLabelText("Name")).toHaveAttribute("readonly");
+  expect(screen.getByLabelText("Secret value")).toHaveFocus();
+  expect(screen.getByLabelText("Secret value")).toHaveValue("");
+  fireEvent.change(screen.getByLabelText("Secret value"), { target: { value: "replacement-value" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save replacement" }));
+  expect(await screen.findByRole("button", { name: "Save value" })).toBeDisabled();
+  expect(document.body.textContent).not.toContain("replacement-value");
+  expect(screen.getAllByText("HOMEPAGE_VAR_API_TOKEN", { exact: true })).toHaveLength(1);
+});

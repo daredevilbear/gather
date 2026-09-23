@@ -22,6 +22,7 @@ import Variables from "./variables";
 import GatherIcon from "components/gather/icon";
 import GatherMark from "components/gather/mark";
 import { slugifyAndEncode } from "components/tab";
+import { CONNECTION_FILES } from "utils/gather/config-files";
 import { dashboardTabs, renameDashboardTab } from "utils/gather/tabs";
 import themes from "utils/styles/themes";
 
@@ -106,6 +107,16 @@ const SECTIONS = [
     icon: "code",
     group: "ADVANCED",
   },
+  ...CONNECTION_FILES.map((file) => ({
+    id: file.split(".")[0],
+    file,
+    label: { "docker.yaml": "Docker", "kubernetes.yaml": "Kubernetes", "proxmox.yaml": "Proxmox" }[file],
+    description:
+      "Manage the existing Homepage connection configuration. Referenced credentials and mounted files must be available on the server. Source changes are versioned and backed up.",
+    icon: "connections",
+    group: "CONNECTIONS",
+    protected: true,
+  })),
   {
     id: "users",
     file: null,
@@ -212,7 +223,7 @@ function ContentRow({ name, subtitle, icon, kind = "grid", badge, children, open
     </details>
   );
 }
-export function Groups({ value, onChange, bookmarks = false, layout = {}, tabs = [] }) {
+export function Groups({ value, onChange, bookmarks = false, layout = {}, tabs = [], onEditLayout }) {
   const [collapsed, setCollapsed] = useState({});
   const [renaming, setRenaming] = useState(null);
   const [newEntry, setNewEntry] = useState(null);
@@ -279,6 +290,7 @@ export function Groups({ value, onChange, bookmarks = false, layout = {}, tabs =
         .map(({ group, i }, displayIndex, ordered) => {
           const [name, entries] = Object.entries(group)[0] || ["", []];
           if (!Array.isArray(entries)) return <p key={i}>Group {name} requires a list. Use the source view.</p>;
+          const displayName = layout[name]?.displayName || name;
           const groupScope = `group:${layout[name]?.tab || ""}`;
           const peers = ordered.filter(
             ({ group: peer }) => (layout[Object.keys(peer)[0]]?.tab || "") === (layout[name]?.tab || ""),
@@ -320,7 +332,7 @@ export function Groups({ value, onChange, bookmarks = false, layout = {}, tabs =
                     <span className={collapsed[i] ? styles.closedChevron : undefined}>
                       <GatherIcon name="chevron" />
                     </span>
-                    <strong>{name || "Unnamed group"}</strong>
+                    <strong>{displayName || "Unnamed group"}</strong>
                     <span className={styles.contentBadge}>{entries.length}</span>
                   </button>
                   <button
@@ -341,14 +353,13 @@ export function Groups({ value, onChange, bookmarks = false, layout = {}, tabs =
                 </div>
                 {renaming === i && (
                   <div className={styles.contentFields}>
-                    <label>
-                      Group name
-                      <input
-                        autoFocus
-                        value={name}
-                        onChange={(e) => onChange(value.map((g, n) => (n === i ? { [e.target.value]: entries } : g)))}
-                      />
-                    </label>
+                    <h3>{displayName}</h3>
+                    <p>Rename this group in Layout. Its services and connection references stay together.</p>
+                    {onEditLayout && (
+                      <button type="button" onClick={onEditLayout}>
+                        Edit name & layout
+                      </button>
+                    )}
                     <Move
                       label={name || "group"}
                       index={i}
@@ -471,6 +482,12 @@ function EntryDetails({ value, onChange, bookmarks }) {
         if (!object(link)) return <p key={index}>This custom entry can be edited in Source.</p>;
         const update = (next) =>
           onChange(bookmarks && Array.isArray(value) ? value.map((item, n) => (n === index ? next : item)) : next);
+        let favicon = "";
+        try {
+          const destination = new URL(link.href);
+          if (["https:", "http:"].includes(destination.protocol) && !destination.username && !destination.password)
+            favicon = new URL("/favicon.ico", destination.origin).href;
+        } catch {}
         return (
           <div key={index}>
             <div className={styles.grid}>
@@ -489,6 +506,17 @@ function EntryDetails({ value, onChange, bookmarks }) {
                 ),
               )}
             </div>
+            {bookmarks && (
+              <div className={styles.faviconChoice}>
+                <button type="button" disabled={!favicon} onClick={() => update({ ...link, icon: favicon })}>
+                  Use website favicon
+                </button>
+                <p>
+                  Loads the icon from this site’s /favicon.ico address. If the site uses a different path, choose an
+                  icon or upload one.
+                </p>
+              </div>
+            )}
             {!bookmarks && (
               <IntegrationPicker
                 value={link.widget}
@@ -783,7 +811,7 @@ function Layout({ value, onChange, request, tabs }) {
       {Object.entries(value).map(([group, options]) => (
         <section className={styles.card} key={group}>
           <div className={styles.heading}>
-            <h2>{group}</h2>
+            <h2>{options?.displayName || group}</h2>
             <button
               type="button"
               aria-label={`Remove layout for ${group}`}
@@ -800,6 +828,16 @@ function Layout({ value, onChange, request, tabs }) {
             Choose where this group appears and how its services are arranged. Removing this layout keeps its services
             and restores their default placement.
           </p>
+          <label>
+            Group name
+            <input
+              aria-label={`Group name for ${group}`}
+              maxLength={120}
+              required
+              value={options?.displayName ?? group}
+              onChange={(e) => update(group, { displayName: e.target.value })}
+            />
+          </label>
           <div className={styles.grid}>
             <label>
               Tab
@@ -1047,7 +1085,7 @@ export default function SettingsEditor({ request = api, preview = false }) {
   const [backup, setBackup] = useState("");
   const [confirmRestore, setConfirmRestore] = useState(false);
   const dirty = !!doc && text !== doc.text;
-  const rawOnly = file.endsWith(".css") || file.endsWith(".js");
+  const rawOnly = file.endsWith(".css") || file.endsWith(".js") || CONNECTION_FILES.includes(file);
   let value, parseError;
   try {
     value = rawOnly
@@ -1207,8 +1245,12 @@ export default function SettingsEditor({ request = api, preview = false }) {
         </Head>
         <header className={styles.top}>
           <div className={styles.brand}>
-            <GatherMark className={styles.mark} />
-            <strong>Gather</strong>
+            {/* Full navigation keeps the unsaved-edit warning. */}
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+            <a href="/" aria-label="Gather home" className={styles.brand}>
+              <GatherMark className={styles.mark} />
+              <strong>Gather</strong>
+            </a>
             <span>/</span>
             <span>Settings</span>
           </div>
@@ -1227,25 +1269,27 @@ export default function SettingsEditor({ request = api, preview = false }) {
             <nav aria-label="Settings sections">
               {[
                 ...new Set(
-                  SECTIONS.filter((item) => item.id !== "system" || canManageSystem).map((item) => item.group),
+                  SECTIONS.filter((item) => (!item.protected && item.id !== "system") || canManageSystem).map(
+                    (item) => item.group,
+                  ),
                 ),
               ].map((group) => (
                 <div key={group} className={styles.navGroup}>
                   <span className={styles.eyebrow}>{group}</span>
-                  {SECTIONS.filter((item) => item.group === group && (item.id !== "system" || canManageSystem)).map(
-                    (item) => (
-                      <button
-                        key={item.id}
-                        aria-current={section === item.id ? "page" : undefined}
-                        disabled={busy}
-                        onClick={() => selectSection(item)}
-                      >
-                        <GatherIcon name={item.icon} />
-                        <span>{item.label}</span>
-                        {item.file === file && dirty && <i aria-hidden="true" title="Unsaved changes" />}
-                      </button>
-                    ),
-                  )}
+                  {SECTIONS.filter(
+                    (item) => item.group === group && ((!item.protected && item.id !== "system") || canManageSystem),
+                  ).map((item) => (
+                    <button
+                      key={item.id}
+                      aria-current={section === item.id ? "page" : undefined}
+                      disabled={busy}
+                      onClick={() => selectSection(item)}
+                    >
+                      <GatherIcon name={item.icon} />
+                      <span>{item.label}</span>
+                      {item.file === file && dirty && <i aria-hidden="true" title="Unsaved changes" />}
+                    </button>
+                  ))}
                 </div>
               ))}
             </nav>
@@ -1298,7 +1342,12 @@ export default function SettingsEditor({ request = api, preview = false }) {
               <Variables preview={preview} titleRef={sectionTitle} onDirtyChange={setSystemDirty} />
             )}
             {doc && section === "migration" && (
-              <Migration request={request} titleRef={sectionTitle} onDirtyChange={setSystemDirty} />
+              <Migration
+                canManageConnections={canManageSystem}
+                request={request}
+                titleRef={sectionTitle}
+                onDirtyChange={setSystemDirty}
+              />
             )}
             {doc && !["system", "users", "variables", "migration"].includes(section) && (
               <>
@@ -1349,6 +1398,7 @@ export default function SettingsEditor({ request = api, preview = false }) {
                           )}
                           {["services.yaml", "bookmarks.yaml"].includes(file) && (
                             <OrganizedGroups
+                              onEditLayout={() => selectSection(SECTIONS.find((item) => item.id === "layout"))}
                               request={request}
                               value={value}
                               onChange={change}
@@ -1389,7 +1439,13 @@ export default function SettingsEditor({ request = api, preview = false }) {
                     <label>
                       Configuration to restore
                       <select value={file} disabled={busy} onChange={(e) => load("backups", e.target.value)}>
-                        {[...new Set(SECTIONS.map((item) => item.file).filter(Boolean))].map((name) => (
+                        {[
+                          ...new Set(
+                            SECTIONS.filter((item) => !item.protected || canManageSystem)
+                              .map((item) => item.file)
+                              .filter(Boolean),
+                          ),
+                        ].map((name) => (
                           <option key={name} value={name}>
                             {name}
                           </option>
