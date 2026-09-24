@@ -36,7 +36,7 @@ export default function VcenterPreview({ sampleTime }) {
   };
   return (
     <main className="max-w-3xl mx-auto p-6 text-theme-700 dark:text-theme-200">
-      <h1 className="text-2xl mb-2">vCenter VM card preview</h1>
+      <h1 className="text-2xl mb-2">vCenter VM and host preview</h1>
       <p className="mb-6">Sample readings only. No vCenter connection is used.</p>
       <label>
         Sample state{" "}
@@ -54,11 +54,34 @@ export default function VcenterPreview({ sampleTime }) {
           value={{
             provider: () => new Map(),
             isPaused: () => true,
-            fallback: { "/api/vcenter/stats?instance=preview&vm=vm-1": data },
+            fallback: {
+              "/api/vcenter/stats?instance=preview&vm=vm-1": data,
+              "/api/vcenter/stats?instance=preview&host=host-1": {
+                connectionState: "connected",
+                health: "green",
+                maintenance: false,
+                cpuPercent: 24.5,
+                usedMemoryMiB: 32768,
+                totalMemoryMiB: 131072,
+                runningVMs: 15,
+                totalVMs: 20,
+                checkedAt: sampleTime,
+              },
+            },
           }}
         >
           <ul>
             <Item service={service} groupName="Preview" />
+            <Item
+              service={{
+                name: "Example ESXi host",
+                description: "ESXi host",
+                vcenterServer: "preview",
+                vcenterHost: "host-1",
+                widgets: [],
+              }}
+              groupName="Preview"
+            />
           </ul>
         </SWRConfig>
       </SettingsContext.Provider>

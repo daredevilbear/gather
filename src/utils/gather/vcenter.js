@@ -29,7 +29,7 @@ export function vcenterOrigin(connection) {
     throw Error("Configure an HTTPS vCenter origin, username and password.");
   return url.origin;
 }
-export async function vcenterInventory(connection, request = fetch) {
+async function inventory(connection, request, kind) {
   const origin = vcenterOrigin(connection);
   const call = (route, method, headers) =>
     request(new URL(route, origin), { method, headers, redirect: "error", signal: AbortSignal.timeout(10000) });
@@ -41,10 +41,16 @@ export async function vcenterInventory(connection, request = fetch) {
   if (typeof session !== "string" || !session) throw Error("Unexpected vCenter session response.");
   const headers = { "vmware-api-session-id": session };
   try {
-    const response = await call("/api/vcenter/vm", "GET", headers);
+    const response = await call(`/api/vcenter/${kind}`, "GET", headers);
     if (!response.ok) throw Error("Could not read vCenter inventory. Check account permissions and API availability.");
     const list = await response.json();
     if (!Array.isArray(list)) throw Error("Unexpected vCenter inventory response.");
+    if (kind === "host")
+      return list.map((host) => ({
+        id: String(host.host || ""),
+        name: String(host.name || host.host),
+        connectionState: String(host.connection_state || "UNKNOWN"),
+      }));
     return list.map((vm) => ({
       id: String(vm.vm || ""),
       name: String(vm.name || vm.vm),
@@ -77,4 +83,11 @@ export async function cachedVcenterInventory(connection) {
   });
   inventories.set(key, { promise, expires: now + 15000 });
   return promise;
+}
+
+export function vcenterInventory(connection, request = fetch) {
+  return inventory(connection, request, "vm");
+}
+export function vcenterHosts(connection, request = fetch) {
+  return inventory(connection, request, "host");
 }

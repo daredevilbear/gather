@@ -98,10 +98,8 @@ function sampleMetrics(entity, counters, now) {
 
 // SOAP uses the existing vCenter origin and credentials, never an arbitrary client URL.
 // No VM write operations are issued. Sessions are always closed after each batch.
-export async function vcenterPerformance(connection, vmIds, request = fetch) {
+export async function withVcenterSoap(connection, operation, request = fetch) {
   const origin = vcenterOrigin(connection);
-  const ids = [...new Set(vmIds)].filter((id) => typeof id === "string" && /^vm-\d+$/.test(id)).sort();
-  if (!ids.length) return {};
   let cookie = "";
   let sessionManager;
   let version = "6.5";
@@ -146,70 +144,7 @@ export async function vcenterPerformance(connection, vmIds, request = fetch) {
       `${ref("SessionManager", sessionManager)}<userName>${escape(connection.username)}</userName><password>${escape(connection.password)}</password>`,
     );
     if (!cookie) throw new PerformanceError("invalid-response");
-    const key = fingerprint(connection);
-    let metadata = metadataCache.get(key);
-    if (!metadata || metadata.expires <= Date.now()) {
-      const properties = await call(
-        "RetrievePropertiesEx",
-        `${ref("PropertyCollector", collector)}<specSet><propSet><type>PerformanceManager</type><all>false</all><pathSet>perfCounter</pathSet></propSet><objectSet><obj type="PerformanceManager">${escape(manager)}</obj></objectSet></specSet><options/>`,
-      );
-      metadata = { counters: metricCounters(properties), rates: new Map(), expires: Date.now() + 300000 };
-      if (!metadata.counters.length) throw new PerformanceError("unsupported");
-      boundedSet(metadataCache, key, metadata);
-    }
-    const results = {};
-    for (let offset = 0; offset < ids.length; offset += 50) {
-      const batch = ids.slice(offset, offset + 50);
-      // Bound concurrency when discovering each VM's real-time sampling interval.
-      for (let index = 0; index < batch.length; index += 4) {
-        await Promise.all(
-          batch.slice(index, index + 4).map(async (id) => {
-            if (!metadata.rates.get(id)) {
-              try {
-                const provider = child(
-                  await call(
-                    "QueryPerfProviderSummary",
-                    `${ref("PerformanceManager", manager)}<entity type="VirtualMachine">${escape(id)}</entity>`,
-                  ),
-                  "returnval",
-                );
-                const rate = Number(text(child(provider, "refreshRate")));
-                metadata.rates.set(
-                  id,
-                  ["true", "1"].includes(text(child(provider, "currentSupported"))) &&
-                    Number.isInteger(rate) &&
-                    rate > 0
-                    ? rate
-                    : null,
-                );
-              } catch (error) {
-                results[id] = { status: error.code || "unavailable" };
-              }
-            }
-          }),
-        );
-      }
-      const available = batch.filter((id) => !results[id] && metadata.rates.get(id));
-      for (const id of batch) if (!results[id] && !metadata.rates.get(id)) results[id] = { status: "unsupported" };
-      if (!available.length) continue;
-      const specs = available
-        .map(
-          (id) =>
-            `<querySpec><entity type="VirtualMachine">${escape(id)}</entity><maxSample>1</maxSample>${metadata.counters.map((counter) => `<metricId><counterId>${counter.id}</counterId><instance></instance></metricId>`).join("")}<intervalId>${metadata.rates.get(id)}</intervalId><format>normal</format></querySpec>`,
-        )
-        .join("");
-      try {
-        const metrics = await call("QueryPerf", ref("PerformanceManager", manager) + specs);
-        for (const id of available) results[id] = { status: "no-samples" };
-        for (const entity of children(metrics, "returnval")) {
-          const id = text(child(entity, "entity"));
-          if (available.includes(id)) results[id] = sampleMetrics(entity, metadata.counters, Date.now());
-        }
-      } catch (error) {
-        for (const id of available) results[id] = { status: error.code || "unavailable" };
-      }
-    }
-    return results;
+    return await operation({ call, manager, collector });
   } finally {
     if (cookie && sessionManager) {
       try {
@@ -219,6 +154,82 @@ export async function vcenterPerformance(connection, vmIds, request = fetch) {
       }
     }
   }
+}
+
+export { child, children, escape, ref, text };
+export async function vcenterPerformance(connection, vmIds, request = fetch) {
+  const ids = [...new Set(vmIds)].filter((id) => typeof id === "string" && /^vm-\d+$/.test(id)).sort();
+  if (!ids.length) return {};
+  return withVcenterSoap(
+    connection,
+    async ({ call, manager, collector }) => {
+      const key = fingerprint(connection);
+      let metadata = metadataCache.get(key);
+      if (!metadata || metadata.expires <= Date.now()) {
+        const properties = await call(
+          "RetrievePropertiesEx",
+          `${ref("PropertyCollector", collector)}<specSet><propSet><type>PerformanceManager</type><all>false</all><pathSet>perfCounter</pathSet></propSet><objectSet><obj type="PerformanceManager">${escape(manager)}</obj></objectSet></specSet><options/>`,
+        );
+        metadata = { counters: metricCounters(properties), rates: new Map(), expires: Date.now() + 300000 };
+        if (!metadata.counters.length) throw new PerformanceError("unsupported");
+        boundedSet(metadataCache, key, metadata);
+      }
+      const results = {};
+      for (let offset = 0; offset < ids.length; offset += 50) {
+        const batch = ids.slice(offset, offset + 50);
+        // Bound concurrency when discovering each VM's real-time sampling interval.
+        for (let index = 0; index < batch.length; index += 4) {
+          await Promise.all(
+            batch.slice(index, index + 4).map(async (id) => {
+              if (!metadata.rates.get(id)) {
+                try {
+                  const provider = child(
+                    await call(
+                      "QueryPerfProviderSummary",
+                      `${ref("PerformanceManager", manager)}<entity type="VirtualMachine">${escape(id)}</entity>`,
+                    ),
+                    "returnval",
+                  );
+                  const rate = Number(text(child(provider, "refreshRate")));
+                  metadata.rates.set(
+                    id,
+                    ["true", "1"].includes(text(child(provider, "currentSupported"))) &&
+                      Number.isInteger(rate) &&
+                      rate > 0
+                      ? rate
+                      : null,
+                  );
+                } catch (error) {
+                  results[id] = { status: error.code || "unavailable" };
+                }
+              }
+            }),
+          );
+        }
+        const available = batch.filter((id) => !results[id] && metadata.rates.get(id));
+        for (const id of batch) if (!results[id] && !metadata.rates.get(id)) results[id] = { status: "unsupported" };
+        if (!available.length) continue;
+        const specs = available
+          .map(
+            (id) =>
+              `<querySpec><entity type="VirtualMachine">${escape(id)}</entity><maxSample>1</maxSample>${metadata.counters.map((counter) => `<metricId><counterId>${counter.id}</counterId><instance></instance></metricId>`).join("")}<intervalId>${metadata.rates.get(id)}</intervalId><format>normal</format></querySpec>`,
+          )
+          .join("");
+        try {
+          const metrics = await call("QueryPerf", ref("PerformanceManager", manager) + specs);
+          for (const id of available) results[id] = { status: "no-samples" };
+          for (const entity of children(metrics, "returnval")) {
+            const id = text(child(entity, "entity"));
+            if (available.includes(id)) results[id] = sampleMetrics(entity, metadata.counters, Date.now());
+          }
+        } catch (error) {
+          for (const id of available) results[id] = { status: error.code || "unavailable" };
+        }
+      }
+      return results;
+    },
+    request,
+  );
 }
 
 export async function cachedVcenterPerformance(connection, vmIds) {

@@ -1,5 +1,5 @@
 import { systemAdministrator, validEditorOrigin } from "utils/gather/admin";
-import { vcenterConnections, vcenterInventory } from "utils/gather/vcenter";
+import { vcenterConnections, vcenterHosts, vcenterInventory } from "utils/gather/vcenter";
 import { cachedVcenterPerformance } from "utils/gather/vcenter-performance";
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "private, no-store");
@@ -18,10 +18,19 @@ export default async function handler(req, res) {
     if (typeof name !== "string" || !Object.hasOwn(connections, name))
       return res.status(400).json({ error: "Select a configured vCenter connection." });
     const machines = await vcenterInventory(connections[name]);
+    let hosts = [],
+      hostError = "";
+    try {
+      hosts = await vcenterHosts(connections[name]);
+    } catch {
+      hostError = "Could not load ESXi hosts. Check host inventory read permissions.";
+    }
     const running = machines.find((machine) => machine.powerState === "POWERED_ON");
     const samples = running ? await cachedVcenterPerformance(connections[name], [running.id]) : {};
     return res.json({
       machines,
+      hosts,
+      hostError,
       url: new URL(connections[name].url).origin + "/ui",
       performanceCheck: running
         ? { vmName: running.name, ...(samples[running.id] || { status: "no-samples" }) }

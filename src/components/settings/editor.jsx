@@ -119,7 +119,7 @@ const SECTIONS = [
     }[file],
     description:
       file === "vcenter.yaml"
-        ? "Connect vCenter and add VM status cards or an inventory summary to your dashboard."
+        ? "Connect vCenter and add VM or ESXi host cards, or an inventory summary, to your dashboard."
         : "Manage the existing Homepage connection configuration. Referenced credentials and mounted files must be available on the server. Source changes are versioned and backed up.",
     icon: file.split(".")[0],
     group: "CONNECTIONS",
@@ -529,9 +529,11 @@ function EntryDetails({ value, onChange, bookmarks }) {
               <section className={styles.notice}>
                 <p>
                   vCenter: {link.vcenterServer} ·{" "}
-                  {link.vcenterVM
-                    ? "Linked VM with power status, live utilization and allocated resources"
-                    : "Inventory summary"}
+                  {link.vcenterHost
+                    ? "Linked ESXi host with health and resource metrics"
+                    : link.vcenterVM
+                      ? "Linked VM with power status, live utilization and allocated resources"
+                      : "Inventory summary"}
                 </p>
                 <button
                   type="button"
@@ -539,6 +541,7 @@ function EntryDetails({ value, onChange, bookmarks }) {
                     const next = { ...link };
                     delete next.vcenterServer;
                     delete next.vcenterVM;
+                    delete next.vcenterHost;
                     delete next.vcenterSummary;
                     update(next);
                   }}

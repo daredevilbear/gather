@@ -12,6 +12,10 @@ export default function Vcenter({ preview, request, connectionsDirty = false }) 
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState([]);
+  const [hosts, setHosts] = useState([]);
+  const [selectedHosts, setSelectedHosts] = useState([]);
+  const [hostError, setHostError] = useState("");
+  const [inventoryView, setInventoryView] = useState("vms");
   const [summary, setSummary] = useState(true);
   const [groups, setGroups] = useState([]);
   const [group, setGroup] = useState("");
@@ -39,9 +43,10 @@ export default function Vcenter({ preview, request, connectionsDirty = false }) 
         machines.filter((vm) => selected.includes(vm.id)),
         summary,
         url,
+        hosts.filter((host) => selectedHosts.includes(host.id)),
       );
       if (!result.added) {
-        setStatus("These VMs and summary are already on the dashboard.");
+        setStatus("These selections are already on the dashboard.");
         return;
       }
       const text = yaml.dump(result.services, { noRefs: true, lineWidth: 120 });
@@ -68,6 +73,7 @@ export default function Vcenter({ preview, request, connectionsDirty = false }) 
       );
       setReview(null);
       setSelected([]);
+      setSelectedHosts([]);
     } catch (e) {
       setError(e.message);
       setReview(null);
@@ -98,9 +104,12 @@ export default function Vcenter({ preview, request, connectionsDirty = false }) 
     setBusy(true);
     setError("");
     setMachines(null);
+    setHosts([]);
+    setHostError("");
     setPerformanceCheck(null);
     setReview(null);
     setSelected([]);
+    setSelectedHosts([]);
     setStatus("");
     try {
       const [servicesDoc, settingsDoc] = await Promise.all([
@@ -119,6 +128,7 @@ export default function Vcenter({ preview, request, connectionsDirty = false }) 
       if (preview) {
         setPerformanceCheck({ status: "live", vmName: "Example VM" });
         setUrl("https://vcenter.example.com/ui");
+        setHosts([{ id: "host-1", name: "Example ESXi host", connectionState: "CONNECTED" }]);
         setMachines([{ id: "vm-1", name: "Example VM", powerState: "POWERED_ON", cpus: 2, memoryMiB: 4096 }]);
         return;
       }
@@ -131,6 +141,8 @@ export default function Vcenter({ preview, request, connectionsDirty = false }) 
       if (!response.ok) throw Error(result.error);
       setPerformanceCheck(result.performanceCheck);
       setMachines(result.machines);
+      setHosts(result.hosts || []);
+      setHostError(result.hostError || "");
       setUrl(result.url);
     } catch (e) {
       setError(e.message);
@@ -146,9 +158,9 @@ export default function Vcenter({ preview, request, connectionsDirty = false }) 
         vCenter account with read-only inventory access.
       </p>
       <p>
-        Link selected VMs to service cards with power status and expandable resource details, or add an inventory
-        summary. Cards refresh every 30 seconds. Running VM cards also show live CPU usage, active memory, host consumed
-        memory, and sample time. Allocations remain visible separately.
+        Link selected VMs or ESXi hosts to service cards with power status and expandable resource details, or add an
+        inventory summary. Cards refresh every 30 seconds. Running VM cards also show live CPU usage, active memory,
+        host consumed memory, and sample time. Allocations remain visible separately.
       </p>
       {connectionsDirty && <p role="status">Save & apply your connection changes before loading inventory.</p>}
       <pre>
@@ -165,6 +177,9 @@ export default function Vcenter({ preview, request, connectionsDirty = false }) 
             onChange={(e) => {
               setInstance(e.target.value);
               setMachines(null);
+              setHosts([]);
+              setSelectedHosts([]);
+              setHostError("");
               setPerformanceCheck(null);
               setReview(null);
               setSelected([]);
@@ -196,30 +211,75 @@ export default function Vcenter({ preview, request, connectionsDirty = false }) 
             {machines.length} virtual machines{preview ? " · sample data" : ""}
           </p>
           <fieldset disabled={busy || connectionsDirty}>
-            <legend>Select virtual machines</legend>
-            {machines.map((vm) => (
-              <label key={vm.id} className={styles.vmChoice}>
-                <input
-                  type="checkbox"
-                  checked={selected.includes(vm.id)}
-                  disabled={!!review}
-                  onChange={(e) =>
-                    setSelected(e.target.checked ? [...selected, vm.id] : selected.filter((id) => id !== vm.id))
-                  }
-                />
-                <span>
-                  <strong>{vm.name}</strong> ·{" "}
-                  {vm.powerState === "POWERED_ON"
-                    ? "Running"
-                    : vm.powerState === "POWERED_OFF"
-                      ? "Stopped"
-                      : vm.powerState === "SUSPENDED"
-                        ? "Suspended"
-                        : "Unknown"}{" "}
-                  · {vm.cpus} CPUs · {vm.memoryMiB / 1024} GiB allocated
-                </span>
-              </label>
-            ))}
+            <legend>Select infrastructure</legend>
+            <div className={styles.personalRow}>
+              <button type="button" aria-pressed={inventoryView === "vms"} onClick={() => setInventoryView("vms")}>
+                Virtual machines ({machines.length})
+              </button>
+              <button type="button" aria-pressed={inventoryView === "hosts"} onClick={() => setInventoryView("hosts")}>
+                Hosts ({hosts.length})
+              </button>
+            </div>
+            <p role="status">
+              {selected.length} VMs and {selectedHosts.length} hosts selected
+            </p>
+            {inventoryView === "hosts" && (
+              <>
+                {hostError && <p role="alert">{hostError}</p>}
+                {!hosts.length && !hostError && <p>No ESXi hosts are visible to this connection.</p>}
+                {hosts.map((host) => (
+                  <label key={host.id} className={styles.vmChoice}>
+                    <input
+                      type="checkbox"
+                      checked={selectedHosts.includes(host.id)}
+                      disabled={!!review}
+                      onChange={(event) =>
+                        setSelectedHosts(
+                          event.target.checked
+                            ? [...selectedHosts, host.id]
+                            : selectedHosts.filter((id) => id !== host.id),
+                        )
+                      }
+                    />
+                    <span>
+                      <strong>{host.name}</strong> ·{" "}
+                      {host.connectionState === "CONNECTED"
+                        ? "Connected"
+                        : host.connectionState === "DISCONNECTED"
+                          ? "Disconnected"
+                          : host.connectionState === "NOT_RESPONDING"
+                            ? "Not responding"
+                            : "Unknown connection"}
+                    </span>
+                  </label>
+                ))}
+                <p>Host cards show connection, maintenance, vCenter health, CPU, memory and VM counts.</p>
+              </>
+            )}
+            {inventoryView === "vms" &&
+              machines.map((vm) => (
+                <label key={vm.id} className={styles.vmChoice}>
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(vm.id)}
+                    disabled={!!review}
+                    onChange={(e) =>
+                      setSelected(e.target.checked ? [...selected, vm.id] : selected.filter((id) => id !== vm.id))
+                    }
+                  />
+                  <span>
+                    <strong>{vm.name}</strong> ·{" "}
+                    {vm.powerState === "POWERED_ON"
+                      ? "Running"
+                      : vm.powerState === "POWERED_OFF"
+                        ? "Stopped"
+                        : vm.powerState === "SUSPENDED"
+                          ? "Suspended"
+                          : "Unknown"}{" "}
+                    · {vm.cpus} CPUs · {vm.memoryMiB / 1024} GiB allocated
+                  </span>
+                </label>
+              ))}
             <label className={styles.vmChoice}>
               <input
                 type="checkbox"
@@ -242,11 +302,15 @@ export default function Vcenter({ preview, request, connectionsDirty = false }) 
             {!groups.length && <p>Create a group in Services first, then reload inventory.</p>}
             <p>
               Cards link to vCenter. Change their Service URL in Services to open the application hosted by a VM.
-              Existing VM cards are skipped. Shared cards are visible to dashboard users; personal layouts can hide or
-              reorder them.
+              Existing VM and host cards are skipped. Shared cards are visible to dashboard users; personal layouts can
+              hide or reorder them.
             </p>
             {!review && (
-              <button type="button" disabled={!group || (!summary && !selected.length)} onClick={reviewSelection}>
+              <button
+                type="button"
+                disabled={!group || (!summary && !selected.length && !selectedHosts.length)}
+                onClick={reviewSelection}
+              >
                 Review dashboard cards
               </button>
             )}

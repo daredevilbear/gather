@@ -15,3 +15,12 @@ it("merges VM cards and a summary, preserves content and avoids duplicates or na
   expect(addVcenterServices(first.services, "Home", "lab", machines, true, "https://vc.test/ui").added).toBe(0);
   expect(() => addVcenterServices(source, "Missing", "lab", machines, false, "")).toThrow("existing service group");
 });
+
+it("adds hosts without colliding with VM names and skips previously linked hosts", () => {
+  const source = [{ Home: [{ ESXi: { vcenterServer: "lab", vcenterVM: "vm-1" } }] }];
+  const hosts = [{ id: "host-1", name: "ESXi" }];
+  const result = addVcenterServices(source, "Home", "lab", [], false, "https://vc.test/ui", hosts);
+  expect(result.added).toBe(1);
+  expect(result.services[0].Home[1]["ESXi (2)"].vcenterHost).toBe("host-1");
+  expect(addVcenterServices(result.services, "Home", "lab", [], false, "https://vc.test/ui", hosts).added).toBe(0);
+});

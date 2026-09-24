@@ -189,11 +189,11 @@ export default function Item({ service, groupName, useEqualHeights }) {
           </div>
         )}
 
-        {service.vcenterServer && service.vcenterVM && (
+        {service.vcenterServer && (service.vcenterVM || service.vcenterHost) && (
           <>
             <div className="flex flex-wrap items-center justify-between gap-2 px-2 py-1 text-xs">
               <span className="flex items-center gap-1">
-                Power: <VcenterStatus service={service} />
+                {service.vcenterHost ? "Connection:" : "Power:"} <VcenterStatus service={service} />
               </span>
               <button
                 type="button"
@@ -211,7 +211,9 @@ export default function Item({ service, groupName, useEqualHeights }) {
             </div>
           </>
         )}
-        {service.vcenterServer && service.vcenterSummary && !service.vcenterVM && <VcenterDetails service={service} />}
+        {service.vcenterServer && service.vcenterSummary && !service.vcenterVM && !service.vcenterHost && (
+          <VcenterDetails service={service} />
+        )}
 
         {service.widgets.map((widget) => (
           <Widget widget={widget} service={service} key={widget.index} />

@@ -102,3 +102,29 @@ it("honors an explicit per-service collapsed default but allows expansion with g
   expect(panel).not.toHaveAttribute("hidden");
   expect(screen.getByText("Allocated CPUs")).toBeInTheDocument();
 });
+
+it("shows host health separately from connection and maintenance, with visible metrics", () => {
+  useSWR.mockReturnValue({
+    data: {
+      connectionState: "connected",
+      health: "yellow",
+      maintenance: true,
+      cpuPercent: 25,
+      usedMemoryMiB: 16384,
+      totalMemoryMiB: 65536,
+      runningVMs: 3,
+      totalVMs: 5,
+      checkedAt: "2026-09-24T18:00:00Z",
+    },
+  });
+  renderWithProviders(<Item service={{ name: "ESXi", vcenterServer: "lab", vcenterHost: "host-1", widgets: [] }} />);
+  expect(screen.getByText("Connected")).toBeInTheDocument();
+  expect(screen.getByText("Warning")).toBeInTheDocument();
+  expect(screen.getByText("Active")).toBeInTheDocument();
+  expect(screen.getByText("25%")).toBeInTheDocument();
+  expect(screen.getByText("16 / 64 GiB")).toBeInTheDocument();
+  expect(screen.getByText("3 / 5")).toBeInTheDocument();
+  expect(useSWR.mock.calls.at(-1)[0]).toBe("/api/vcenter/stats?instance=lab&host=host-1");
+  fireEvent.click(screen.getByRole("button", { name: /Hide metrics/ }));
+  expect(screen.queryByText("25%")).not.toBeInTheDocument();
+});

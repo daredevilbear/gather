@@ -1,9 +1,11 @@
 import handler from "pages/api/vcenter/stats";
 import { servicesFromConfig } from "utils/config/service-helpers";
 import { cachedVcenterInventory, vcenterConnections } from "utils/gather/vcenter";
+import { cachedVcenterHostStats } from "utils/gather/vcenter-hosts";
 import { cachedVcenterPerformance } from "utils/gather/vcenter-performance";
 import { beforeEach, expect, it, vi } from "vitest";
 vi.mock("utils/gather/vcenter-performance", () => ({ cachedVcenterPerformance: vi.fn() }));
+vi.mock("utils/gather/vcenter-hosts", () => ({ cachedVcenterHostStats: vi.fn() }));
 vi.mock("utils/config/service-helpers", () => ({ servicesFromConfig: vi.fn() }));
 vi.mock("utils/gather/vcenter", () => ({ cachedVcenterInventory: vi.fn(), vcenterConnections: vi.fn() }));
 const response = () => {
@@ -86,4 +88,22 @@ it("requests metrics only for published running VMs and skips performance for st
     powerState: "POWERED_OFF",
     performance: { status: "not-running" },
   });
+});
+
+it("returns only published hosts and rejects mixed selectors before reading host data", async () => {
+  servicesFromConfig.mockResolvedValue([{ services: [{ vcenterServer: "lab", vcenterHost: "host-1" }] }]);
+  cachedVcenterHostStats.mockResolvedValue({ "host-1": { id: "host-1", health: "green" } });
+  const res = response();
+  await handler({ method: "GET", query: { instance: "lab", host: "host-1" } }, res);
+  expect(res.json).toHaveBeenCalledWith({ id: "host-1", health: "green" });
+  expect(cachedVcenterHostStats).toHaveBeenCalledWith(expect.anything(), ["host-1"]);
+  cachedVcenterHostStats.mockClear();
+  for (const query of [
+    { instance: "lab", host: "host-2" },
+    { instance: "lab", host: "host-1", vm: "vm-1" },
+    { instance: "lab", host: ["host-1"] },
+  ]) {
+    await handler({ method: "GET", query }, response());
+  }
+  expect(cachedVcenterHostStats).not.toHaveBeenCalled();
 });

@@ -38,3 +38,20 @@ it("requires saved connections and reports stale revisions without overwriting",
   await screen.findByRole("alert");
   expect((await store(null, "services.yaml")).revision).toBe("preview-0");
 });
+
+it("selects hosts independently of VMs and saves host cards through review", async () => {
+  const request = createPreviewStore();
+  render(<Vcenter preview request={request} />);
+  fireEvent.click(screen.getByRole("button", { name: "Check & load inventory" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Hosts (1)" }));
+  fireEvent.click(screen.getByLabelText(/Example ESXi host/));
+  fireEvent.click(screen.getByLabelText("Add vCenter summary card"));
+  fireEvent.click(screen.getByRole("button", { name: "Virtual machines (1)" }));
+  expect(screen.getByLabelText(/Example VM/)).not.toBeChecked();
+  expect(screen.getByText("0 VMs and 1 hosts selected")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Review dashboard cards" }));
+  fireEvent.click(await screen.findByRole("button", { name: "Add to dashboard" }));
+  await screen.findByText(/1 cards added/);
+  const entries = yaml.load((await request(null, "services.yaml")).text)[0]["Your everyday"];
+  expect(entries.at(-1)["Example ESXi host"].vcenterHost).toBe("host-1");
+});

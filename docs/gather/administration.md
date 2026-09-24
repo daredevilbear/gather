@@ -126,6 +126,24 @@ A development-only visual preview is available at `/preview/vcenter`. It uses
 sample readings and never connects to vCenter. Live compatibility must still be
 verified on staging using its service account and server certificate.
 
+ESXi hosts use the same connection. After loading inventory, choose **Hosts**, select
+hosts, choose a destination tab/group and review the additions. Each host card shows:
+
+- Connection state separately from maintenance mode and vCenter-reported overall health.
+- CPU utilization from host quick statistics divided by total physical CPU capacity.
+- Used and total host memory, plus running/total VMs visible to the service account.
+- A **Checked** timestamp for the retrieval, not a performance sample timestamp.
+
+Host cards poll every 30 seconds and share a 20-second server cache. Host properties
+and VM power states are retrieved in batches through `/sdk`, including paginated
+responses. Disconnected hosts never present cached utilization as current or show
+a healthy status; missing metrics and incomplete VM counts display unknown values.
+No maintenance, power or configuration changes are made to ESXi. These are hosts
+managed by vCenter; standalone ESXi connections are not included.
+The source binding is `vcenterServer: lab` plus `vcenterHost: host-123` on a service.
+See the [HostSystem reference](https://developer.broadcom.com/xapis/vsphere-web-services-api/latest/vim.HostSystem.html)
+and [host quick statistics](https://developer.broadcom.com/xapis/vsphere-web-services-api/latest/vim.host.Summary.QuickStats.html).
+
 A protected server administrator configures the connection, saves it, then selects
 **Check & load inventory**. Select VMs and/or the summary, choose an existing tab /
 service group, review and **Add to dashboard**. This merges into `services.yaml`,

@@ -1,5 +1,5 @@
 import { expect, it, vi } from "vitest";
-import { vcenterInventory } from "./vcenter";
+import { vcenterHosts, vcenterInventory } from "./vcenter";
 vi.mock("utils/config/config", () => ({ CONF_DIR: "/tmp", substituteEnvironmentVars: (s) => s }));
 const connection = { url: "https://vcenter.test", username: "reader", password: "secret" };
 it("authenticates on the server, reads sanitized inventory and closes its session", async () => {
@@ -60,4 +60,20 @@ it("coalesces concurrent card polls without retaining a failed inventory", async
   } finally {
     vi.unstubAllGlobals();
   }
+});
+
+it("loads sanitized ESXi host inventory through the same read-only connection", async () => {
+  const request = vi
+    .fn()
+    .mockResolvedValueOnce({ ok: true, json: async () => "session" })
+    .mockResolvedValueOnce({
+      ok: true,
+      json: async () => [{ host: "host-1", name: "ESXi", connection_state: "CONNECTED", secret: "hidden" }],
+    })
+    .mockResolvedValueOnce({ ok: true });
+  expect(await vcenterHosts(connection, request)).toEqual([
+    { id: "host-1", name: "ESXi", connectionState: "CONNECTED" },
+  ]);
+  expect(request.mock.calls[1][0].pathname).toBe("/api/vcenter/host");
+  expect(request.mock.calls.at(-1)[1].method).toBe("DELETE");
 });

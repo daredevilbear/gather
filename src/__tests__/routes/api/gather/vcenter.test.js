@@ -1,11 +1,15 @@
 import handler from "pages/api/gather/vcenter";
 import { systemAdministrator, validEditorOrigin } from "utils/gather/admin";
-import { vcenterConnections, vcenterInventory } from "utils/gather/vcenter";
+import { vcenterConnections, vcenterHosts, vcenterInventory } from "utils/gather/vcenter";
 import { cachedVcenterPerformance } from "utils/gather/vcenter-performance";
 import { beforeEach, expect, it, vi } from "vitest";
 vi.mock("utils/gather/vcenter-performance", () => ({ cachedVcenterPerformance: vi.fn() }));
 vi.mock("utils/gather/admin", () => ({ systemAdministrator: vi.fn(), validEditorOrigin: vi.fn() }));
-vi.mock("utils/gather/vcenter", () => ({ vcenterConnections: vi.fn(), vcenterInventory: vi.fn() }));
+vi.mock("utils/gather/vcenter", () => ({
+  vcenterConnections: vi.fn(),
+  vcenterHosts: vi.fn(),
+  vcenterInventory: vi.fn(),
+}));
 const response = () => {
   const r = { setHeader: vi.fn(), status: vi.fn(), json: vi.fn(), end: vi.fn() };
   r.status.mockReturnValue(r);
@@ -13,6 +17,7 @@ const response = () => {
 };
 beforeEach(() => {
   vi.clearAllMocks();
+  vcenterHosts.mockResolvedValue([]);
   systemAdministrator.mockResolvedValue(true);
   validEditorOrigin.mockReturnValue(true);
   vcenterConnections.mockResolvedValue({ lab: { url: "https://vc.test", password: "secret" } });
@@ -49,6 +54,8 @@ it("checks performance compatibility without failing the successful inventory", 
   const res = response();
   await handler({ method: "POST", body: { instance: "lab" } }, res);
   expect(res.json).toHaveBeenCalledWith({
+    hosts: [],
+    hostError: "",
     machines: [{ id: "vm-1", name: "Example", powerState: "POWERED_ON" }],
     url: "https://vc.test/ui",
     performanceCheck: { vmName: "Example", status: "permission-denied" },
