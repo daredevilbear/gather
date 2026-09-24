@@ -241,7 +241,7 @@ it("opens the native user, variables and migration screens from navigation", asy
   render(<SettingsEditor request={createPreviewStore()} preview />);
   await screen.findByLabelText("Dashboard title");
   fireEvent.click(screen.getByRole("button", { name: "Users & access", exact: true }));
-  expect(await screen.findByText("Protected server administrator.")).toBeInTheDocument();
+  expect(await screen.findByText("Recovery administrator — protected by server setup.")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Secrets & variables", exact: true }));
   expect(await screen.findByLabelText("Secret value")).toHaveAttribute("type", "password");
   fireEvent.click(screen.getByRole("button", { name: "Import from Homepage", exact: true }));

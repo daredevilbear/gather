@@ -1,5 +1,8 @@
 // @vitest-environment jsdom
-vi.mock("next-auth/react", () => ({ useSession: () => ({ status: "unauthenticated" }), signOut: vi.fn() }));
+vi.mock("next-auth/react", () => ({
+  useSession: () => ({ status: state.session ? "authenticated" : "unauthenticated", data: state.session }),
+  signOut: vi.fn(),
+}));
 
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -23,6 +26,8 @@ const {
   useWindowFocus,
 } = vi.hoisted(() => {
   const state = {
+    session: null,
+    personal: null,
     throwIn: null,
     validateData: [],
     hashData: null,
@@ -62,6 +67,7 @@ const {
   const logger = { error: vi.fn() };
 
   const useSWR = vi.fn((key, config) => {
+    if (Array.isArray(key) && key[0] === "my-dashboard") return { data: state.personal };
     if (key === "/api/validate") return { data: state.validateData };
     if (key === "/api/hash") {
       state.hashConfig = config;
@@ -595,4 +601,49 @@ describe("pages/index Home behavior", () => {
     const rightAligned = state.widgetCalls.filter((c) => c.style?.isRightAligned).map((c) => c.widget.type);
     expect(rightAligned).toEqual(["search"]);
   });
+});
+
+beforeEach(() => {
+  state.session = null;
+  state.personal = null;
+  router.query = {};
+});
+it("applies the signed-in account layout on home while retaining the shared view", async () => {
+  state.session = { user: { gatherIdentity: "alice" } };
+  state.personal = {
+    dashboard: {
+      layout: {
+        tabs: ["Mine"],
+        groups: [{ name: "Visible", kind: "services", tab: "Mine", columns: 2, hidden: false, items: ["A"] }],
+        widgets: [],
+      },
+    },
+  };
+  state.servicesData = [
+    { name: "Visible", groups: [], services: [{ name: "A", href: "https://a.test" }] },
+    { name: "Hidden", groups: [], services: [] },
+  ];
+  state.bookmarksData = [];
+  state.widgetsData = [];
+  const rendered = await renderIndex({ activeTab: "mine" });
+  expect(screen.getByTestId("services-group")).toHaveTextContent("Visible");
+  expect(screen.queryByText("Hidden")).not.toBeInTheDocument();
+  expect(screen.getByTestId("tab")).toHaveTextContent("Mine");
+  rendered.unmount();
+  router.query = { shared: "1" };
+  await renderIndex({ activeTab: "" });
+  expect(screen.getAllByTestId("services-group")).toHaveLength(2);
+});
+it("honors personal widget order across the inherited alignment categories", async () => {
+  state.session = { user: { gatherIdentity: "alice" } };
+  state.personal = { dashboard: { layout: { tabs: ["Home"], groups: [], widgets: ["datetime:1", "resources:0"] } } };
+  state.servicesData = [];
+  state.bookmarksData = [];
+  state.widgetCalls = [];
+  state.widgetsData = [
+    { type: "resources", options: { index: 0 } },
+    { type: "datetime", options: { index: 1 } },
+  ];
+  await renderIndex({ activeTab: "home" });
+  expect(screen.getAllByTestId("widget").map((node) => node.textContent)).toEqual(["datetime", "resources"]);
 });

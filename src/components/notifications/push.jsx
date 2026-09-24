@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
+import styles from "./inbox.module.css";
+
 export default function PushControls({ api, prefix }) {
   const [ready, setReady] = useState(null);
   const [enabled, setEnabled] = useState(false);
@@ -152,7 +154,7 @@ export default function PushControls({ api, prefix }) {
   }
   return (
     <section aria-label="Push notifications">
-      <div>
+      <div className={styles.actions}>
         {needsReset && (
           <button type="button" disabled={busy || !ready} onClick={resetBrowserPush}>
             Reset browser push

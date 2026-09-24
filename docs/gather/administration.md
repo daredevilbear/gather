@@ -63,9 +63,13 @@ Users whose identity has no prepared role retain shared-dashboard access as view
 - Disabled users are blocked at the application boundary; their notification session and session-based MCP access are also rejected.
 - These roles govern Gather. Access inside linked services remains controlled by those services and the operator's configured shared integrations.
 
-My dashboard is a separate, account-owned collection of links with tab grouping and revision-checked saves.
-This first version does not clone shared integration widgets or create separate Docker/Kubernetes credentials per user.
-The shared dashboard remains available; personal records do not change its layout or another user's links.
+My dashboard now configures the signed-in home page. Editors and administrators can rename/reorder tabs, move groups between tabs, choose columns, hide/reorder services and bookmarks, and select/reorder home widgets. Saves are account-owned and revision checked. Sign in on another device to use the same layout. `/?shared=1` displays the shared layout, and “Use shared layout” removes the personal override.
+
+Personal layouts reference centrally configured services and widgets; connection credentials are never copied into a personal record. Hiding items is a presentation preference, not a service-access restriction. Newly configured groups can be added from My dashboard. Existing private links remain stored and accessible at the bottom of My dashboard.
+
+User search matches names and emails of registered Gather accounts, with whitespace/case normalization, role/status filters, matching counts, empty-result help and refresh. It is separate from Add user and does not query an external identity-provider directory.
+
+The role matrix distinguishes Viewer, Editor, Administrator and the protected server administrator. The latter is the recovery account matched by the provider’s stable subject ID in `GATHER_ADMIN_IDS`. This ID may be a GUID, but regular user management uses names and verified email; no GUID is required to add or assign an ordinary user. Keeping the recovery identity stable prevents email changes from unexpectedly transferring that privilege.
 Personal dashboard data and named activity history live in `config/.gather-users.sqlite`; back this up alongside configuration and preference databases.
 
 Notification identities use the stable sign-in subject. Legacy email-based notification state is migrated only for verified email claims.
@@ -75,3 +79,31 @@ An unverified legacy sign-in may need to reset browser push and enable it again.
 
 Layout edits each group’s visible name using `layout.<configuration key>.displayName`.
 Services, Bookmarks and the dashboard render that label. The configuration key stays stable, preserving service API references and discovery labels. Advanced source edits can still change the underlying key, but must coordinate every reference. Removing a layout also removes its display-name override.
+
+## vCenter
+
+Connections includes Docker, Kubernetes, Proxmox and vCenter with distinct icons.
+vCenter is a Gather extension using `vcenter.yaml`; it does not add VM lifecycle
+controls or automatically publish discovered VMs as service cards. A protected
+server administrator can save/import the connection file and read VM inventory.
+
+```yaml
+lab:
+  url: https://vcenter.example.com
+  username: "{{HOMEPAGE_VAR_VCENTER_USER}}"
+  password: "{{HOMEPAGE_VAR_VCENTER_PASSWORD}}"
+```
+
+Create these managed secrets first. Use an account with read-only inventory access.
+The origin must use HTTPS without an embedded username, password, path or query.
+TLS verification stays enabled; install the internal CA in the runtime trust store
+(for example with Node’s `NODE_EXTRA_CA_CERTS` and a mounted CA certificate).
+The server authenticates, reads VM name/power state/CPU/memory and closes its API
+session. The inventory endpoint does not return credentials or session tokens. Use placeholders rather than embedding credentials in the source configuration. Requests
+time out after ten seconds and do not follow redirects.
+
+The implementation targets the modern `/api/session` and `/api/vcenter/vm` routes.
+See Broadcom’s [vSphere authentication documentation](https://developer.broadcom.com/xapis/vsphere-automation-api/latest/)
+and [VM list API](https://developer.broadcom.com/xapis/vsphere-automation-api/latest/api/vcenter/vm/get/).
+Local tests use mocked responses; verify your actual vCenter version, permissions
+and CA trust before relying on the connection in staging.

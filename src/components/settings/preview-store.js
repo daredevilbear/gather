@@ -5,6 +5,7 @@ export function createPreviewStore() {
   const fixtures = {
     "docker.yaml": {},
     "kubernetes.yaml": { mode: "disabled" },
+    "vcenter.yaml": {},
     "proxmox.yaml": {},
     "settings.yaml": {
       title: "Gather",

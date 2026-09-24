@@ -18,6 +18,7 @@ import {
 import SystemSettings from "./system";
 import Users from "./users";
 import Variables from "./variables";
+import Vcenter from "./vcenter";
 
 import GatherIcon from "components/gather/icon";
 import GatherMark from "components/gather/mark";
@@ -110,10 +111,17 @@ const SECTIONS = [
   ...CONNECTION_FILES.map((file) => ({
     id: file.split(".")[0],
     file,
-    label: { "docker.yaml": "Docker", "kubernetes.yaml": "Kubernetes", "proxmox.yaml": "Proxmox" }[file],
+    label: {
+      "docker.yaml": "Docker",
+      "kubernetes.yaml": "Kubernetes",
+      "proxmox.yaml": "Proxmox",
+      "vcenter.yaml": "vCenter",
+    }[file],
     description:
-      "Manage the existing Homepage connection configuration. Referenced credentials and mounted files must be available on the server. Source changes are versioned and backed up.",
-    icon: "connections",
+      file === "vcenter.yaml"
+        ? "Connect vCenter and inspect its virtual machine inventory with a read-only service account."
+        : "Manage the existing Homepage connection configuration. Referenced credentials and mounted files must be available on the server. Source changes are versioned and backed up.",
+    icon: file.split(".")[0],
     group: "CONNECTIONS",
     protected: true,
   })),
@@ -1375,10 +1383,13 @@ export default function SettingsEditor({ request = api, preview = false }) {
                       {rawOnly || mode === "source" ? (
                         <>
                           <p>
-                            {rawOnly
-                              ? "Custom code changes dashboard behavior for visitors. JavaScript runs with their signed-in access; only save code you trust."
-                              : "Environment placeholders are preserved. Resolved environment secrets are never loaded into this editor."}
+                            {CONNECTION_FILES.includes(file)
+                              ? "Connection settings stay on the server. Use secrets or environment placeholders for credentials; save to update the configured connection."
+                              : rawOnly
+                                ? "Custom code changes dashboard behavior for visitors. JavaScript runs with their signed-in access; only save code you trust."
+                                : "Environment placeholders are preserved. Resolved environment secrets are never loaded into this editor."}
                           </p>
+                          {file === "vcenter.yaml" && <Vcenter preview={preview} />}
                           <label>
                             {file}
                             <textarea

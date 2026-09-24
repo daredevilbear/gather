@@ -50,3 +50,5 @@ and simulated system actions, with no live authentication changes.
 The development-only `/preview/account` route previews My preferences with in-memory
 account data. Selecting above/below tabs exercises saving locally; it does not
 write account preferences on staging. Refresh resets the sample.
+
+`/preview/dashboard` now previews account-specific layout editing with sample tabs, services, bookmarks and widgets. Saving changes affects only that tab. `/preview/notifications` is a sample inbox for checking button spacing and wrapping; it does not send notifications or change device settings.

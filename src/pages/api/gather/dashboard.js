@@ -1,6 +1,7 @@
 import { getToken } from "next-auth/jwt";
 
 import { validEditorOrigin } from "utils/gather/admin";
+import { validPersonalLayout } from "utils/gather/personal-layout";
 import { userAccess, usersStore } from "utils/gather/users-store";
 
 export const config = { api: { bodyParser: { sizeLimit: "128kb" } } };
@@ -10,7 +11,8 @@ export function validDashboard(value) {
     typeof value.title === "string" &&
     value.title.trim() &&
     value.title.length <= 120 &&
-    Object.keys(value).every((key) => ["title", "links"].includes(key)) &&
+    Object.keys(value).every((key) => ["title", "links", "layout"].includes(key)) &&
+    (value.layout === undefined || value.layout === null || validPersonalLayout(value.layout)) &&
     Array.isArray(value.links) &&
     value.links.length <= 100 &&
     value.links.every((link) => {
@@ -61,7 +63,7 @@ export default async function handler(req, res) {
         req.body.revision < 0 ||
         Object.keys(req.body).some((key) => !["dashboard", "revision"].includes(key))
       )
-        return res.status(400).json({ error: "Check the dashboard title and links." });
+        return res.status(400).json({ error: "Check the dashboard title, links and layout." });
     }
     store = usersStore();
     const actor = store.identify(token);

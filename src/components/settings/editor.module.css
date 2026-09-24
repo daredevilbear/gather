@@ -1135,3 +1135,53 @@
     grid-template-columns: 1fr;
   }
 }
+
+.personalRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-block: 12px;
+}
+.personalRow label {
+  flex: 1;
+  margin: 0;
+}
+.personalRow input[type="checkbox"] {
+  width: auto;
+  margin-right: 10px;
+}
+
+.tableScroll {
+  overflow-x: auto;
+}
+.permissionTable {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+.permissionTable th,
+.permissionTable td {
+  padding: 12px;
+  border-bottom: 1px solid #8899aa40;
+  text-align: left;
+}
+.permissionTable caption {
+  text-align: left;
+  padding-block: 14px;
+}
+
+.personalSave {
+  position: sticky;
+  bottom: 12px;
+  padding: 16px;
+  border: 1px solid #8899aa40;
+  border-radius: 14px;
+  background: #172430;
+  z-index: 5;
+}
+
+.card pre {
+  max-width: 100%;
+  overflow-x: auto;
+}

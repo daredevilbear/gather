@@ -67,8 +67,13 @@
   margin-top: 12px;
   padding-top: 12px;
 }
-.panel section button + button {
-  margin-left: 8px;
+.panel .actions {
+  gap: 10px;
+  margin-block: 10px;
+}
+.panel .actions > :is(button, a, select) {
+  margin: 0;
+  padding: 10px 14px;
 }
 .list {
   max-height: min(55vh, 520px);

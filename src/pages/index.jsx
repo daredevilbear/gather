@@ -1,4 +1,5 @@
 import classNames from "classnames";
+import { useSession } from "next-auth/react";
 import { useTranslation } from "next-i18next/pages";
 import { serverSideTranslations } from "next-i18next/pages/serverSideTranslations";
 import dynamic from "next/dynamic";
@@ -14,7 +15,6 @@ import ErrorBoundary from "components/errorboundry";
 import GatherHeader from "components/gather/header";
 import QuickLaunch from "components/quicklaunch";
 import ServicesGroup from "components/services/group";
-import { dashboardTabs } from "utils/gather/tabs";
 import { initialTabFromPath, slugifyAndEncode } from "components/tab";
 import Revalidate from "components/toggles/revalidate";
 import Widget from "components/widgets/widget";
@@ -24,6 +24,8 @@ import { ColorContext } from "utils/contexts/color";
 import { SettingsContext } from "utils/contexts/settings";
 import { TabContext } from "utils/contexts/tab";
 import { ThemeContext } from "utils/contexts/theme";
+import { applyPersonalLayout } from "utils/gather/personal-layout";
+import { dashboardTabs } from "utils/gather/tabs";
 import useWindowFocus from "utils/hooks/window-focus";
 import createLogger from "utils/logger";
 import themes from "utils/styles/themes";
@@ -219,17 +221,39 @@ function Home({ initialSettings }) {
   const { i18n } = useTranslation();
   const { theme, setTheme } = useContext(ThemeContext);
   const { color, setColor } = useContext(ColorContext);
-  const { settings, setSettings } = useContext(SettingsContext);
+  const { settings: sharedSettings, setSettings } = useContext(SettingsContext);
   const { activeTab, setActiveTab } = useContext(TabContext);
-  const { asPath } = useRouter();
+  const { asPath, query = {} } = useRouter();
+  const { data: session, status: sessionStatus } = useSession();
+  const identity = session?.user?.gatherIdentity || session?.user?.email;
+  const { data: personal, error: personalError } = useSWR(
+    sessionStatus === "authenticated" && identity && query.shared !== "1" ? ["my-dashboard", identity] : null,
+    async () => {
+      const response = await fetch("/api/gather/dashboard", { cache: "no-store", credentials: "same-origin" });
+      if (!response.ok) throw Error("Could not load your personal layout.");
+      return response.json();
+    },
+  );
 
   useEffect(() => {
     setSettings(initialSettings);
   }, [initialSettings, setSettings]);
 
-  const { data: services } = useSWR("/api/services");
-  const { data: bookmarks } = useSWR("/api/bookmarks");
-  const { data: widgets } = useSWR("/api/widgets");
+  const { data: sharedServices = [] } = useSWR("/api/services");
+  const { data: sharedBookmarks = [] } = useSWR("/api/bookmarks");
+  const { data: sharedWidgets = [] } = useSWR("/api/widgets");
+  const personalLayoutActive = query.shared !== "1" && Boolean(personal?.dashboard?.layout);
+  const { settings, services, bookmarks, widgets } = useMemo(
+    () =>
+      applyPersonalLayout(
+        sharedSettings,
+        sharedServices,
+        sharedBookmarks,
+        sharedWidgets,
+        query.shared === "1" ? null : personal?.dashboard?.layout,
+      ),
+    [sharedSettings, sharedServices, sharedBookmarks, sharedWidgets, personal, query.shared],
+  );
 
   const servicesAndBookmarks = [...bookmarks.map((bg) => bg.bookmarks).flat(), ...getAllServices(services)].filter(
     (i) => i?.href,
@@ -289,9 +313,8 @@ function Home({ initialSettings }) {
 
   const tabs = useMemo(() => dashboardTabs(settings), [settings]);
 
-
   useEffect(() => {
-    if (!activeTab) {
+    if (!activeTab || !tabs.some((tab) => slugifyAndEncode(tab) === activeTab)) {
       setActiveTab(initialTabFromPath(asPath, tabs));
     }
   });
@@ -430,52 +453,64 @@ function Home({ initialSettings }) {
           "relative m-auto flex flex-col justify-start z-10 h-full min-h-screen",
         )}
       >
-        <GatherHeader settings={settings} tabs={tabs} onSearch={() => setSearching(true)} informationWidgets={showWelcome && (
-          <div
-            id="information-widgets"
-            className={classNames(
-              "flex flex-row flex-wrap justify-between z-20",
-              headerStyles[headerStyle],
-              settings.cardBlur !== undefined &&
-                headerStyle === "boxed" &&
-                `backdrop-blur${settings.cardBlur.length ? "-" : ""}${settings.cardBlur}`,
-            )}
-          >
-            <div id="widgets-wrap" className={classNames("flex flex-row w-full flex-wrap justify-between gap-x-2")}>
-              {widgets && (
-                <>
-                  {widgets
-                    .filter((widget) => !rightAlignedWidgets.includes(widget.type))
-                    .map((widget, i) => (
-                      <Widget
-                        key={i}
-                        widget={widget}
-                        style={{ header: headerStyle, isRightAligned: false, cardBlur: settings.cardBlur }}
-                      />
-                    ))}
+        <GatherHeader
+          settings={settings}
+          tabs={tabs}
+          onSearch={() => setSearching(true)}
+          informationWidgets={
+            showWelcome && (
+              <div
+                id="information-widgets"
+                className={classNames(
+                  "flex flex-row flex-wrap justify-between z-20",
+                  headerStyles[headerStyle],
+                  settings.cardBlur !== undefined &&
+                    headerStyle === "boxed" &&
+                    `backdrop-blur${settings.cardBlur.length ? "-" : ""}${settings.cardBlur}`,
+                )}
+              >
+                <div id="widgets-wrap" className={classNames("flex flex-row w-full flex-wrap justify-between gap-x-2")}>
+                  {widgets && (
+                    <>
+                      {widgets
+                        .filter((widget) => personalLayoutActive || !rightAlignedWidgets.includes(widget.type))
+                        .map((widget, i) => (
+                          <Widget
+                            key={i}
+                            widget={widget}
+                            style={{ header: headerStyle, isRightAligned: false, cardBlur: settings.cardBlur }}
+                          />
+                        ))}
 
-                  <div
-                    id="information-widgets-right"
-                    className={classNames(
-                      "m-auto flex flex-wrap grow sm:basis-auto justify-between md:justify-end",
-                      "m-auto flex flex-wrap grow sm:basis-auto justify-between md:justify-end gap-x-2",
-                    )}
-                  >
-                    {widgets
-                      .filter((widget) => rightAlignedWidgets.includes(widget.type))
-                      .map((widget, i) => (
-                        <Widget
-                          key={i}
-                          widget={widget}
-                          style={{ header: headerStyle, isRightAligned: true, cardBlur: settings.cardBlur }}
-                        />
-                      ))}
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        )} />
+                      <div
+                        id="information-widgets-right"
+                        className={classNames(
+                          "m-auto flex flex-wrap grow sm:basis-auto justify-between md:justify-end",
+                          "m-auto flex flex-wrap grow sm:basis-auto justify-between md:justify-end gap-x-2",
+                        )}
+                      >
+                        {widgets
+                          .filter((widget) => !personalLayoutActive && rightAlignedWidgets.includes(widget.type))
+                          .map((widget, i) => (
+                            <Widget
+                              key={i}
+                              widget={widget}
+                              style={{ header: headerStyle, isRightAligned: true, cardBlur: settings.cardBlur }}
+                            />
+                          ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )
+          }
+        />
+        {personalError && (
+          <p role="alert" className="m-4 p-4">
+            Your personal layout could not be loaded. Showing the shared layout; reload to try again.
+          </p>
+        )}
         <QuickLaunch
           servicesAndBookmarks={servicesAndBookmarks}
           searchString={searchString}
@@ -483,7 +518,6 @@ function Home({ initialSettings }) {
           isOpen={searching}
           setSearching={setSearching}
         />
-
 
         {servicesAndBookmarksGroups}
 

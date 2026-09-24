@@ -1,4 +1,29 @@
 const paths = {
+  docker: (
+    <>
+      <path d="M2 12h16c2 0 3-1 4-3M3 12c0 6 4 9 9 7 4-1 6-4 6-7" />
+      <path d="M4 8h4v4H4zm5 0h4v4H9zm5 0h4v4h-4zM9 3h4v4H9z" />
+    </>
+  ),
+  kubernetes: (
+    <>
+      <path d="m12 2 8 5 2 9-6 6H8l-6-6 2-9Z" />
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 4v4m0 8v4M5 8l4 2m6 4 4 2M5 16l4-2m6-4 4-2" />
+    </>
+  ),
+  proxmox: (
+    <>
+      <rect x="2" y="3" width="20" height="18" rx="3" />
+      <path d="m6 7 12 10M18 7 6 17" />
+    </>
+  ),
+  vcenter: (
+    <>
+      <rect x="2" y="3" width="13" height="13" rx="2" />
+      <rect x="9" y="9" width="13" height="13" rx="2" />
+    </>
+  ),
   connections: (
     <>
       <rect x="3" y="3" width="18" height="6" rx="2" />

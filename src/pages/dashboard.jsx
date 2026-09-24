@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import useSWR from "swr";
 
+import PersonalLayout from "components/account/personal-layout";
 import styles from "components/settings/editor.module.css";
 
 async function dashboardRequest(body) {
@@ -25,7 +26,7 @@ async function dashboardRequest(body) {
 export default function PersonalDashboard() {
   const { data: session, status } = useSession();
   const identity = session?.user?.gatherIdentity || session?.user?.email;
-  return <PersonalDashboardContent key={identity || "signed-out"} identity={identity} status={status} />;
+  return <PersonalLayout key={identity || "signed-out"} identity={identity} status={status} />;
 }
 export function PersonalDashboardContent({ identity, status, request = dashboardRequest }) {
   const { data, error, mutate } = useSWR(

@@ -49,3 +49,9 @@ it("rejects script URLs and credentials in personal links", () => {
     expect(validDashboard({ title: "Test", links: [{ ...link, url }] })).toBe(false);
   }
 });
+it("accepts presentation-only layouts and rejects credentials or owner fields", () => {
+  const dashboard = { title: "Mine", links: [], layout: { tabs: ["Home"], groups: [], widgets: [] } };
+  expect(validDashboard(dashboard)).toBe(true);
+  expect(validDashboard({ ...dashboard, owner: "bob" })).toBe(false);
+  expect(validDashboard({ ...dashboard, layout: { ...dashboard.layout, credentials: {} } })).toBe(false);
+});
