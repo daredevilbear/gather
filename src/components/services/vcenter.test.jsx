@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { fireEvent, screen } from "@testing-library/react";
+import { act, fireEvent, screen } from "@testing-library/react";
 import useSWR from "swr";
 import { renderWithProviders } from "test-utils/render-with-providers";
 import { expect, it, vi } from "vitest";
@@ -83,7 +83,7 @@ it.each(["permission-denied", "no-samples", "stale", "not-running"])(
     );
     expect(screen.getByText("Running")).toBeInTheDocument();
     expect(screen.getByText("8 GiB")).toBeInTheDocument();
-    expect(screen.getAllByText("—")).toHaveLength(3);
+    expect(screen.getAllByText("—")).toHaveLength(4);
     expect(screen.queryByText("0%")).not.toBeInTheDocument();
   },
 );
@@ -127,4 +127,31 @@ it("shows host health separately from connection and maintenance, with visible m
   expect(useSWR.mock.calls.at(-1)[0]).toBe("/api/vcenter/stats?instance=lab&host=host-1");
   fireEvent.click(screen.getByRole("button", { name: /Hide metrics/ }));
   expect(screen.queryByText("25%")).not.toBeInTheDocument();
+});
+
+it("updates the relative sample age as time passes without repeating explanatory text", () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-09-24T18:00:03Z"));
+  useSWR.mockReturnValue({
+    data: {
+      powerState: "POWERED_ON",
+      cpus: 4,
+      memoryMiB: 8192,
+      performance: { status: "live", sampledAt: "2026-09-24T18:00:00Z" },
+    },
+  });
+  const { unmount } = renderWithProviders(
+    <Item service={{ name: "VM", vcenterServer: "lab", vcenterVM: "vm-1", widgets: [] }} />,
+  );
+  try {
+    act(() => vi.advanceTimersByTime(0));
+    expect(screen.getByText("Updated")).toBeInTheDocument();
+    expect(screen.getByText("3 seconds ago")).toBeInTheDocument();
+    expect(screen.queryByText(/Live utilization available|Active memory is estimated/)).not.toBeInTheDocument();
+    act(() => vi.advanceTimersByTime(60000));
+    expect(screen.getByText("1 minute ago")).toBeInTheDocument();
+  } finally {
+    unmount();
+    vi.useRealTimers();
+  }
 });

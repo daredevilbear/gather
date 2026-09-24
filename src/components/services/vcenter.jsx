@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import useSWR from "swr";
 
 import { performanceMessage } from "utils/gather/vcenter-performance-status";
@@ -47,6 +48,34 @@ export function VcenterStatus({ service, style }) {
     </span>
   );
 }
+function UpdatedAge({ timestamp }) {
+  const [now, setNow] = useState(null);
+  const updated = timestamp ? Date.parse(timestamp) : NaN;
+  useEffect(() => {
+    if (!Number.isFinite(updated)) return undefined;
+    const initial = setTimeout(() => setNow(Date.now()), 0);
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => {
+      clearTimeout(initial);
+      clearInterval(timer);
+    };
+  }, [updated]);
+  if (!Number.isFinite(updated)) return "—";
+  const seconds = Math.max(0, Math.floor((now - updated) / 1000));
+  const [amount, unit] =
+    seconds < 60
+      ? [seconds, "second"]
+      : seconds < 3600
+        ? [Math.floor(seconds / 60), "minute"]
+        : seconds < 86400
+          ? [Math.floor(seconds / 3600), "hour"]
+          : [Math.floor(seconds / 86400), "day"];
+  return (
+    <time dateTime={new Date(updated).toISOString()} title={new Date(updated).toISOString()}>
+      {now === null ? "—" : `${amount} ${unit}${amount === 1 ? "" : "s"} ago`}
+    </time>
+  );
+}
 export function VcenterDetails({ service }) {
   const { data, error } = useVcenter(service);
   if (error)
@@ -66,12 +95,7 @@ export function VcenterDetails({ service }) {
     typeof value === "number" && Number.isFinite(value)
       ? `${value.toLocaleString(undefined, { maximumFractionDigits: 1 })}${suffix}`
       : "—";
-  const sampledAt =
-    performance.sampledAt && Number.isFinite(Date.parse(performance.sampledAt))
-      ? new Date(performance.sampledAt)
-      : null;
   const health = { green: "Healthy", yellow: "Warning", red: "Critical", gray: "Unknown" };
-  const checkedAt = data.checkedAt && Number.isFinite(Date.parse(data.checkedAt)) ? new Date(data.checkedAt) : null;
   const fields = service.vcenterHost
     ? [
         ["vCenter health", health[data.health] || "Unknown"],
@@ -104,6 +128,11 @@ export function VcenterDetails({ service }) {
           ["Suspended", data.suspended],
           ...(data.unknown ? [["Unknown", data.unknown]] : []),
         ];
+  if (service.vcenterHost || service.vcenterVM)
+    fields.push([
+      "Updated",
+      <UpdatedAge key="updated" timestamp={service.vcenterHost ? data.checkedAt : performance.sampledAt} />,
+    ]);
   return (
     <div>
       <dl
@@ -119,33 +148,15 @@ export function VcenterDetails({ service }) {
           </div>
         ))}
       </dl>
-      {service.vcenterHost && (
-        <div className="px-2 pb-2 text-xs text-theme-600 dark:text-theme-300">
-          {checkedAt && (
-            <p>
-              Checked <time dateTime={checkedAt.toISOString()}>{checkedAt.toISOString().slice(11, 19)} UTC</time>
-            </p>
-          )}
-          <p>
-            Health is reported by vCenter. Resource values use its latest host statistics; VM counts reflect the service
-            account’s visibility.
-          </p>
-          {data.connectionState !== "connected" && (
-            <p role="status">Host is not connected; live utilization is unavailable.</p>
-          )}
-        </div>
+      {service.vcenterHost && data.connectionState !== "connected" && (
+        <p role="status" className="px-2 pb-2 text-xs">
+          Host is not connected; live utilization is unavailable.
+        </p>
       )}
-      {service.vcenterVM && (
-        <div className="px-2 pb-2 text-xs text-theme-600 dark:text-theme-300">
-          <p role="status">{performanceMessage(performance.status)}</p>
-          {sampledAt && (
-            <p>
-              Sampled <time dateTime={sampledAt.toISOString()}>{sampledAt.toISOString().slice(11, 19)} UTC</time> ·{" "}
-              {performance.intervalSeconds}s interval
-            </p>
-          )}
-          <p>Active memory is estimated guest use; host consumed memory is physical memory used on the host.</p>
-        </div>
+      {service.vcenterVM && !["live", "stale", "not-running"].includes(performance.status) && (
+        <p role="status" className="px-2 pb-2 text-xs">
+          {performanceMessage(performance.status)}
+        </p>
       )}
     </div>
   );

@@ -8,6 +8,8 @@ import getDockerArguments from "utils/config/docker";
 import { getKubeConfig } from "utils/config/kubernetes";
 import * as shvl from "utils/config/shvl";
 import { loadYaml } from "utils/config/yaml";
+import { vcenterConnections } from "utils/gather/vcenter";
+import { resolveVcenterLinks } from "utils/gather/vcenter-links";
 import kubernetes from "utils/kubernetes/export";
 import createLogger from "utils/logger";
 import { parseVersionForUrl } from "utils/proxy/api-helpers";
@@ -57,7 +59,15 @@ export async function servicesFromConfig() {
   const rawFileContents = await fs.readFile(servicesYaml, "utf8");
   const fileContents = substituteEnvironmentVars(rawFileContents);
   const services = loadYaml(fileContents);
-  return parseServicesToGroups(services);
+  const groups = parseServicesToGroups(services);
+  if (flattenServices(groups).some((service) => service.vcenterServer && (service.vcenterVM || service.vcenterHost))) {
+    try {
+      resolveVcenterLinks(groups, await vcenterConnections());
+    } catch {
+      /* Preserve links if connection config is invalid. */
+    }
+  }
+  return groups;
 }
 
 function flattenServices(groups, services = []) {

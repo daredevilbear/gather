@@ -144,7 +144,12 @@ export async function withVcenterSoap(connection, operation, request = fetch) {
       `${ref("SessionManager", sessionManager)}<userName>${escape(connection.username)}</userName><password>${escape(connection.password)}</password>`,
     );
     if (!cookie) throw new PerformanceError("invalid-response");
-    return await operation({ call, manager, collector });
+    return await operation({
+      call,
+      manager,
+      collector,
+      instanceUuid: text(child(child(info, "about"), "instanceUuid")),
+    });
   } finally {
     if (cookie && sessionManager) {
       try {

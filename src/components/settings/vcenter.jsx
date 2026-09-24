@@ -4,13 +4,15 @@ import { useEffect, useRef, useState } from "react";
 import styles from "./editor.module.css";
 
 import { performanceMessage } from "utils/gather/vcenter-performance-status";
-import { addVcenterServices } from "utils/gather/vcenter-services";
+import { addVcenterServices, listVcenterServices, removeVcenterService } from "utils/gather/vcenter-services";
 export default function Vcenter({ preview, request, connectionsDirty = false }) {
   const [instances, setInstances] = useState(preview ? ["Example vCenter"] : []),
     [instance, setInstance] = useState(preview ? "Example vCenter" : ""),
     [machines, setMachines] = useState(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
+  const [cards, setCards] = useState([]);
+  const [removal, setRemoval] = useState(null);
   const [selected, setSelected] = useState([]);
   const [hosts, setHosts] = useState([]);
   const [selectedHosts, setSelectedHosts] = useState([]);
@@ -30,6 +32,52 @@ export default function Vcenter({ preview, request, connectionsDirty = false }) 
       reviewRef.current?.scrollIntoView?.({ block: "center", behavior: "instant" });
     }
   }, [review]);
+  useEffect(() => {
+    let active = true;
+    request(null, "services.yaml")
+      .then((doc) => {
+        if (active) setCards(listVcenterServices(yaml.load(doc.text, { schema: yaml.JSON_SCHEMA }), instance));
+      })
+      .catch((e) => {
+        if (active) setError(e.message);
+      });
+    return () => {
+      active = false;
+    };
+  }, [request, instance]);
+  async function reloadCards() {
+    setBusy(true);
+    setError("");
+    setRemoval(null);
+    try {
+      const doc = await request(null, "services.yaml");
+      setCards(listVcenterServices(yaml.load(doc.text, { schema: yaml.JSON_SCHEMA }), instance));
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function removeCard() {
+    setBusy(true);
+    setError("");
+    try {
+      const doc = await request(null, "services.yaml");
+      const services = removeVcenterService(yaml.load(doc.text, { schema: yaml.JSON_SCHEMA }), removal);
+      const text = yaml.dump(services, { noRefs: true, lineWidth: 120 });
+      await request({ action: "validate", file: "services.yaml", text, revision: doc.revision });
+      await request({ action: "save", file: "services.yaml", text, revision: doc.revision });
+      setCards(listVcenterServices(services, instance));
+      setStatus(`${removal.name} removed from the dashboard.`);
+      setRemoval(null);
+      setReview(null);
+    } catch (e) {
+      setError(e.message);
+      setRemoval(null);
+    } finally {
+      setBusy(false);
+    }
+  }
   async function reviewSelection() {
     setBusy(true);
     setError("");
@@ -71,6 +119,7 @@ export default function Vcenter({ preview, request, connectionsDirty = false }) 
       setStatus(
         `${review.added} cards added to ${group}. ${result.applied ? "Dashboard updated." : "Reload the dashboard to see them."}`,
       );
+      setCards(listVcenterServices(yaml.load(review.text, { schema: yaml.JSON_SCHEMA }), instance));
       setReview(null);
       setSelected([]);
       setSelectedHosts([]);
@@ -117,6 +166,7 @@ export default function Vcenter({ preview, request, connectionsDirty = false }) 
         request(null, "settings.yaml"),
       ]);
       const services = yaml.load(servicesDoc.text, { schema: yaml.JSON_SCHEMA });
+      setCards(listVcenterServices(services, instance));
       const settings = yaml.load(settingsDoc.text, { schema: yaml.JSON_SCHEMA }) || {};
       const available = (Array.isArray(services) ? services : []).flatMap((entry) =>
         Object.keys(entry)
@@ -176,6 +226,7 @@ export default function Vcenter({ preview, request, connectionsDirty = false }) 
             value={instance}
             onChange={(e) => {
               setInstance(e.target.value);
+              setRemoval(null);
               setMachines(null);
               setHosts([]);
               setSelectedHosts([]);
@@ -308,7 +359,7 @@ export default function Vcenter({ preview, request, connectionsDirty = false }) 
             {!review && (
               <button
                 type="button"
-                disabled={!group || (!summary && !selected.length && !selectedHosts.length)}
+                disabled={!!removal || !group || (!summary && !selected.length && !selectedHosts.length)}
                 onClick={reviewSelection}
               >
                 Review dashboard cards
@@ -332,6 +383,47 @@ export default function Vcenter({ preview, request, connectionsDirty = false }) 
           </fieldset>
         </>
       )}
+      <section aria-label="Existing dashboard cards">
+        <h4>On your dashboard</h4>
+        <button type="button" disabled={busy || !!review} onClick={reloadCards}>
+          Reload dashboard cards
+        </button>
+        {!cards.length && <p>No cards from this connection are on the dashboard.</p>}
+        {cards.map((card) => (
+          <div className={styles.personalRow} key={JSON.stringify(card.path)}>
+            <span>
+              <strong>{card.name}</strong> · {card.group}
+            </span>
+            <button
+              type="button"
+              disabled={busy || !!review || !!removal}
+              aria-label={`Remove ${card.name} from dashboard`}
+              onClick={() => {
+                setRemoval(card);
+                setStatus("");
+              }}
+            >
+              Remove
+            </button>
+          </div>
+        ))}
+        {removal && (
+          <div className={styles.notice} role="group" aria-label="Confirm card removal">
+            <p>
+              Remove {removal.name} from {removal.group}? This removes only its Gather card. A backup is saved for
+              restore.
+            </p>
+            <div className={styles.personalRow}>
+              <button type="button" disabled={busy} onClick={removeCard}>
+                Remove card
+              </button>
+              <button type="button" disabled={busy} onClick={() => setRemoval(null)}>
+                Cancel removal
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
     </section>
   );
 }

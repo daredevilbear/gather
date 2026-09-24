@@ -1,4 +1,30 @@
 // Merge selected inventory into an existing group without replacing user content.
+export function listVcenterServices(services, instance, path = [], group = "") {
+  if (!Array.isArray(services)) return [];
+  return services.flatMap((entry, index) =>
+    Object.entries(entry).flatMap(([name, value]) => {
+      const location = [...path, index, name];
+      if (Array.isArray(value))
+        return listVcenterServices(value, instance, location, group ? `${group} / ${name}` : name);
+      return value?.vcenterServer === instance && (value.vcenterVM || value.vcenterHost || value.vcenterSummary)
+        ? [{ name, group, path: location, value }]
+        : [];
+    }),
+  );
+}
+export function removeVcenterService(services, card) {
+  const copy = structuredClone(services);
+  const parent = card.path.slice(0, -2).reduce((value, key) => value?.[key], copy);
+  const index = card.path.at(-2),
+    name = card.path.at(-1);
+  if (!Array.isArray(parent) || JSON.stringify(parent[index]?.[name]) !== JSON.stringify(card.value))
+    throw Error("This card changed. Reload dashboard cards and try again.");
+  // A YAML entry normally contains one service; preserve any sibling keys.
+  delete parent[index][name];
+  if (!Object.keys(parent[index]).length) parent.splice(index, 1);
+  return copy;
+}
+
 export function addVcenterServices(services, group, instance, machines, summary, url, hosts = []) {
   if (!Array.isArray(services)) throw Error("Services must be a list of groups.");
   const target = services.findIndex((entry) => Object.hasOwn(entry, group) && Array.isArray(entry[group]));

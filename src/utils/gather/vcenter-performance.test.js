@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
 
-import { cachedVcenterPerformance, vcenterPerformance } from "./vcenter-performance";
+import { cachedVcenterPerformance, vcenterPerformance, withVcenterSoap } from "./vcenter-performance";
 
 vi.mock("utils/config/config", () => ({ CONF_DIR: "/tmp", substituteEnvironmentVars: (s) => s }));
 const connection = { url: "https://vcenter.test", username: "reader<&", password: 'secret"&' };
@@ -156,4 +156,15 @@ it("bounds failed SDK retries and returns a safe compatibility status", async ()
   expect(await cachedVcenterPerformance(conn, ["vm-1"])).toEqual({ "vm-1": { status: "unsupported" } });
   await cachedVcenterPerformance(conn, ["vm-1"]);
   expect(request).toHaveBeenCalledTimes(1);
+});
+
+it("reads the server instance identity for object links and closes the session", async () => {
+  const request = fixture({
+    RetrieveServiceContent:
+      "<returnval><sessionManager>SessionManager</sessionManager><perfManager>perf-manager</perfManager><propertyCollector>collector</propertyCollector><about><apiVersion>8.0.3.0</apiVersion><instanceUuid>12345678-1234-1234-1234-123456789abc</instanceUuid></about></returnval>",
+  });
+  expect(await withVcenterSoap(connection, ({ instanceUuid }) => instanceUuid, request)).toBe(
+    "12345678-1234-1234-1234-123456789abc",
+  );
+  expect(request.mock.calls.at(-1)[1].body).toContain("<Logout");
 });

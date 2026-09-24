@@ -92,7 +92,7 @@ inventory summary card shows total, running, stopped and suspended VMs. Cards po
 every 30 seconds while visible; server requests share a 15-second inventory cache.
 Running VM cards also show CPU utilization (%), active memory (estimated guest
 working set), host-consumed memory (physical memory consumed on the host), and the
-actual sample time. Allocated CPUs and memory stay visible as separate values.
+relative **Updated** age based on the actual sample timestamp. Allocated CPUs and memory stay visible as separate values.
 These cards do not offer power/lifecycle controls.
 
 Performance data is read through the vSphere Web Services `/sdk` endpoint using
@@ -132,7 +132,7 @@ hosts, choose a destination tab/group and review the additions. Each host card s
 - Connection state separately from maintenance mode and vCenter-reported overall health.
 - CPU utilization from host quick statistics divided by total physical CPU capacity.
 - Used and total host memory, plus running/total VMs visible to the service account.
-- A **Checked** timestamp for the retrieval, not a performance sample timestamp.
+- An **Updated** age based on retrieval time, rather than a performance sample timestamp.
 
 Host cards poll every 30 seconds and share a 20-second server cache. Host properties
 and VM power states are retrieved in batches through `/sdk`, including paginated
@@ -151,7 +151,7 @@ checks its revision, and creates the usual backup. Existing linked VMs are skipp
 name collisions receive a suffix instead of overwriting an existing service.
 Create new groups in Services and assign their tab in Layout before importing.
 
-Cards initially link to the vCenter UI. In Services, change the Service URL to the
+Cards open the specific VM or host summary in vCenter. Existing generic `/ui` links are resolved automatically using the configured connection and object ID; custom application URLs are preserved. In Services, change the Service URL to the
 application hosted by the VM, or use **Remove vCenter link** to keep the service
 without VM monitoring. The source equivalent is:
 
@@ -193,3 +193,11 @@ See Broadcom’s [vSphere authentication documentation](https://developer.broadc
 and [VM list API](https://developer.broadcom.com/xapis/vsphere-automation-api/latest/api/vcenter/vm/get/).
 Local tests use mocked responses; verify your actual vCenter version, permissions
 and CA trust before relying on the connection in staging.
+
+### Removing vCenter cards
+
+Use **Connections → vCenter → On your dashboard** to remove VM, host, or overview cards.
+Removal works without loading live inventory. Confirm **Remove card** to save the change;
+a configuration backup is created. Only the Gather service card is removed, never the
+VM or ESXi host. Other services and groups are preserved. Reload the list if another
+editor changed a card before removal.
