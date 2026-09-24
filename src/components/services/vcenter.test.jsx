@@ -5,15 +5,21 @@ import { renderWithProviders } from "test-utils/render-with-providers";
 import { expect, it, vi } from "vitest";
 import Item from "./item";
 vi.mock("swr", () => ({ default: vi.fn() }));
-it("shows power status and expands allocated VM resources like Proxmox", () => {
+it("shows metrics by default and allows collapsing them even when global stats are disabled", () => {
   useSWR.mockReturnValue({ data: { powerState: "POWERED_ON", cpus: 4, memoryMiB: 8192 } });
   renderWithProviders(
     <Item groupName="Home" service={{ name: "VM", vcenterServer: "lab", vcenterVM: "vm-1", widgets: [] }} />,
     { settings: { showStats: false } },
   );
   expect(screen.getByText("Running")).toBeInTheDocument();
+  expect(screen.getByText("Allocated CPUs")).toBeInTheDocument();
+  const hide = screen.getByRole("button", { name: /Hide metrics/ });
+  expect(hide).toHaveAttribute("aria-expanded", "true");
+  fireEvent.click(hide);
   expect(screen.queryByText("Allocated CPUs")).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: /View vCenter stats/ }));
+  const show = screen.getByRole("button", { name: /Show metrics/ });
+  expect(show).toHaveAttribute("aria-expanded", "false");
+  fireEvent.click(show);
   expect(screen.getByText("Allocated CPUs")).toBeInTheDocument();
   expect(screen.getByText("8 GiB")).toBeInTheDocument();
   expect(useSWR.mock.calls[0][0]).toBe("/api/vcenter/stats?instance=lab&vm=vm-1");
@@ -81,3 +87,18 @@ it.each(["permission-denied", "no-samples", "stale", "not-running"])(
     expect(screen.queryByText("0%")).not.toBeInTheDocument();
   },
 );
+
+it("honors an explicit per-service collapsed default but allows expansion with global stats enabled", () => {
+  useSWR.mockReturnValue({ data: { powerState: "POWERED_ON", cpus: 4, memoryMiB: 8192 } });
+  const { container } = renderWithProviders(
+    <Item service={{ name: "VM", vcenterServer: "lab", vcenterVM: "vm-1", widgets: [], showStats: false }} />,
+    { settings: { showStats: true } },
+  );
+  expect(screen.queryByText("Allocated CPUs")).not.toBeInTheDocument();
+  const button = screen.getByRole("button", { name: /Show metrics/ });
+  const panel = container.querySelector(`[id="${button.getAttribute("aria-controls")}"]`);
+  expect(panel).toHaveAttribute("hidden");
+  fireEvent.click(button);
+  expect(panel).not.toHaveAttribute("hidden");
+  expect(screen.getByText("Allocated CPUs")).toBeInTheDocument();
+});

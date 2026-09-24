@@ -85,7 +85,7 @@ export function VcenterDetails({ service }) {
         aria-label={service.vcenterVM ? "vCenter VM resources" : "vCenter summary"}
       >
         {fields.map(([label, value]) => (
-          <div key={label} className="flex-1 rounded-sm bg-theme-200/50 dark:bg-theme-900/20 p-1">
+          <div key={label} className="min-w-[100px] flex-1 rounded-sm bg-theme-200/50 dark:bg-theme-900/20 p-1">
             <dt className="text-xs">{label}</dt>
             <dd className="text-sm">{value}</dd>
           </div>

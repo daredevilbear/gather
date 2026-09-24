@@ -1,5 +1,5 @@
 import classNames from "classnames";
-import { useContext, useState } from "react";
+import { useContext, useId, useState } from "react";
 
 import KubernetesStatus from "./kubernetes-status";
 import Ping from "./ping";
@@ -22,6 +22,8 @@ export default function Item({ service, groupName, useEqualHeights }) {
   const statusStyle = service.statusStyle !== undefined ? service.statusStyle : settings.statusStyle;
   const [statsOpen, setStatsOpen] = useState(service.showStats);
   const [statsClosing, setStatsClosing] = useState(false);
+  const [vcenterOpen, setVcenterOpen] = useState(service.showStats !== false);
+  const vcenterDetailsId = useId();
 
   // set stats to closed after 300ms
   const closeStats = () => {
@@ -125,17 +127,6 @@ export default function Item({ service, groupName, useEqualHeights }) {
                 <span className="sr-only">View container stats</span>
               </button>
             )}
-            {service.vcenterServer && service.vcenterVM && (
-              <button
-                type="button"
-                aria-expanded={Boolean(showStats || statsOpen)}
-                onClick={() => (statsOpen ? closeStats() : setStatsOpen(true))}
-                className="shrink-0 flex items-center justify-center cursor-pointer service-tag service-vcenterstatus"
-              >
-                <VcenterStatus service={service} style={statusStyle} />
-                <span className="sr-only">View vCenter stats</span>
-              </button>
-            )}
             {service.proxmoxNode && service.proxmoxVMID && (
               <button
                 type="button"
@@ -198,9 +189,29 @@ export default function Item({ service, groupName, useEqualHeights }) {
           </div>
         )}
 
-        {service.vcenterServer &&
-          (service.vcenterVM || service.vcenterSummary) &&
-          (service.vcenterSummary || showStats || statsOpen) && <VcenterDetails service={service} />}
+        {service.vcenterServer && service.vcenterVM && (
+          <>
+            <div className="flex flex-wrap items-center justify-between gap-2 px-2 py-1 text-xs">
+              <span className="flex items-center gap-1">
+                Power: <VcenterStatus service={service} />
+              </span>
+              <button
+                type="button"
+                aria-expanded={vcenterOpen}
+                aria-controls={vcenterDetailsId}
+                onClick={() => setVcenterOpen((open) => !open)}
+                className="min-h-[44px] rounded-md border border-current/20 px-3 py-2 hover:bg-theme-300/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              >
+                {vcenterOpen ? "Hide metrics" : "Show metrics"}
+                <span aria-hidden="true"> {vcenterOpen ? "▴" : "▾"}</span>
+              </button>
+            </div>
+            <div id={vcenterDetailsId} hidden={!vcenterOpen}>
+              {vcenterOpen && <VcenterDetails service={service} />}
+            </div>
+          </>
+        )}
+        {service.vcenterServer && service.vcenterSummary && !service.vcenterVM && <VcenterDetails service={service} />}
 
         {service.widgets.map((widget) => (
           <Widget widget={widget} service={service} key={widget.index} />

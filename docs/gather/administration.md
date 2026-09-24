@@ -84,7 +84,10 @@ Services, Bookmarks and the dashboard render that label. The configuration key s
 
 Connections includes Docker, Kubernetes, Proxmox and vCenter with distinct icons.
 vCenter uses `vcenter.yaml`. Like Proxmox service bindings, a vCenter VM binding adds
-power status to a service card; click the status to expand resource details. An
+a labeled power state to a service card. VM metrics are visible by default, with
+explicit **Hide metrics** / **Show metrics** buttons. A per-service `showStats: false`
+starts that VM collapsed; the global stats preference does not hide these metrics.
+An
 inventory summary card shows total, running, stopped and suspended VMs. Cards poll
 every 30 seconds while visible; server requests share a 15-second inventory cache.
 Running VM cards also show CPU utilization (%), active memory (estimated guest
