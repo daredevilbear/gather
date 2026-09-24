@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import styles from "./editor.module.css";
 
@@ -34,6 +34,20 @@ export default function Users({ preview = false, titleRef, onDirtyChange }) {
   const [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [review, setReview] = useState(null);
+  const addButtonRef = useRef(null);
+  const nameRef = useRef(null);
+  const reviewRef = useRef(null);
+  const wasAdding = useRef(false);
+  useEffect(() => {
+    const target = review ? reviewRef.current : adding ? nameRef.current : null;
+    if (target) {
+      target.focus({ preventScroll: true });
+      target.scrollIntoView?.({ block: "center", behavior: "instant" });
+    } else if (wasAdding.current) {
+      addButtonRef.current?.focus();
+    }
+    wasAdding.current = adding;
+  }, [adding, review]);
   useEffect(() => {
     const dirty = Boolean(name || email || review);
     onDirtyChange?.(dirty);
@@ -137,6 +151,11 @@ export default function Users({ preview = false, titleRef, onDirtyChange }) {
           {data.users.length} registered {data.users.length === 1 ? "person" : "people"}
         </p>
         <button
+          ref={addButtonRef}
+          type="button"
+          aria-expanded={adding}
+          aria-controls={adding ? "add-user-form" : undefined}
+          aria-describedby={!data.canAddUsers ? "add-user-unavailable" : undefined}
           disabled={busy || adding || !data.canAddUsers}
           onClick={() => {
             setAdding(true);
@@ -146,6 +165,78 @@ export default function Users({ preview = false, titleRef, onDirtyChange }) {
           Add user
         </button>
       </div>
+      {!data.canAddUsers && (
+        <p id="add-user-unavailable">Configure OIDC sign-in in System settings to add individual users.</p>
+      )}
+      {adding && (
+        <section id="add-user-form" className={styles.card}>
+          <h3>Prepare a user’s access</h3>
+          {!data.canAddUsers && <p>Individual users require OIDC sign-in. A shared password represents one account.</p>}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              setReview({ action: "add", name, email, role });
+            }}
+          >
+            <fieldset disabled={busy || !data.canAddUsers}>
+              <label>
+                Name
+                <input ref={nameRef} required maxLength={120} value={name} onChange={(e) => setName(e.target.value)} />
+              </label>
+              <label>
+                Email
+                <input required type="email" maxLength={254} value={email} onChange={(e) => setEmail(e.target.value)} />
+              </label>
+              <label>
+                Role
+                <select value={role} onChange={(e) => setRole(e.target.value)}>
+                  {ROLES.map(([key, label]) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button disabled={busy || !name.trim() || !email}>Review new user</button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAdding(false);
+                  setName("");
+                  setEmail("");
+                  setReview(null);
+                }}
+              >
+                Cancel adding user
+              </button>
+            </fieldset>
+          </form>
+        </section>
+      )}
+      {review && (
+        <section className={styles.notice} role="alert">
+          <h3 ref={reviewRef} tabIndex={-1}>
+            Review access change
+          </h3>
+          <p>
+            {review.name} will have {review.role} access
+            {review.enabled === false ? " with sign-in access disabled" : ""}.
+          </p>
+          <p>
+            {review.role === "admin"
+              ? "This permits changing shared content, managing people and accessing managed secrets."
+              : review.role === "editor"
+                ? "This permits saving a personal layout without changing shared content or other people’s access."
+                : "This permits viewing Gather and using personal notification preferences, but not editing layouts."}
+          </p>
+          <button disabled={busy} onClick={() => save(review)}>
+            Confirm access change
+          </button>
+          <button disabled={busy} onClick={() => setReview(null)}>
+            Cancel
+          </button>
+        </section>
+      )}
       <p>
         People sign in through your existing identity provider. Add their verified email here to prepare their role;
         this does not create an identity-provider account or send an invitation.
@@ -245,74 +336,6 @@ export default function Users({ preview = false, titleRef, onDirtyChange }) {
           </button>
         )}
       </section>
-      {!data.canAddUsers && <p>Configure OIDC sign-in in System settings to add individual users.</p>}
-      {adding && (
-        <section className={styles.card}>
-          <h3>Prepare a user’s access</h3>
-          {!data.canAddUsers && <p>Individual users require OIDC sign-in. A shared password represents one account.</p>}
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              setReview({ action: "add", name, email, role });
-            }}
-          >
-            <fieldset disabled={busy || !data.canAddUsers}>
-              <label>
-                Name
-                <input required maxLength={120} value={name} onChange={(e) => setName(e.target.value)} />
-              </label>
-              <label>
-                Email
-                <input required type="email" maxLength={254} value={email} onChange={(e) => setEmail(e.target.value)} />
-              </label>
-              <label>
-                Role
-                <select value={role} onChange={(e) => setRole(e.target.value)}>
-                  {ROLES.map(([key, label]) => (
-                    <option key={key} value={key}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button disabled={busy || !name.trim() || !email}>Review new user</button>
-              <button
-                type="button"
-                onClick={() => {
-                  setAdding(false);
-                  setName("");
-                  setEmail("");
-                  setReview(null);
-                }}
-              >
-                Cancel adding user
-              </button>
-            </fieldset>
-          </form>
-        </section>
-      )}
-      {review && (
-        <section className={styles.notice} role="alert">
-          <h3>Review access change</h3>
-          <p>
-            {review.name} will have {review.role} access
-            {review.enabled === false ? " with sign-in access disabled" : ""}.
-          </p>
-          <p>
-            {review.role === "admin"
-              ? "This permits changing shared content, managing people and accessing managed secrets."
-              : review.role === "editor"
-                ? "This permits saving a personal layout without changing shared content or other people’s access."
-                : "This permits viewing Gather and using personal notification preferences, but not editing layouts."}
-          </p>
-          <button disabled={busy} onClick={() => save(review)}>
-            Confirm access change
-          </button>
-          <button disabled={busy} onClick={() => setReview(null)}>
-            Cancel
-          </button>
-        </section>
-      )}
       {matches.map((user) => (
         <details key={user.id} className={styles.card}>
           <summary>

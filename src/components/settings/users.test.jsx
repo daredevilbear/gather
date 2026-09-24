@@ -9,7 +9,7 @@ it("prepares access through a review and filters people by email", async () => {
   fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Alice" } });
   fireEvent.change(screen.getByLabelText("Email"), { target: { value: "alice@example.test" } });
   fireEvent.click(screen.getByRole("button", { name: "Review new user" }));
-  expect(screen.getByText("Review access change")).toBeInTheDocument();
+  expect(screen.getByText("Review access change")).toHaveFocus();
   fireEvent.click(screen.getByRole("button", { name: "Confirm access change" }));
   await screen.findByText("2 registered people");
   fireEvent.change(screen.getByLabelText("Find a person"), { target: { value: "alice@" } });
@@ -28,4 +28,24 @@ it("normalizes search terms, reports empty matches and keeps adding separate", a
   expect(screen.queryByLabelText("Email")).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Clear search & filters" }));
   expect(screen.getByText("1 of 1 people match")).toBeInTheDocument();
+});
+
+it("opens the add form before search, focuses it and restores focus on cancel", () => {
+  render(<Users preview />);
+  const add = screen.getByRole("button", { name: "Add user" });
+  fireEvent.click(add);
+  const name = screen.getByLabelText("Name");
+  expect(name).toHaveFocus();
+  expect(add).toHaveAttribute("aria-expanded", "true");
+  expect(
+    name.compareDocumentPosition(screen.getByLabelText("Find a person")) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+  fireEvent.change(name, { target: { value: "Unfinished" } });
+  fireEvent.click(screen.getByRole("button", { name: "Cancel adding user" }));
+  expect(add).toHaveFocus();
+  expect(add).toHaveAttribute("aria-expanded", "false");
+  expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
+  fireEvent.click(add);
+  expect(screen.getByLabelText("Name")).toHaveFocus();
+  expect(screen.getByLabelText("Name")).toHaveValue("");
 });
