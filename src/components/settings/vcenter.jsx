@@ -198,7 +198,7 @@ export default function Vcenter({ preview, request, connectionsDirty = false }) 
           <fieldset disabled={busy || connectionsDirty}>
             <legend>Select virtual machines</legend>
             {machines.map((vm) => (
-              <label key={vm.id} className={styles.personalRow}>
+              <label key={vm.id} className={styles.vmChoice}>
                 <input
                   type="checkbox"
                   checked={selected.includes(vm.id)}
@@ -220,7 +220,7 @@ export default function Vcenter({ preview, request, connectionsDirty = false }) 
                 </span>
               </label>
             ))}
-            <label className={styles.personalRow}>
+            <label className={styles.vmChoice}>
               <input
                 type="checkbox"
                 checked={summary}

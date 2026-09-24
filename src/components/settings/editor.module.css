@@ -1185,3 +1185,37 @@
   max-width: 100%;
   overflow-x: auto;
 }
+
+/* Checkbox choices need a fixed control column, not the generic stacked form label. */
+.editor .vmChoice {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  min-height: 48px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+.editor .vmChoice input[type="checkbox"] {
+  appearance: auto;
+  width: 20px;
+  min-width: 20px;
+  height: 20px;
+  margin: 0;
+}
+.vmChoice > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.vmChoice:has(input:checked) {
+  background: #9bd6be12;
+  border-color: #9bd6be66;
+}
+.vmChoice:has(input:disabled) {
+  cursor: default;
+}
