@@ -119,7 +119,7 @@ const SECTIONS = [
     }[file],
     description:
       file === "vcenter.yaml"
-        ? "Connect vCenter and inspect its virtual machine inventory with a read-only service account."
+        ? "Connect vCenter and add VM status cards or an inventory summary to your dashboard."
         : "Manage the existing Homepage connection configuration. Referenced credentials and mounted files must be available on the server. Source changes are versioned and backed up.",
     icon: file.split(".")[0],
     group: "CONNECTIONS",
@@ -524,6 +524,27 @@ function EntryDetails({ value, onChange, bookmarks }) {
                   icon or upload one.
                 </p>
               </div>
+            )}
+            {!bookmarks && link.vcenterServer && (
+              <section className={styles.notice}>
+                <p>
+                  vCenter: {link.vcenterServer} ·{" "}
+                  {link.vcenterVM ? "Linked VM with power status and allocated resources" : "Inventory summary"}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = { ...link };
+                    delete next.vcenterServer;
+                    delete next.vcenterVM;
+                    delete next.vcenterSummary;
+                    update(next);
+                  }}
+                >
+                  Remove vCenter link
+                </button>
+                <p>The service card and its URL are kept.</p>
+              </section>
             )}
             {!bookmarks && (
               <IntegrationPicker
@@ -1389,7 +1410,9 @@ export default function SettingsEditor({ request = api, preview = false }) {
                                 ? "Custom code changes dashboard behavior for visitors. JavaScript runs with their signed-in access; only save code you trust."
                                 : "Environment placeholders are preserved. Resolved environment secrets are never loaded into this editor."}
                           </p>
-                          {file === "vcenter.yaml" && <Vcenter preview={preview} />}
+                          {file === "vcenter.yaml" && (
+                            <Vcenter preview={preview} request={request} connectionsDirty={dirty} />
+                          )}
                           <label>
                             {file}
                             <textarea

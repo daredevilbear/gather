@@ -6,6 +6,7 @@ import Ping from "./ping";
 import ProxmoxStatus from "./proxmox-status";
 import SiteMonitor from "./site-monitor";
 import Status from "./status";
+import { VcenterDetails, VcenterStatus } from "./vcenter";
 import Widget from "./widget";
 
 import ResolvedIcon from "components/resolvedicon";
@@ -124,6 +125,17 @@ export default function Item({ service, groupName, useEqualHeights }) {
                 <span className="sr-only">View container stats</span>
               </button>
             )}
+            {service.vcenterServer && service.vcenterVM && (
+              <button
+                type="button"
+                aria-expanded={Boolean(showStats || statsOpen)}
+                onClick={() => (statsOpen ? closeStats() : setStatsOpen(true))}
+                className="shrink-0 flex items-center justify-center cursor-pointer service-tag service-vcenterstatus"
+              >
+                <VcenterStatus service={service} style={statusStyle} />
+                <span className="sr-only">View vCenter stats</span>
+              </button>
+            )}
             {service.proxmoxNode && service.proxmoxVMID && (
               <button
                 type="button"
@@ -185,6 +197,10 @@ export default function Item({ service, groupName, useEqualHeights }) {
             )}
           </div>
         )}
+
+        {service.vcenterServer &&
+          (service.vcenterVM || service.vcenterSummary) &&
+          (service.vcenterSummary || showStats || statsOpen) && <VcenterDetails service={service} />}
 
         {service.widgets.map((widget) => (
           <Widget widget={widget} service={service} key={widget.index} />

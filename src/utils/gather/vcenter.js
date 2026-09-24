@@ -42,6 +42,7 @@ export async function vcenterInventory(connection, request = fetch) {
     const list = await response.json();
     if (!Array.isArray(list)) throw Error("Unexpected vCenter inventory response.");
     return list.map((vm) => ({
+      id: String(vm.vm || ""),
       name: String(vm.name || vm.vm),
       powerState: String(vm.power_state || "UNKNOWN"),
       cpus: Number(vm.cpu_count) || 0,
@@ -54,4 +55,22 @@ export async function vcenterInventory(connection, request = fetch) {
       /* Session also expires at vCenter. */
     }
   }
+}
+
+// A short server-only cache coalesces polls from cards sharing a connection.
+const inventories = new Map();
+export async function cachedVcenterInventory(connection) {
+  const { createHash } = await import("node:crypto");
+  const key = createHash("sha256").update(JSON.stringify(connection)).digest("hex");
+  const now = Date.now();
+  const existing = inventories.get(key);
+  if (existing && existing.expires > now) return existing.promise;
+  for (const [id, value] of inventories) if (value.expires <= now) inventories.delete(id);
+  if (inventories.size >= 100) inventories.delete(inventories.keys().next().value);
+  const promise = vcenterInventory(connection).catch((error) => {
+    if (inventories.get(key)?.promise === promise) inventories.delete(key);
+    throw error;
+  });
+  inventories.set(key, { promise, expires: now + 15000 });
+  return promise;
 }

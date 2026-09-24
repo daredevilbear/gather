@@ -16,7 +16,10 @@ export default async function handler(req, res) {
     const name = req.body?.instance;
     if (typeof name !== "string" || !Object.hasOwn(connections, name))
       return res.status(400).json({ error: "Select a configured vCenter connection." });
-    return res.json({ machines: await vcenterInventory(connections[name]) });
+    return res.json({
+      machines: await vcenterInventory(connections[name]),
+      url: new URL(connections[name].url).origin + "/ui",
+    });
   } catch {
     return res.status(502).json({
       error:

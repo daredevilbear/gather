@@ -21,7 +21,7 @@ it("authenticates on the server, reads sanitized inventory and closes its sessio
     })
     .mockResolvedValueOnce({ ok: true });
   expect(await vcenterInventory(connection, request)).toEqual([
-    { name: "Example", powerState: "POWERED_ON", cpus: 2, memoryMiB: 2048 },
+    { id: "vm-1", name: "Example", powerState: "POWERED_ON", cpus: 2, memoryMiB: 2048 },
   ]);
   expect(request.mock.calls.map(([url, options]) => [url.pathname, options.method])).toEqual([
     ["/api/session", "POST"],
@@ -40,4 +40,24 @@ it("rejects insecure origins and closes a session after inventory fails", async 
     .mockResolvedValueOnce({ ok: true });
   await expect(vcenterInventory(connection, request)).rejects.toThrow("inventory");
   expect(request.mock.calls[2][1].method).toBe("DELETE");
+});
+it("coalesces concurrent card polls without retaining a failed inventory", async () => {
+  const { cachedVcenterInventory } = await import("./vcenter");
+  const request = vi.fn().mockImplementation(async (url) => {
+    if (url.pathname === "/api/session") return { ok: true, json: async () => "token" };
+    return { ok: true, json: async () => [] };
+  });
+  vi.stubGlobal("fetch", request);
+  try {
+    await Promise.all([
+      cachedVcenterInventory({ ...connection, username: "cache-test" }),
+      cachedVcenterInventory({ ...connection, username: "cache-test" }),
+    ]);
+    expect(request).toHaveBeenCalledTimes(3);
+    request.mockRejectedValueOnce(Error("offline"));
+    await expect(cachedVcenterInventory({ ...connection, username: "failed-test" })).rejects.toThrow("offline");
+    await expect(cachedVcenterInventory({ ...connection, username: "failed-test" })).resolves.toEqual([]);
+  } finally {
+    vi.unstubAllGlobals();
+  }
 });

@@ -83,9 +83,41 @@ Services, Bookmarks and the dashboard render that label. The configuration key s
 ## vCenter
 
 Connections includes Docker, Kubernetes, Proxmox and vCenter with distinct icons.
-vCenter is a Gather extension using `vcenter.yaml`; it does not add VM lifecycle
-controls or automatically publish discovered VMs as service cards. A protected
-server administrator can save/import the connection file and read VM inventory.
+vCenter uses `vcenter.yaml`. Like Proxmox service bindings, a vCenter VM binding adds
+power status to a service card; click the status to expand resource details. An
+inventory summary card shows total, running, stopped and suspended VMs. Cards poll
+every 30 seconds while visible; server requests share a 15-second inventory cache.
+CPU and memory are **allocated resources**, not utilization metrics. Neither the
+inventory nor these cards offer power/lifecycle controls.
+
+A protected server administrator configures the connection, saves it, then selects
+**Check & load inventory**. Select VMs and/or the summary, choose an existing tab /
+service group, review and **Add to dashboard**. This merges into `services.yaml`,
+checks its revision, and creates the usual backup. Existing linked VMs are skipped;
+name collisions receive a suffix instead of overwriting an existing service.
+Create new groups in Services and assign their tab in Layout before importing.
+
+Cards initially link to the vCenter UI. In Services, change the Service URL to the
+application hosted by the VM, or use **Remove vCenter link** to keep the service
+without VM monitoring. The source equivalent is:
+
+```yaml
+- Infrastructure:
+    - My VM:
+        href: https://app.example.com
+        vcenterServer: lab
+        vcenterVM: vm-123
+    - vCenter overview:
+        href: https://vcenter.example.com/ui
+        vcenterServer: lab
+        vcenterSummary: true
+```
+
+Dashboard readers can query only VM references published in services, or aggregate
+counts for a published summary. Full inventory and connection configuration remain
+restricted to server administrators. Shared cards are visible to dashboard users;
+personal layouts can hide/reorder them but are not an access-control boundary.
+A removed/inaccessible VM or unavailable server displays an unavailable state.
 
 ```yaml
 lab:
