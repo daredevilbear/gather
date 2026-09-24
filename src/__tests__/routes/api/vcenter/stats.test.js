@@ -1,7 +1,9 @@
 import handler from "pages/api/vcenter/stats";
 import { servicesFromConfig } from "utils/config/service-helpers";
 import { cachedVcenterInventory, vcenterConnections } from "utils/gather/vcenter";
+import { cachedVcenterPerformance } from "utils/gather/vcenter-performance";
 import { beforeEach, expect, it, vi } from "vitest";
+vi.mock("utils/gather/vcenter-performance", () => ({ cachedVcenterPerformance: vi.fn() }));
 vi.mock("utils/config/service-helpers", () => ({ servicesFromConfig: vi.fn() }));
 vi.mock("utils/gather/vcenter", () => ({ cachedVcenterInventory: vi.fn(), vcenterConnections: vi.fn() }));
 const response = () => {
@@ -11,6 +13,7 @@ const response = () => {
 };
 beforeEach(() => {
   vi.clearAllMocks();
+  cachedVcenterPerformance.mockResolvedValue({ "vm-1": { status: "live", cpuPercent: 12.5 } });
   servicesFromConfig.mockResolvedValue([
     {
       services: [{ vcenterServer: "lab", vcenterVM: "vm-1" }],
@@ -26,7 +29,14 @@ beforeEach(() => {
 it("returns only the published VM or aggregate counts, without the other inventory or credentials", async () => {
   const vm = response();
   await handler({ method: "GET", query: { instance: "lab", vm: "vm-1" } }, vm);
-  expect(vm.json).toHaveBeenCalledWith({ id: "vm-1", name: "App", powerState: "POWERED_ON", cpus: 2, memoryMiB: 4096 });
+  expect(vm.json).toHaveBeenCalledWith({
+    id: "vm-1",
+    name: "App",
+    powerState: "POWERED_ON",
+    cpus: 2,
+    memoryMiB: 4096,
+    performance: { status: "live", cpuPercent: 12.5 },
+  });
   const summary = response();
   await handler({ method: "GET", query: { instance: "lab" } }, summary);
   expect(summary.json).toHaveBeenCalledWith({ total: 2, running: 1, stopped: 0, suspended: 1, unknown: 0 });
@@ -57,4 +67,23 @@ it("reports a deleted VM and upstream failure without exposing connection detail
   await handler({ method: "GET", query: { instance: "lab" } }, failed);
   expect(failed.status).toHaveBeenCalledWith(502);
   expect(JSON.stringify(failed.json.mock.calls)).not.toContain("secret");
+});
+
+it("requests metrics only for published running VMs and skips performance for stopped VMs", async () => {
+  cachedVcenterInventory.mockResolvedValueOnce([
+    { id: "vm-1", powerState: "POWERED_ON" },
+    { id: "vm-private", powerState: "POWERED_ON" },
+  ]);
+  await handler({ method: "GET", query: { instance: "lab", vm: "vm-1" } }, response());
+  expect(cachedVcenterPerformance).toHaveBeenCalledWith(expect.anything(), ["vm-1"]);
+  cachedVcenterPerformance.mockClear();
+  cachedVcenterInventory.mockResolvedValueOnce([{ id: "vm-1", powerState: "POWERED_OFF" }]);
+  const stopped = response();
+  await handler({ method: "GET", query: { instance: "lab", vm: "vm-1" } }, stopped);
+  expect(cachedVcenterPerformance).not.toHaveBeenCalled();
+  expect(stopped.json).toHaveBeenCalledWith({
+    id: "vm-1",
+    powerState: "POWERED_OFF",
+    performance: { status: "not-running" },
+  });
 });

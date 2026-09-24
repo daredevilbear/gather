@@ -87,8 +87,41 @@ vCenter uses `vcenter.yaml`. Like Proxmox service bindings, a vCenter VM binding
 power status to a service card; click the status to expand resource details. An
 inventory summary card shows total, running, stopped and suspended VMs. Cards poll
 every 30 seconds while visible; server requests share a 15-second inventory cache.
-CPU and memory are **allocated resources**, not utilization metrics. Neither the
-inventory nor these cards offer power/lifecycle controls.
+Running VM cards also show CPU utilization (%), active memory (estimated guest
+working set), host-consumed memory (physical memory consumed on the host), and the
+actual sample time. Allocated CPUs and memory stay visible as separate values.
+These cards do not offer power/lifecycle controls.
+
+Performance data is read through the vSphere Web Services `/sdk` endpoint using
+the same HTTPS origin and service account as inventory. Gather negotiates the
+server API version from ServiceContent, discovers counter IDs and provider
+sampling intervals, and uses `QueryPerf` for up to 50 published, running VMs per
+batch. It queries `cpu.usage.average`, `mem.active.average`, and
+`mem.consumed.average` when available. No agent inside the VM is required.
+Performance results are shared for 20 seconds, including failures to prevent
+retry storms; counter metadata and sampling rates are cached for five minutes.
+Requests time out after ten seconds, with a 45-second collection deadline and a
+separate five-second logout timeout.
+
+The account needs `System.View` on the monitored entities (normally supplied by
+the read-only role). Its visibility determines available metrics; Gather does not
+change vCenter roles, permissions, statistics levels or collection intervals.
+The `/sdk` endpoint must be reachable through your firewall/proxy with the same
+trusted certificate requirements. **Check & load inventory** now checks performance
+access for one running VM and reports permission, compatibility or sampling issues.
+
+Missing/unsupported counters display a dash, never a fabricated zero. Powered-off
+VMs are not queried for performance. Samples older than three sampling intervals
+(with a 90-second minimum), or unexpectedly in the future, are marked as older
+samples. An API/permission failure preserves inventory, allocations and power
+status. VM deletions/inaccessible inventory continue to show unavailable status.
+See the [PerformanceManager API](https://developer.broadcom.com/xapis/vsphere-web-services-api/latest/vim.PerformanceManager.html),
+[query specifications](https://developer.broadcom.com/xapis/vsphere-web-services-api/latest/vim.PerformanceManager.QuerySpec.html),
+and [memory counter definitions](https://developer.broadcom.com/xapis/vsphere-web-services-api/latest/memory_counters.html).
+
+A development-only visual preview is available at `/preview/vcenter`. It uses
+sample readings and never connects to vCenter. Live compatibility must still be
+verified on staging using its service account and server certificate.
 
 A protected server administrator configures the connection, saves it, then selects
 **Check & load inventory**. Select VMs and/or the summary, choose an existing tab /

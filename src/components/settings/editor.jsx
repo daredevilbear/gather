@@ -529,7 +529,9 @@ function EntryDetails({ value, onChange, bookmarks }) {
               <section className={styles.notice}>
                 <p>
                   vCenter: {link.vcenterServer} ·{" "}
-                  {link.vcenterVM ? "Linked VM with power status and allocated resources" : "Inventory summary"}
+                  {link.vcenterVM
+                    ? "Linked VM with power status, live utilization and allocated resources"
+                    : "Inventory summary"}
                 </p>
                 <button
                   type="button"

@@ -1,5 +1,6 @@
 import { servicesFromConfig } from "utils/config/service-helpers";
 import { cachedVcenterInventory, vcenterConnections } from "utils/gather/vcenter";
+import { cachedVcenterPerformance } from "utils/gather/vcenter-performance";
 
 function published(groups, instance, vm) {
   return groups.some(
@@ -9,6 +10,14 @@ function published(groups, instance, vm) {
           service.vcenterServer === instance && (vm ? service.vcenterVM === vm : service.vcenterSummary === true),
       ) || published(group.groups || [], instance, vm),
   );
+}
+function publishedVMs(groups, instance) {
+  return groups.flatMap((group) => [
+    ...(group.services || [])
+      .filter((service) => service.vcenterServer === instance && service.vcenterVM)
+      .map((service) => service.vcenterVM),
+    ...publishedVMs(group.groups || [], instance),
+  ]);
 }
 // Dashboard authentication and disabled-account checks are enforced by middleware.
 // Only explicitly published VM references (or aggregate summaries) are exposed.
@@ -22,7 +31,8 @@ export default async function handler(req, res) {
   if (typeof instance !== "string" || !instance || (vm !== undefined && (typeof vm !== "string" || !vm)))
     return res.status(400).json({ error: "Select a configured vCenter service." });
   try {
-    if (!published(await servicesFromConfig(), instance, vm))
+    const groups = await servicesFromConfig();
+    if (!published(groups, instance, vm))
       return res.status(404).json({ error: "This vCenter service is not on the shared dashboard." });
     const connections = await vcenterConnections();
     if (!Object.hasOwn(connections, instance)) return res.status(404).json({ error: "vCenter connection not found." });
@@ -31,7 +41,13 @@ export default async function handler(req, res) {
       const machine = machines.find((item) => item.id === vm);
       if (!machine)
         return res.status(404).json({ error: "VM no longer exists or is not visible to the service account." });
-      return res.json(machine);
+      if (machine.powerState !== "POWERED_ON") return res.json({ ...machine, performance: { status: "not-running" } });
+      const allowed = new Set(publishedVMs(groups, instance));
+      const ids = machines
+        .filter((item) => item.powerState === "POWERED_ON" && allowed.has(item.id))
+        .map((item) => item.id);
+      const performance = await cachedVcenterPerformance(connections[instance], ids);
+      return res.json({ ...machine, performance: performance[vm] || { status: "no-samples" } });
     }
     return res.json({
       total: machines.length,

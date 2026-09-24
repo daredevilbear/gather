@@ -1,5 +1,7 @@
 import useSWR from "swr";
 
+import { performanceMessage } from "utils/gather/vcenter-performance-status";
+
 const states = { POWERED_ON: "Running", POWERED_OFF: "Stopped", SUSPENDED: "Suspended" };
 export function useVcenter(service) {
   const query = new URLSearchParams({ instance: service.vcenterServer });
@@ -46,9 +48,26 @@ export function VcenterDetails({ service }) {
         Loading vCenter…
       </p>
     );
+  const performance = data.performance || { status: "unavailable" };
+  const number = (value, suffix) =>
+    typeof value === "number" && Number.isFinite(value)
+      ? `${value.toLocaleString(undefined, { maximumFractionDigits: 1 })}${suffix}`
+      : "—";
+  const sampledAt =
+    performance.sampledAt && Number.isFinite(Date.parse(performance.sampledAt))
+      ? new Date(performance.sampledAt)
+      : null;
   const fields = service.vcenterVM
     ? [
-        ["Power", states[data.powerState] || "Unknown"],
+        ["CPU usage", number(performance.cpuPercent, "%")],
+        [
+          "Active memory",
+          number(performance.activeMemoryMiB == null ? null : performance.activeMemoryMiB / 1024, " GiB"),
+        ],
+        [
+          "Host consumed memory",
+          number(performance.consumedMemoryMiB == null ? null : performance.consumedMemoryMiB / 1024, " GiB"),
+        ],
         ["Allocated CPUs", data.cpus],
         ["Allocated memory", `${data.memoryMiB / 1024} GiB`],
       ]
@@ -60,16 +79,30 @@ export function VcenterDetails({ service }) {
         ...(data.unknown ? [["Unknown", data.unknown]] : []),
       ];
   return (
-    <dl
-      className="flex flex-wrap gap-1 p-1 text-center"
-      aria-label={service.vcenterVM ? "vCenter VM resources" : "vCenter summary"}
-    >
-      {fields.map(([label, value]) => (
-        <div key={label} className="flex-1 rounded-sm bg-theme-200/50 dark:bg-theme-900/20 p-1">
-          <dt className="text-xs">{label}</dt>
-          <dd className="text-sm">{value}</dd>
+    <div>
+      <dl
+        className="flex flex-wrap gap-1 p-1 text-center"
+        aria-label={service.vcenterVM ? "vCenter VM resources" : "vCenter summary"}
+      >
+        {fields.map(([label, value]) => (
+          <div key={label} className="flex-1 rounded-sm bg-theme-200/50 dark:bg-theme-900/20 p-1">
+            <dt className="text-xs">{label}</dt>
+            <dd className="text-sm">{value}</dd>
+          </div>
+        ))}
+      </dl>
+      {service.vcenterVM && (
+        <div className="px-2 pb-2 text-xs text-theme-600 dark:text-theme-300">
+          <p role="status">{performanceMessage(performance.status)}</p>
+          {sampledAt && (
+            <p>
+              Sampled <time dateTime={sampledAt.toISOString()}>{sampledAt.toISOString().slice(11, 19)} UTC</time> ·{" "}
+              {performance.intervalSeconds}s interval
+            </p>
+          )}
+          <p>Active memory is estimated guest use; host consumed memory is physical memory used on the host.</p>
         </div>
-      ))}
-    </dl>
+      )}
+    </div>
   );
 }

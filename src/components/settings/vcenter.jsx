@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 import styles from "./editor.module.css";
 
+import { performanceMessage } from "utils/gather/vcenter-performance-status";
 import { addVcenterServices } from "utils/gather/vcenter-services";
 export default function Vcenter({ preview, request, connectionsDirty = false }) {
   const [instances, setInstances] = useState(preview ? ["Example vCenter"] : []),
@@ -16,6 +17,7 @@ export default function Vcenter({ preview, request, connectionsDirty = false }) 
   const [group, setGroup] = useState("");
   const [url, setUrl] = useState("");
   const [review, setReview] = useState(null);
+  const [performanceCheck, setPerformanceCheck] = useState(null);
   const [status, setStatus] = useState("");
   const reviewRef = useRef(null);
   useEffect(() => {
@@ -96,6 +98,7 @@ export default function Vcenter({ preview, request, connectionsDirty = false }) 
     setBusy(true);
     setError("");
     setMachines(null);
+    setPerformanceCheck(null);
     setReview(null);
     setSelected([]);
     setStatus("");
@@ -114,6 +117,7 @@ export default function Vcenter({ preview, request, connectionsDirty = false }) 
       setGroups(available);
       setGroup(available[0]?.name || "");
       if (preview) {
+        setPerformanceCheck({ status: "live", vmName: "Example VM" });
         setUrl("https://vcenter.example.com/ui");
         setMachines([{ id: "vm-1", name: "Example VM", powerState: "POWERED_ON", cpus: 2, memoryMiB: 4096 }]);
         return;
@@ -125,6 +129,7 @@ export default function Vcenter({ preview, request, connectionsDirty = false }) 
       });
       const result = await response.json();
       if (!response.ok) throw Error(result.error);
+      setPerformanceCheck(result.performanceCheck);
       setMachines(result.machines);
       setUrl(result.url);
     } catch (e) {
@@ -142,7 +147,8 @@ export default function Vcenter({ preview, request, connectionsDirty = false }) 
       </p>
       <p>
         Link selected VMs to service cards with power status and expandable resource details, or add an inventory
-        summary. Cards refresh every 30 seconds. CPU and memory show allocation, not live utilization.
+        summary. Cards refresh every 30 seconds. Running VM cards also show live CPU usage, active memory, host consumed
+        memory, and sample time. Allocations remain visible separately.
       </p>
       {connectionsDirty && <p role="status">Save & apply your connection changes before loading inventory.</p>}
       <pre>
@@ -159,6 +165,7 @@ export default function Vcenter({ preview, request, connectionsDirty = false }) 
             onChange={(e) => {
               setInstance(e.target.value);
               setMachines(null);
+              setPerformanceCheck(null);
               setReview(null);
               setSelected([]);
               setStatus("");
@@ -174,6 +181,13 @@ export default function Vcenter({ preview, request, connectionsDirty = false }) 
         </button>
       </div>
       {!instances.length && <p>No saved vCenter connections yet.</p>}
+      {performanceCheck && (
+        <p role="status">
+          {performanceCheck.vmName ? `${performanceCheck.vmName}: ` : ""}
+          {performanceMessage(performanceCheck.status)}
+          {preview ? " (sample data)" : ""}
+        </p>
+      )}
       {status && <p role="status">{status}</p>}
       {error && <p role="alert">{error}</p>}
       {machines && (

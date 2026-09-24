@@ -42,3 +42,42 @@ it("treats failed HTTP responses as errors rather than showing unknown resource 
     vi.unstubAllGlobals();
   }
 });
+
+it("labels live CPU and distinct memory metrics, and displays the actual sample time", () => {
+  useSWR.mockReturnValue({
+    data: {
+      powerState: "POWERED_ON",
+      cpus: 4,
+      memoryMiB: 8192,
+      performance: {
+        status: "live",
+        cpuPercent: 12.5,
+        activeMemoryMiB: 2048,
+        consumedMemoryMiB: 4096,
+        sampledAt: "2026-09-24T18:00:00.000Z",
+        intervalSeconds: 20,
+      },
+    },
+  });
+  const { container } = renderWithProviders(
+    <Item service={{ name: "VM", vcenterServer: "lab", vcenterVM: "vm-1", widgets: [], showStats: true }} />,
+  );
+  expect(screen.getByText("12.5%")).toBeInTheDocument();
+  expect(screen.getByText("2 GiB")).toBeInTheDocument();
+  expect(screen.getByText("Host consumed memory")).toBeInTheDocument();
+  expect(screen.getByText("8 GiB")).toBeInTheDocument();
+  expect(container.querySelector("time")).toHaveAttribute("dateTime", "2026-09-24T18:00:00.000Z");
+});
+it.each(["permission-denied", "no-samples", "stale", "not-running"])(
+  "keeps power state and allocations visible when performance is %s",
+  (status) => {
+    useSWR.mockReturnValue({ data: { powerState: "POWERED_ON", cpus: 4, memoryMiB: 8192, performance: { status } } });
+    renderWithProviders(
+      <Item service={{ name: "VM", vcenterServer: "lab", vcenterVM: "vm-1", widgets: [], showStats: true }} />,
+    );
+    expect(screen.getByText("Running")).toBeInTheDocument();
+    expect(screen.getByText("8 GiB")).toBeInTheDocument();
+    expect(screen.getAllByText("—")).toHaveLength(3);
+    expect(screen.queryByText("0%")).not.toBeInTheDocument();
+  },
+);

@@ -12,7 +12,7 @@ export async function vcenterConnections() {
     throw error;
   }
 }
-export async function vcenterInventory(connection, request = fetch) {
+export function vcenterOrigin(connection) {
   const url = new URL(connection?.url);
   if (
     url.protocol !== "https:" ||
@@ -27,8 +27,12 @@ export async function vcenterInventory(connection, request = fetch) {
     !connection.password
   )
     throw Error("Configure an HTTPS vCenter origin, username and password.");
+  return url.origin;
+}
+export async function vcenterInventory(connection, request = fetch) {
+  const origin = vcenterOrigin(connection);
   const call = (route, method, headers) =>
-    request(new URL(route, url.origin), { method, headers, redirect: "error", signal: AbortSignal.timeout(10000) });
+    request(new URL(route, origin), { method, headers, redirect: "error", signal: AbortSignal.timeout(10000) });
   const login = await call("/api/session", "POST", {
     Authorization: `Basic ${Buffer.from(`${connection.username}:${connection.password}`).toString("base64")}`,
   });
