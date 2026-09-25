@@ -366,27 +366,31 @@ export function Groups({ value, onChange, bookmarks = false, layout = {}, tabs =
                   <div className={styles.contentFields}>
                     <h3>{displayName}</h3>
                     <p>Rename this group in Layout. Its services and connection references stay together.</p>
-                    {onEditLayout && (
-                      <button type="button" onClick={onEditLayout}>
-                        Edit name & layout
+                    <div className={styles.groupEditActions}>
+                      {onEditLayout && (
+                        <button type="button" onClick={onEditLayout}>
+                          Edit name & layout
+                        </button>
+                      )}
+                      <Move
+                        label={name || "group"}
+                        index={i}
+                        length={value.length}
+                        move={(d) => {
+                          onChange(reorder(value, i, d));
+                          setRenaming(i + d);
+                        }}
+                        remove={() => {
+                          onChange(value.filter((_, n) => n !== i));
+                          setRenaming(null);
+                        }}
+                      />
+                    </div>
+                    <div className={styles.groupEditFooter}>
+                      <button type="button" onClick={() => setRenaming(null)}>
+                        Done
                       </button>
-                    )}
-                    <Move
-                      label={name || "group"}
-                      index={i}
-                      length={value.length}
-                      move={(d) => {
-                        onChange(reorder(value, i, d));
-                        setRenaming(i + d);
-                      }}
-                      remove={() => {
-                        onChange(value.filter((_, n) => n !== i));
-                        setRenaming(null);
-                      }}
-                    />
-                    <button type="button" onClick={() => setRenaming(null)}>
-                      Done
-                    </button>
+                    </div>
                   </div>
                 )}
                 {!collapsed[i] && (
