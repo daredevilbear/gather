@@ -77,3 +77,18 @@
   font-weight: 700;
   flex-shrink: 0;
 }
+
+/* The inbox replaces the account sheet while open. Hide sibling controls from
+   both the visual layout and keyboard navigation. */
+.panel:has(> [data-account-inbox="true"][open]) {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.panel:has(> [data-account-inbox="true"][open]) > :not([data-account-inbox="true"]) {
+  display: none;
+}
+:global(.dark) .panel:has(> [data-account-inbox="true"][open]) {
+  background: transparent;
+}

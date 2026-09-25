@@ -234,3 +234,7 @@
   max-height: calc(100dvh - 140px);
   overflow-y: auto;
 }
+
+.menuItem[open] > .summary {
+  display: none;
+}

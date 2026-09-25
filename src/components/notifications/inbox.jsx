@@ -232,6 +232,7 @@ export default function Inbox({
   return (
     <details
       ref={box}
+      data-account-inbox={menuItem ? "true" : undefined}
       open={fullPage || open}
       className={fullPage ? styles.fullPage : menuItem ? `${styles.inbox} ${styles.menuItem}` : styles.inbox}
       onToggle={(event) => setOpen(event.currentTarget.open)}
