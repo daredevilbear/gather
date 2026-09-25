@@ -15,9 +15,12 @@ describe("Gather account menu", () => {
   });
   it("starts collapsed and uses the existing sign-out flow", () => {
     useSession.mockReturnValue({ status: "authenticated", data: { user: { name: "Example User" } } });
-    const { container, getByText } = render(<AccountMenu settingsUrl="https://accounts.example.test/" />);
+    const { container, getByText } = render(
+      <AccountMenu settingsUrl="https://accounts.example.test/" notifications={<span>Notifications</span>} />,
+    );
     expect(container.querySelector("details").open).toBe(false);
     expect(getByText("Example")).toBeInTheDocument();
+    expect(getByText("Notifications").closest("details")).toBe(container.querySelector("details"));
     expect(getByText("Dashboard settings").closest("details")).toBe(container.querySelector("details"));
     container.querySelector("details").open = true;
     fireEvent.click(getByText("auth.signout"));

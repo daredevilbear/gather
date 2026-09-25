@@ -217,3 +217,20 @@
   outline: 2px solid #b8ebce;
   outline-offset: 3px;
 }
+
+.menuItem > .summary {
+  padding: 8px 0 0;
+  min-height: 44px;
+  border: 0;
+  border-top: 1px solid rgb(var(--color-500) / 0.2);
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+}
+.menuItem > .panel {
+  position: fixed;
+  top: 120px;
+  right: 16px;
+  max-height: calc(100dvh - 140px);
+  overflow-y: auto;
+}

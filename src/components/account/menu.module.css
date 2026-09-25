@@ -50,12 +50,15 @@
   border-top: 1px solid rgb(var(--color-500) / 0.2);
   padding-top: 8px;
 }
-@media (max-width: 640px) {
-  .panel {
-    position: fixed;
-    top: 160px;
-    right: 16px;
-    left: 16px;
-    width: auto;
+@media (max-width: 480px) {
+  .summary {
+    gap: 6px;
+    padding: 8px;
+  }
+  .summary > span:not([aria-hidden]) {
+    max-width: 90px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }

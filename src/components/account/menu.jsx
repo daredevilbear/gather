@@ -18,13 +18,14 @@ export function accountSettingsUrl(value) {
   }
 }
 
-export default function AccountMenu({ settingsUrl }) {
+export default function AccountMenu({ settingsUrl, notifications }) {
   const { data: session, status } = useSession();
   const { t } = useTranslation();
   if (status !== "authenticated" || !session?.user) return null;
   return (
     <AccountMenuView
       user={session.user}
+      notifications={notifications}
       settingsUrl={settingsUrl}
       dashboardSettings={<SettingsLink />}
       signOutLabel={t("auth.signout")}
@@ -33,7 +34,14 @@ export default function AccountMenu({ settingsUrl }) {
   );
 }
 
-export function AccountMenuView({ user, settingsUrl, dashboardSettings, signOutLabel = "Sign out", onSignOut }) {
+export function AccountMenuView({
+  user,
+  settingsUrl,
+  dashboardSettings,
+  notifications,
+  signOutLabel = "Sign out",
+  onSignOut,
+}) {
   const box = useRef(null);
   useEffect(() => {
     function close(event) {
@@ -57,7 +65,20 @@ export function AccountMenuView({ user, settingsUrl, dashboardSettings, signOutL
   const image = accountSettingsUrl(user.image);
 
   return (
-    <details ref={box} className={styles.account}>
+    <details
+      ref={box}
+      className={styles.account}
+      onToggleCapture={(event) => {
+        if (event.target !== event.currentTarget && event.target.open) event.currentTarget.open = true;
+      }}
+      onToggle={(event) => {
+        if (event.target === event.currentTarget && !event.currentTarget.open) {
+          event.currentTarget.querySelectorAll("details[open]").forEach((child) => {
+            child.open = false;
+          });
+        }
+      }}
+    >
       <summary className={styles.summary}>
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -83,6 +104,7 @@ export function AccountMenuView({ user, settingsUrl, dashboardSettings, signOutL
           <GatherIcon name="palette" />
           My preferences
         </Link>
+        {notifications}
         {dashboardSettings}
         {settings && (
           <a href={settings} className="flex min-h-11 items-center gap-2 underline">

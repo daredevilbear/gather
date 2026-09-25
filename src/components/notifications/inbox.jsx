@@ -10,7 +10,7 @@ import PushControls from "./push";
 import GatherIcon from "components/gather/icon";
 
 const validId = (value) => typeof value === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(value);
-export default function Inbox({ prefix = "/gather-notifications/", fullPage = false }) {
+export default function Inbox({ prefix = "/gather-notifications/", fullPage = false, menuItem = false }) {
   const { data: session, status } = useSession();
   const identity = session?.user?.gatherIdentity || session?.user?.id || session?.user?.email;
   const [open, setOpen] = useState(fullPage);
@@ -225,7 +225,7 @@ export default function Inbox({ prefix = "/gather-notifications/", fullPage = fa
     <details
       ref={box}
       open={fullPage || open}
-      className={fullPage ? styles.fullPage : styles.inbox}
+      className={fullPage ? styles.fullPage : menuItem ? `${styles.inbox} ${styles.menuItem}` : styles.inbox}
       onToggle={(event) => setOpen(event.currentTarget.open)}
     >
       <summary

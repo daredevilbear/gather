@@ -63,29 +63,39 @@
   outline: 2px solid currentColor;
   outline-offset: 3px;
 }
+/* Keep identity controls on the brand row at every viewport size. */
+.searchArea {
+  margin-left: auto;
+}
+.actions {
+  flex-wrap: nowrap;
+}
 @media (max-width: 900px) {
   .header {
-    align-items: flex-start;
-    flex-direction: column;
-    flex-wrap: nowrap;
     gap: 16px;
     padding: 20px 16px;
   }
-  .actions {
-    width: 100%;
-    justify-content: flex-start;
-  }
-  .search {
-    flex: 1;
-    justify-content: flex-start;
-  }
-}
-@media (max-width: 480px) {
-  .search {
-    flex-basis: 100%;
+  .brand {
+    min-width: 0;
   }
   .brand small {
     display: none;
+  }
+  .actions {
+    margin-left: auto;
+  }
+  .searchArea {
+    order: 1;
+    width: 100%;
+    margin-left: 0;
+  }
+  .search {
+    width: 100%;
+    text-align: left;
+  }
+  .tabs,
+  .information {
+    order: 2;
   }
 }
 
@@ -125,4 +135,36 @@
   }
 }
 
-.information { width: 100%; min-width: 0; }
+.information {
+  width: 100%;
+  min-width: 0;
+}
+
+.sectionSelect {
+  display: none;
+}
+@media (max-width: 900px) {
+  .tabList {
+    display: none;
+  }
+  .sectionSelect {
+    display: block;
+    width: 100%;
+    min-height: 48px;
+    padding: 10px 14px;
+    border: 1px solid rgb(var(--color-500) / 0.3);
+    border-radius: 10px;
+    background: rgb(var(--color-100));
+    color: rgb(var(--color-900));
+    font: inherit;
+    font-size: 16px;
+  }
+  :global(.dark) .sectionSelect {
+    background: rgb(var(--color-900));
+    color: rgb(var(--color-100));
+  }
+  .sectionSelect:focus-visible {
+    outline: 2px solid #77cbb2;
+    outline-offset: 3px;
+  }
+}
