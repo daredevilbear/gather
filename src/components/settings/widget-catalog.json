@@ -228,6 +228,18 @@
     "doc": "beszel"
   },
   {
+    "id": "bitaxe",
+    "name": "Bitaxe",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      }
+    ],
+    "doc": "bitaxe",
+    "docUrl": "https://github.com/daredevilbear/gather/blob/dev/docs/widgets/services/bitaxe.md"
+  },
+  {
     "id": "booklore",
     "name": "Booklore",
     "fields": [

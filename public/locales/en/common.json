@@ -1,4 +1,18 @@
 {
+    "bitaxe": {
+        "hashrate": "Hash Rate",
+        "temperature": "Temperature",
+        "voltage": "Voltage",
+        "bestdifficulty": "Best Difficulty",
+        "errorrate": "Error Rate",
+        "poollatency": "Pool Latency",
+        "fan": "Fan",
+        "sessionbest": "Session Best Diff",
+        "pool": "Pool",
+        "primary": "primary",
+        "fallback": "fallback",
+        "updated": "Last updated:"
+    },
     "common": {
         "bytes": "{{value, bytes}}",
         "bits": "{{value, bytes(bits: true)}}",

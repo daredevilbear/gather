@@ -461,7 +461,11 @@ export function IntegrationPicker({ value, onChange }) {
             {item?.doc && (
               <>
                 {" "}
-                <a href={`https://gethomepage.dev/widgets/services/${item.doc}/`} target="_blank" rel="noreferrer">
+                <a
+                  href={item.docUrl || `https://gethomepage.dev/widgets/services/${item.doc}/`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   Setup guide ↗
                 </a>
               </>

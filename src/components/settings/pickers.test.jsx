@@ -6,6 +6,17 @@ import { EditorPreviewContext, IconPicker, IntegrationPicker, TokenList, matches
 
 afterEach(() => vi.unstubAllGlobals());
 describe("guided settings pickers", () => {
+  it("adds Bitaxe from the library and exposes its miner URL", () => {
+    const change = vi.fn();
+    const { rerender } = render(<IntegrationPicker value={null} onChange={change} />);
+    fireEvent.click(screen.getByRole("button", { name: "Choose integration widget" }));
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search widgets" }), { target: { value: "bitaxe" } });
+    fireEvent.click(screen.getByRole("button", { name: /Bitaxe\s*Connect/ }));
+    expect(change).toHaveBeenCalledWith({ type: "bitaxe" });
+    rerender(<IntegrationPicker value={{ type: "bitaxe" }} onChange={change} />);
+    fireEvent.change(screen.getByRole("textbox", { name: "Server URL" }), { target: { value: "http://miner.local" } });
+    expect(change).toHaveBeenLastCalledWith({ type: "bitaxe", url: "http://miner.local" });
+  });
   it("replaces a widget only after confirmation and removes old credentials", () => {
     const change = vi.fn();
     render(

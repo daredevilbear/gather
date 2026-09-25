@@ -21,6 +21,8 @@ for (const file of fs.readdirSync("docs/widgets/services")) {
     if (item.doc) continue;
     item.name = text.match(/^title: (.+)$/m)?.[1].replaceAll('"', "") || example.type;
     item.doc = file.replace(/\.md$/, "");
+    const setupUrl = text.match(/^setup_url: (https:\/\/\S+)$/m)?.[1];
+    if (setupUrl) item.docUrl = setupUrl;
     item.fields = Object.entries(example)
       .filter(([key, val]) => key !== "type" && val !== null && typeof val !== "object")
       .map(([key, val]) => ({
