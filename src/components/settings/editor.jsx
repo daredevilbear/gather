@@ -1,6 +1,7 @@
 import * as yaml from "js-yaml";
 import Head from "next/head";
-import { useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
+import useSWR from "swr";
 
 import styles from "./editor.module.css";
 import Migration from "./migration";
@@ -27,6 +28,8 @@ import { CONNECTION_FILES } from "utils/gather/config-files";
 import { dashboardTabs, renameDashboardTab } from "utils/gather/tabs";
 import themes from "utils/styles/themes";
 
+const PersonalEditorContext = createContext(false);
+const PERSONAL_SECTIONS = ["appearance", "tabs", "layout", "services", "bookmarks", "widgets", "backups"];
 const SECTIONS = [
   {
     id: "appearance",
@@ -471,7 +474,34 @@ function OrganizedGroups({ request, ...props }) {
     </>
   );
 }
+function PersonalIntegration({ value, onChange, request }) {
+  const { data } = useSWR(["personal-integration-catalog", request], () => request(null, "shared-services"));
+  const services = data?.services || [];
+  return (
+    <label>
+      Shared integration
+      <select
+        value={value.gatherSharedService ? JSON.stringify(value.gatherSharedService) : ""}
+        onChange={(event) => {
+          const next = { ...value };
+          if (event.target.value) next.gatherSharedService = JSON.parse(event.target.value);
+          else delete next.gatherSharedService;
+          onChange(next);
+        }}
+      >
+        <option value="">No integration</option>
+        {services.map((service) => (
+          <option key={JSON.stringify(service)} value={JSON.stringify(service)}>
+            {service.group} / {service.name}
+          </option>
+        ))}
+      </select>
+      <small>Use data from a shared service. Credentials remain in server settings.</small>
+    </label>
+  );
+}
 function EntryDetails({ value, onChange, bookmarks }) {
+  const personal = useContext(PersonalEditorContext);
   const fields = bookmarks
     ? [
         ["href", "Link URL"],
@@ -506,7 +536,7 @@ function EntryDetails({ value, onChange, bookmarks }) {
                   <label key={key}>
                     {label}
                     <input
-                      type={key === "href" ? "url" : "text"}
+                      type={key === "href" && !link.href?.startsWith("/") ? "url" : "text"}
                       value={link[key] || ""}
                       onChange={(e) => update({ ...link, [key]: e.target.value })}
                     />
@@ -551,7 +581,10 @@ function EntryDetails({ value, onChange, bookmarks }) {
                 <p>The service card and its URL are kept.</p>
               </section>
             )}
-            {!bookmarks && (
+            {!bookmarks && personal && (
+              <PersonalIntegration value={link} onChange={update} request={personal.request} />
+            )}
+            {!bookmarks && !personal && (
               <IntegrationPicker
                 value={link.widget}
                 onChange={(widget) => {
@@ -951,6 +984,7 @@ function Layout({ value, onChange, request, tabs }) {
   );
 }
 function Widgets({ value, onChange }) {
+  const personal = useContext(PersonalEditorContext);
   const [library, setLibrary] = useState(false);
   const ordering = useOrdering((scope, from, to) => onChange(moveTo(value, from, to)));
   if (!Array.isArray(value)) return <p>Use Source to repair this widget list.</p>;
@@ -973,7 +1007,11 @@ function Widgets({ value, onChange }) {
       {library && (
         <Catalog
           title="Home widget library"
-          items={HOME_WIDGETS}
+          items={
+            personal
+              ? HOME_WIDGETS.filter((item) => ["greeting", "search", "datetime", "openmeteo", "logo"].includes(item.id))
+              : HOME_WIDGETS
+          }
           onSelect={(item) => {
             onChange([...value, { [item.id]: structuredClone(item.defaults) }]);
             setLibrary(false);
@@ -1094,7 +1132,8 @@ function Notifications({ value, onChange }) {
     </section>
   );
 }
-export default function SettingsEditor({ request = api, preview = false }) {
+export default function SettingsEditor({ request = api, preview = false, personal = false }) {
+  const sections = personal ? SECTIONS.filter((item) => PERSONAL_SECTIONS.includes(item.id)) : SECTIONS;
   const [section, setSection] = useState("appearance");
   const [canManageSystem, setCanManageSystem] = useState(preview);
   const [systemDirty, setSystemDirty] = useState(false);
@@ -1228,7 +1267,9 @@ export default function SettingsEditor({ request = api, preview = false }) {
         setConfirmRestore(false);
         setStatus(
           result.applied
-            ? "Saved and applied. The previous version is available in Backup & restore."
+            ? personal
+              ? "Saved to your dashboard."
+              : "Saved and applied. The previous version is available in Backup & restore."
             : "Saved. Dashboard refresh failed; use Reload dashboard or ask the operator to restart the app.",
         );
       }
@@ -1272,268 +1313,280 @@ export default function SettingsEditor({ request = api, preview = false }) {
     else load(item.id);
   }
   return (
-    <EditorPreviewContext.Provider value={preview}>
-      <main className={styles.editor}>
-        <Head>
-          <title>Gather settings</title>
-        </Head>
-        <header className={styles.top}>
-          <div className={styles.brand}>
-            {/* Full navigation keeps the unsaved-edit warning. */}
-            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-            <a href="/" aria-label="Gather home" className={styles.brand}>
-              <GatherMark className={styles.mark} />
-              <strong>Gather</strong>
+    <PersonalEditorContext.Provider value={personal ? { request } : null}>
+      <EditorPreviewContext.Provider value={preview}>
+        <main className={styles.editor}>
+          <Head>
+            <title>Gather settings</title>
+          </Head>
+          <header className={styles.top}>
+            <div className={styles.brand}>
+              {/* Full navigation keeps the unsaved-edit warning. */}
+              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+              <a href="/" aria-label="Gather home" className={styles.brand}>
+                <GatherMark className={styles.mark} />
+                <strong>Gather</strong>
+              </a>
+              <span>/</span>
+              <span>Settings</span>
+            </div>
+            {/* Full navigation preserves the unsaved-edit beforeunload warning. */}
+            <a href={personal ? "/?dashboard=mine" : "/"} className={styles.back}>
+              <GatherIcon name="arrowLeft" /> Back to dashboard
             </a>
-            <span>/</span>
-            <span>Settings</span>
-          </div>
-          {/* Full navigation preserves the unsaved-edit beforeunload warning. */}
-          {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-          <a href="/" className={styles.back}>
-            <GatherIcon name="arrowLeft" /> Back to dashboard
-          </a>
-        </header>
-        <div className={styles.shell}>
-          <aside className={styles.sidebar}>
-            <div className={styles.sidebarTitle}>
-              <h1>Dashboard settings</h1>
-              <p>A little more you.</p>
-            </div>
-            <nav aria-label="Settings sections">
-              {[
-                ...new Set(
-                  SECTIONS.filter((item) => (!item.protected && item.id !== "system") || canManageSystem).map(
-                    (item) => item.group,
+          </header>
+          <div className={styles.shell}>
+            <aside className={styles.sidebar}>
+              <div className={styles.sidebarTitle}>
+                <h1>{personal ? "My dashboard settings" : "Dashboard settings"}</h1>
+                <p>A little more you.</p>
+              </div>
+              <nav aria-label="Settings sections">
+                {[
+                  ...new Set(
+                    sections
+                      .filter((item) => (!item.protected && item.id !== "system") || canManageSystem)
+                      .map((item) => item.group),
                   ),
-                ),
-              ].map((group) => (
-                <div key={group} className={styles.navGroup}>
-                  <span className={styles.eyebrow}>{group}</span>
-                  {SECTIONS.filter(
-                    (item) => item.group === group && ((!item.protected && item.id !== "system") || canManageSystem),
-                  ).map((item) => (
-                    <button
-                      key={item.id}
-                      aria-current={section === item.id ? "page" : undefined}
-                      disabled={busy}
-                      onClick={() => selectSection(item)}
-                    >
-                      <GatherIcon name={item.icon} />
-                      <span>{item.label}</span>
-                      {item.file === file && dirty && <i aria-hidden="true" title="Unsaved changes" />}
-                    </button>
-                  ))}
-                </div>
-              ))}
-            </nav>
-            <div className={styles.sidebarTools}>
-              <button disabled={busy} onClick={checks}>
-                <GatherIcon name="check" /> Check connections
-              </button>
-            </div>
-          </aside>
-          <div className={styles.content}>
-            {pending && (
-              <section className={styles.notice} role="alert">
-                <p>You have unsaved changes. Discard them and open another section?</p>
-                <button
-                  onClick={() => {
-                    const next = pending;
-                    setPending(null);
-                    load(next);
-                  }}
-                >
-                  Discard changes
-                </button>
-                <button onClick={() => setPending(null)}>Keep editing</button>
-              </section>
-            )}
-            {error && (
-              <p className={styles.error} role="alert">
-                {error}
-              </p>
-            )}
-            {status && (
-              <p className={styles.notice} role="status">
-                {status}
-              </p>
-            )}
-            {!doc && !busy && (
-              <p>
-                Ask the server operator to enable GATHER_EDITOR_ENABLED and authorize your account’s stable identity in
-                GATHER_ADMIN_IDS.
-              </p>
-            )}
-            {!doc && busy && <p role="status">Loading settings…</p>}
-            {section === "system" && canManageSystem && (
-              <SystemSettings embedded preview={preview} onDirtyChange={setSystemDirty} titleRef={sectionTitle} />
-            )}
-            {doc && section === "users" && (
-              <Users preview={preview} titleRef={sectionTitle} onDirtyChange={setSystemDirty} />
-            )}
-            {doc && section === "variables" && (
-              <Variables preview={preview} titleRef={sectionTitle} onDirtyChange={setSystemDirty} />
-            )}
-            {doc && section === "migration" && (
-              <Migration
-                canManageConnections={canManageSystem}
-                request={request}
-                titleRef={sectionTitle}
-                onDirtyChange={setSystemDirty}
-              />
-            )}
-            {doc && !["system", "users", "variables", "migration"].includes(section) && (
-              <>
-                <div className={styles.heading}>
-                  <div>
-                    <h2 ref={sectionTitle} tabIndex={-1} className={styles.sectionTitle}>
-                      {current.label}
-                    </h2>
-                    <p>{current.description}</p>
+                ].map((group) => (
+                  <div key={group} className={styles.navGroup}>
+                    <span className={styles.eyebrow}>{group}</span>
+                    {sections
+                      .filter(
+                        (item) =>
+                          item.group === group && ((!item.protected && item.id !== "system") || canManageSystem),
+                      )
+                      .map((item) => (
+                        <button
+                          key={item.id}
+                          aria-current={section === item.id ? "page" : undefined}
+                          disabled={busy}
+                          onClick={() => selectSection(item)}
+                        >
+                          <GatherIcon name={item.icon} />
+                          <span>{item.label}</span>
+                          {item.file === file && dirty && <i aria-hidden="true" title="Unsaved changes" />}
+                        </button>
+                      ))}
                   </div>
-                  {section !== "backups" && !rawOnly && (
-                    <div className={styles.moves}>
-                      <button aria-pressed={mode === "visual"} onClick={() => setMode("visual")}>
-                        Visual
-                      </button>
-                      <button aria-pressed={mode === "source"} onClick={() => setMode("source")}>
-                        Source
-                      </button>
-                    </div>
-                  )}
+                ))}
+              </nav>
+              {!personal && (
+                <div className={styles.sidebarTools}>
+                  <button disabled={busy} onClick={checks}>
+                    <GatherIcon name="check" /> Check connections
+                  </button>
                 </div>
-                {section !== "backups" && (
-                  <>
-                    <fieldset ref={formRef} disabled={busy} className={styles.form}>
-                      {rawOnly || mode === "source" ? (
-                        <>
-                          <p>
-                            {CONNECTION_FILES.includes(file)
-                              ? "Connection settings stay on the server. Use secrets or environment placeholders for credentials; save to update the configured connection."
-                              : rawOnly
-                                ? "Custom code changes dashboard behavior for visitors. JavaScript runs with their signed-in access; only save code you trust."
-                                : "Environment placeholders are preserved. Resolved environment secrets are never loaded into this editor."}
-                          </p>
-                          {file === "vcenter.yaml" && (
-                            <Vcenter preview={preview} request={request} connectionsDirty={dirty} />
-                          )}
-                          <label>
-                            {file}
-                            <textarea
-                              className={styles.source}
-                              spellCheck={false}
-                              value={text}
-                              onChange={(e) => setText(e.target.value)}
-                            />
-                          </label>
-                        </>
-                      ) : parseError ? (
-                        <p role="alert">Invalid syntax. Switch to Source to repair the file.</p>
-                      ) : (
-                        <>
-                          {file === "settings.yaml" && (
-                            <Dashboard value={value} onChange={change} view={section} request={request} />
-                          )}
-                          {["services.yaml", "bookmarks.yaml"].includes(file) && (
-                            <OrganizedGroups
-                              onEditLayout={() => selectSection(SECTIONS.find((item) => item.id === "layout"))}
-                              request={request}
-                              value={value}
-                              onChange={change}
-                              bookmarks={file === "bookmarks.yaml"}
-                            />
-                          )}
-                          {file === "widgets.yaml" && <Widgets value={value} onChange={change} />}
-                          {file === "gather-notifications.json" && <Notifications value={value} onChange={change} />}
-                        </>
-                      )}
-                    </fieldset>
-                    <div className={styles.toolbar}>
-                      <span className={styles.saveState}>
-                        <GatherIcon name={dirty ? "edit" : "check"} />
-                        {dirty ? "Unsaved changes" : "All changes saved"}
-                        <small>
-                          {preview ? "This preview stays in your browser" : "A backup is created with every save"}
-                        </small>
-                      </span>
-                      <button disabled={busy} onClick={() => save("validate")}>
-                        Validate
-                      </button>
-                      <button disabled={busy || !dirty} className={styles.primary} onClick={() => save()}>
-                        Save & apply
-                      </button>
-                      <button
-                        disabled={busy || !dirty}
-                        onClick={resetChanges}
-                        title={`Reset unsaved changes in ${file}`}
-                      >
-                        Reset changes
-                      </button>
+              )}
+            </aside>
+            <div className={styles.content}>
+              {pending && (
+                <section className={styles.notice} role="alert">
+                  <p>You have unsaved changes. Discard them and open another section?</p>
+                  <button
+                    onClick={() => {
+                      const next = pending;
+                      setPending(null);
+                      load(next);
+                    }}
+                  >
+                    Discard changes
+                  </button>
+                  <button onClick={() => setPending(null)}>Keep editing</button>
+                </section>
+              )}
+              {error && (
+                <p className={styles.error} role="alert">
+                  {error}
+                </p>
+              )}
+              {status && (
+                <p className={styles.notice} role="status">
+                  {status}
+                </p>
+              )}
+              {!doc && !busy && (
+                <p>
+                  Ask the server operator to enable GATHER_EDITOR_ENABLED and authorize your account’s stable identity
+                  in GATHER_ADMIN_IDS.
+                </p>
+              )}
+              {!doc && busy && <p role="status">Loading settings…</p>}
+              {section === "system" && canManageSystem && (
+                <SystemSettings embedded preview={preview} onDirtyChange={setSystemDirty} titleRef={sectionTitle} />
+              )}
+              {doc && section === "users" && (
+                <Users preview={preview} titleRef={sectionTitle} onDirtyChange={setSystemDirty} />
+              )}
+              {doc && section === "variables" && (
+                <Variables preview={preview} titleRef={sectionTitle} onDirtyChange={setSystemDirty} />
+              )}
+              {doc && section === "migration" && (
+                <Migration
+                  canManageConnections={canManageSystem}
+                  request={request}
+                  titleRef={sectionTitle}
+                  onDirtyChange={setSystemDirty}
+                />
+              )}
+              {doc && !["system", "users", "variables", "migration"].includes(section) && (
+                <>
+                  <div className={styles.heading}>
+                    <div>
+                      <h2 ref={sectionTitle} tabIndex={-1} className={styles.sectionTitle}>
+                        {current.label}
+                      </h2>
+                      <p>{current.description}</p>
                     </div>
-                  </>
-                )}
-                {section === "backups" && (
-                  <section className={styles.card}>
-                    <label>
-                      Configuration to restore
-                      <select value={file} disabled={busy} onChange={(e) => load("backups", e.target.value)}>
-                        {[
-                          ...new Set(
-                            SECTIONS.filter((item) => !item.protected || canManageSystem)
-                              .map((item) => item.file)
-                              .filter(Boolean),
-                          ),
-                        ].map((name) => (
-                          <option key={name} value={name}>
-                            {name}
+                    {section !== "backups" && !rawOnly && (
+                      <div className={styles.moves}>
+                        <button aria-pressed={mode === "visual"} onClick={() => setMode("visual")}>
+                          Visual
+                        </button>
+                        <button aria-pressed={mode === "source"} onClick={() => setMode("source")}>
+                          Source
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  {section !== "backups" && (
+                    <>
+                      <fieldset ref={formRef} disabled={busy} className={styles.form}>
+                        {rawOnly || mode === "source" ? (
+                          <>
+                            <p>
+                              {CONNECTION_FILES.includes(file)
+                                ? "Connection settings stay on the server. Use secrets or environment placeholders for credentials; save to update the configured connection."
+                                : rawOnly
+                                  ? "Custom code changes dashboard behavior for visitors. JavaScript runs with their signed-in access; only save code you trust."
+                                  : "Environment placeholders are preserved. Resolved environment secrets are never loaded into this editor."}
+                            </p>
+                            {file === "vcenter.yaml" && (
+                              <Vcenter preview={preview} request={request} connectionsDirty={dirty} />
+                            )}
+                            <label>
+                              {file}
+                              <textarea
+                                className={styles.source}
+                                spellCheck={false}
+                                value={text}
+                                onChange={(e) => setText(e.target.value)}
+                              />
+                            </label>
+                          </>
+                        ) : parseError ? (
+                          <p role="alert">Invalid syntax. Switch to Source to repair the file.</p>
+                        ) : (
+                          <>
+                            {file === "settings.yaml" && (
+                              <Dashboard value={value} onChange={change} view={section} request={request} />
+                            )}
+                            {["services.yaml", "bookmarks.yaml"].includes(file) && (
+                              <OrganizedGroups
+                                onEditLayout={() => selectSection(SECTIONS.find((item) => item.id === "layout"))}
+                                request={request}
+                                value={value}
+                                onChange={change}
+                                bookmarks={file === "bookmarks.yaml"}
+                              />
+                            )}
+                            {file === "widgets.yaml" && <Widgets value={value} onChange={change} />}
+                            {file === "gather-notifications.json" && <Notifications value={value} onChange={change} />}
+                          </>
+                        )}
+                      </fieldset>
+                      <div className={styles.toolbar}>
+                        <span className={styles.saveState}>
+                          <GatherIcon name={dirty ? "edit" : "check"} />
+                          {dirty ? "Unsaved changes" : "All changes saved"}
+                          <small>
+                            {preview
+                              ? "This preview stays in your browser"
+                              : personal
+                                ? "Changes apply only to your dashboard"
+                                : "A backup is created with every save"}
+                          </small>
+                        </span>
+                        <button disabled={busy} onClick={() => save("validate")}>
+                          Validate
+                        </button>
+                        <button disabled={busy || !dirty} className={styles.primary} onClick={() => save()}>
+                          Save & apply
+                        </button>
+                        <button
+                          disabled={busy || !dirty}
+                          onClick={resetChanges}
+                          title={`Reset unsaved changes in ${file}`}
+                        >
+                          Reset changes
+                        </button>
+                      </div>
+                    </>
+                  )}
+                  {section === "backups" && (
+                    <section className={styles.card}>
+                      <label>
+                        Configuration to restore
+                        <select value={file} disabled={busy} onChange={(e) => load("backups", e.target.value)}>
+                          {[
+                            ...new Set(
+                              sections
+                                .filter((item) => !item.protected || canManageSystem)
+                                .map((item) => item.file)
+                                .filter(Boolean),
+                            ),
+                          ].map((name) => (
+                            <option key={name} value={name}>
+                              {name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <h3>Saved versions</h3>
+                      <p>
+                        Restore a previous version of this section. Restoring also backs up the current version. The
+                        most recent 50 backups are listed.
+                      </p>
+                      <select
+                        aria-label="Backup to restore"
+                        value={backup}
+                        onChange={(e) => {
+                          setBackup(e.target.value);
+                          setConfirmRestore(false);
+                        }}
+                      >
+                        <option value="">Choose a backup</option>
+                        {doc.backups?.map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {new Date(b.date).toLocaleString()} · {b.id.slice(-8)}
                           </option>
                         ))}
                       </select>
-                    </label>
-                    <h3>Saved versions</h3>
-                    <p>
-                      Restore a previous version of this section. Restoring also backs up the current version. The most
-                      recent 50 backups are listed.
-                    </p>
-                    <select
-                      aria-label="Backup to restore"
-                      value={backup}
-                      onChange={(e) => {
-                        setBackup(e.target.value);
-                        setConfirmRestore(false);
-                      }}
-                    >
-                      <option value="">Choose a backup</option>
-                      {doc.backups?.map((b) => (
-                        <option key={b.id} value={b.id}>
-                          {new Date(b.date).toLocaleString()} · {b.id.slice(-8)}
-                        </option>
-                      ))}
-                    </select>
-                    <button disabled={!backup || busy} onClick={() => setConfirmRestore(true)}>
-                      Restore selected backup
-                    </button>
-                    {confirmRestore && (
-                      <div role="alert">
-                        <p>Replace this file with the selected backup? Unsaved edits will be discarded.</p>
-                        <button disabled={busy} onClick={() => save("restore")}>
-                          Confirm restore
-                        </button>
-                        <button onClick={() => setConfirmRestore(false)}>Cancel</button>
-                      </div>
-                    )}
-                  </section>
-                )}
-                <p className={styles.hint}>
-                  Visual edits preserve your configuration values and placeholders. YAML formatting and comments may be
-                  normalized; previous versions are available in Backup & restore.
-                </p>
-              </>
-            )}
+                      <button disabled={!backup || busy} onClick={() => setConfirmRestore(true)}>
+                        Restore selected backup
+                      </button>
+                      {confirmRestore && (
+                        <div role="alert">
+                          <p>Replace this file with the selected backup? Unsaved edits will be discarded.</p>
+                          <button disabled={busy} onClick={() => save("restore")}>
+                            Confirm restore
+                          </button>
+                          <button onClick={() => setConfirmRestore(false)}>Cancel</button>
+                        </div>
+                      )}
+                    </section>
+                  )}
+                  <p className={styles.hint}>
+                    {personal
+                      ? "Your dashboard is saved separately from the shared dashboard."
+                      : "Visual edits preserve your configuration values and placeholders. YAML formatting and comments may be normalized; previous versions are available in Backup & restore."}
+                  </p>
+                </>
+              )}
+            </div>
           </div>
-        </div>
-      </main>
-    </EditorPreviewContext.Provider>
+        </main>
+      </EditorPreviewContext.Provider>
+    </PersonalEditorContext.Provider>
   );
 }

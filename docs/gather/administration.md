@@ -63,9 +63,13 @@ Users whose identity has no prepared role retain shared-dashboard access as view
 - Disabled users are blocked at the application boundary; their notification session and session-based MCP access are also rejected.
 - These roles govern Gather. Access inside linked services remains controlled by those services and the operator's configured shared integrations.
 
-My dashboard now configures the signed-in home page. Editors and administrators can rename/reorder tabs, move groups between tabs, choose columns, hide/reorder services and bookmarks, and select/reorder home widgets. Saves are account-owned and revision checked. Sign in on another device to use the same layout. `/?shared=1` displays the shared layout, and “Use shared layout” removes the personal override.
+My dashboard uses the same Appearance, Tabs, Layout, Services, Bookmarks, Home widgets, and Backup & restore editors as Dashboard Settings. Editors and administrators save their own documents, without modifying shared configuration. Existing personal layouts and links seed the new dashboard on first use. Service integration data can be selected from the shared-service dropdown; credentials and server connections remain centrally managed. Custom JavaScript, server connections, and user administration are not personal dashboard sections.
 
-Personal layouts reference centrally configured services and widgets; connection credentials are never copied into a personal record. Hiding items is a presentation preference, not a service-access restriction. Newly configured groups can be added from My dashboard. Existing private links remain stored and accessible at the bottom of My dashboard.
+Choose **Use my dashboard**, **Use shared dashboard**, or paste a shared dashboard link to set the account's current dashboard across devices. `/?dashboard=mine` opens your own dashboard; `/?shared=1` always opens the shared dashboard. Choosing a shared dashboard does not delete your personal work.
+
+**Share my dashboard** creates a view-only link for enabled, signed-in Gather users. Recipients cannot edit the owner's documents, even if they have editor access to their own dashboard. **Stop sharing** invalidates that link and saved selections using it; re-enabling sharing creates a new link. Disabled owners' shared dashboards are unavailable. Viewers can select dashboards but need editor access to customize or share their own.
+
+Personal documents, saved versions, sharing tokens and current selections are stored in `config/.gather-workspaces.sqlite`; include it in backups. The latest 50 document snapshots support personal section restore. Legacy layout records remain in `.gather-users.sqlite`. Presentation choices do not restrict access to centrally configured services.
 
 User search matches names and emails of registered Gather accounts, with whitespace/case normalization, role/status filters, matching counts, empty-result help and refresh. It is separate from Add user and does not query an external identity-provider directory.
 

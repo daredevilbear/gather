@@ -4,6 +4,7 @@ import { useTranslation } from "next-i18next/pages";
 import { serverSideTranslations } from "next-i18next/pages/serverSideTranslations";
 import dynamic from "next/dynamic";
 import Head from "next/head";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import Script from "next/script";
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
@@ -235,6 +236,21 @@ function Home({ initialSettings }) {
     },
   );
 
+  const { data: workspace, error: workspaceError } = useSWR(
+    sessionStatus === "authenticated" && identity
+      ? ["dashboard-view", identity, query.dashboard || (query.shared === "1" ? "shared" : "current")]
+      : null,
+    async () => {
+      const target = query.dashboard || (query.shared === "1" ? "shared" : "");
+      const response = await fetch(
+        `/api/gather/dashboard-view${target ? `?dashboard=${encodeURIComponent(target)}` : ""}`,
+        { cache: "no-store", credentials: "same-origin" },
+      );
+      const result = await response.json();
+      if (!response.ok) throw Error(result.error || "Could not load dashboard.");
+      return result;
+    },
+  );
   useEffect(() => {
     setSettings(initialSettings);
   }, [initialSettings, setSettings]);
@@ -242,17 +258,23 @@ function Home({ initialSettings }) {
   const { data: sharedServices = [] } = useSWR("/api/services");
   const { data: sharedBookmarks = [] } = useSWR("/api/bookmarks");
   const { data: sharedWidgets = [] } = useSWR("/api/widgets");
-  const personalLayoutActive = query.shared !== "1" && Boolean(personal?.dashboard?.layout);
+  const personalLayoutActive =
+    Boolean(workspace?.view) ||
+    (query.shared !== "1" &&
+      (!workspace || workspace.legacy) &&
+      !workspaceError &&
+      Boolean(personal?.dashboard?.layout));
   const { settings, services, bookmarks, widgets } = useMemo(
     () =>
+      workspace?.view ||
       applyPersonalLayout(
         sharedSettings,
         sharedServices,
         sharedBookmarks,
         sharedWidgets,
-        query.shared === "1" ? null : personal?.dashboard?.layout,
+        query.shared === "1" || (workspace && !workspace.legacy) || workspaceError ? null : personal?.dashboard?.layout,
       ),
-    [sharedSettings, sharedServices, sharedBookmarks, sharedWidgets, personal, query.shared],
+    [sharedSettings, sharedServices, sharedBookmarks, sharedWidgets, personal, query.shared, workspace, workspaceError],
   );
 
   const servicesAndBookmarks = [...bookmarks.map((bg) => bg.bookmarks).flat(), ...getAllServices(services)].filter(
@@ -506,6 +528,12 @@ function Home({ initialSettings }) {
             )
           }
         />
+        {workspaceError && (
+          <p role="alert">
+            {workspaceError.message} Showing the shared dashboard. Choose another in{" "}
+            <Link href="/dashboard">My dashboard</Link>.
+          </p>
+        )}
         {personalError && (
           <p role="alert" className="m-4 p-4">
             Your personal layout could not be loaded. Showing the shared layout; reload to try again.

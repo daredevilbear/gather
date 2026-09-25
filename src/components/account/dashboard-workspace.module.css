@@ -1,0 +1,25 @@
+.controls.controls {
+  min-height: auto;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+.controls.controls h1 {
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+.controls.controls summary {
+  cursor: pointer;
+  padding: 0.65rem 0;
+  font-weight: 600;
+}
+.controls.controls fieldset {
+  max-width: 70rem;
+  padding: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 1rem;
+}
+@media (max-width: 640px) {
+  .controls.controls {
+    padding: 1rem;
+  }
+}
