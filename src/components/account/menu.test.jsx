@@ -42,3 +42,12 @@ describe("Gather account menu", () => {
     },
   );
 });
+
+it("shows unread count on the closed account control and clears it at zero", () => {
+  useSession.mockReturnValue({ status: "authenticated", data: { user: { name: "Example User" } } });
+  const view = render(<AccountMenu unreadCount={3} />);
+  expect(view.getByRole("status", { name: "3 unread notifications" }).closest("summary")).not.toBeNull();
+  expect(view.container.querySelector("details").open).toBe(false);
+  view.rerender(<AccountMenu unreadCount={0} />);
+  expect(view.queryByRole("status")).toBeNull();
+});

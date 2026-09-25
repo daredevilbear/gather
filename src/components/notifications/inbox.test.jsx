@@ -16,10 +16,10 @@ const messages = [
   { id: "two", title: "Second", message: "Second body", topic: "test", time: 2 },
 ];
 let states;
-function mount() {
+function mount(props = {}) {
   return render(
     <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
-      <Inbox />
+      <Inbox {...props} />
     </SWRConfig>,
   );
 }
@@ -154,4 +154,13 @@ it("reapplies the badge on app resume even when inbox data is unchanged", async 
   navigator.setAppBadge.mockClear();
   fireEvent(document, new Event("visibilitychange"));
   await waitFor(() => expect(navigator.setAppBadge).toHaveBeenCalledWith(1));
+});
+
+it("reports unread count while closed and updates after marking read", async () => {
+  const onUnreadChange = vi.fn();
+  const view = mount({ onUnreadChange });
+  await waitFor(() => expect(onUnreadChange).toHaveBeenLastCalledWith(1));
+  expect(view.container.querySelector("details").open).toBe(false);
+  fireEvent.click(screen.getByText("Mark read"));
+  await waitFor(() => expect(onUnreadChange).toHaveBeenLastCalledWith(0));
 });

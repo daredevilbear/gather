@@ -18,7 +18,7 @@ export function accountSettingsUrl(value) {
   }
 }
 
-export default function AccountMenu({ settingsUrl, notifications }) {
+export default function AccountMenu({ settingsUrl, notifications, unreadCount = 0 }) {
   const { data: session, status } = useSession();
   const { t } = useTranslation();
   if (status !== "authenticated" || !session?.user) return null;
@@ -26,6 +26,7 @@ export default function AccountMenu({ settingsUrl, notifications }) {
     <AccountMenuView
       user={session.user}
       notifications={notifications}
+      unreadCount={unreadCount}
       settingsUrl={settingsUrl}
       dashboardSettings={<SettingsLink />}
       signOutLabel={t("auth.signout")}
@@ -39,6 +40,7 @@ export function AccountMenuView({
   settingsUrl,
   dashboardSettings,
   notifications,
+  unreadCount = 0,
   signOutLabel = "Sign out",
   onSignOut,
 }) {
@@ -89,6 +91,11 @@ export function AccountMenuView({
           </span>
         )}
         <span>{name}</span>
+        {unreadCount > 0 && (
+          <span className={styles.badge} role="status" aria-label={`${unreadCount} unread notifications`}>
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </span>
+        )}
         <span aria-hidden="true" className="ml-auto">
           <GatherIcon name="chevron" />
         </span>

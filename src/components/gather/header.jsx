@@ -1,6 +1,6 @@
 import classNames from "classnames";
 import Link from "next/link";
-import { useContext } from "react";
+import { useContext, useState } from "react";
 
 import styles from "./header.module.css";
 import GatherIcon from "./icon";
@@ -13,6 +13,7 @@ import Tab, { slugifyAndEncode } from "components/tab";
 import { TabContext } from "utils/contexts/tab";
 
 export default function GatherHeader({ settings = {}, tabs = [], onSearch, informationWidgets }) {
+  const [unreadCount, setUnreadCount] = useState(0);
   const { data: preferences } = usePreferences();
   const { activeTab, setActiveTab } = useContext(TabContext) || {};
   const selectedTab = tabs.find((tab) => slugifyAndEncode(tab) === activeTab) || tabs[0];
@@ -34,9 +35,12 @@ export default function GatherHeader({ settings = {}, tabs = [], onSearch, infor
       <nav className={styles.actions} aria-label="Application">
         {settings.gather?.accountMenu !== false && (
           <AccountMenu
+            unreadCount={settings.gather?.notifications ? unreadCount : 0}
             settingsUrl={settings.gather?.accountSettingsUrl}
             notifications={
-              settings.gather?.notifications ? <Inbox prefix={settings.gather.notificationPrefix} menuItem /> : null
+              settings.gather?.notifications ? (
+                <Inbox prefix={settings.gather.notificationPrefix} menuItem onUnreadChange={setUnreadCount} />
+              ) : null
             }
           />
         )}

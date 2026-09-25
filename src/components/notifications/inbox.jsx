@@ -10,7 +10,12 @@ import PushControls from "./push";
 import GatherIcon from "components/gather/icon";
 
 const validId = (value) => typeof value === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(value);
-export default function Inbox({ prefix = "/gather-notifications/", fullPage = false, menuItem = false }) {
+export default function Inbox({
+  prefix = "/gather-notifications/",
+  fullPage = false,
+  menuItem = false,
+  onUnreadChange,
+}) {
   const { data: session, status } = useSession();
   const identity = session?.user?.gatherIdentity || session?.user?.id || session?.user?.email;
   const [open, setOpen] = useState(fullPage);
@@ -168,6 +173,9 @@ export default function Inbox({ prefix = "/gather-notifications/", fullPage = fa
   }
   const preferences = { badge: true, pushPage: true, inboxView: "panel", ...data?.preferences };
   const badgeCount = (data?.messages || []).filter((message) => !data?.states?.[message.id]).length;
+  useEffect(() => {
+    onUnreadChange?.(status === "authenticated" ? badgeCount : 0);
+  }, [status, badgeCount, onUnreadChange]);
   useEffect(() => {
     if (!("setAppBadge" in navigator)) return;
     if (status === "unauthenticated" || (data && (!preferences.badge || badgeCount === 0))) {
