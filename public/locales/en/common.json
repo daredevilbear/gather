@@ -1,4 +1,28 @@
 {
+    "bitcoinnode": {
+        "connections": "Connections",
+        "mempool": "Mempool",
+        "blockchainsize": "Blockchain Size",
+        "uptime": "Node Uptime",
+        "sync": "Blockchain",
+        "synchronized": "Synchronized",
+        "syncing": "Synchronizing",
+        "status": "Status",
+        "running": "Running",
+        "networkdisabled": "Network disabled",
+        "version": "Software",
+        "height": "Block Height",
+        "peers": "Peers",
+        "clearnet": "Clearnet",
+        "tor": "Tor",
+        "i2p": "I2P",
+        "other": "Other",
+        "latestblocks": "Latest Blocks",
+        "ago": "ago",
+        "blocksunavailable": "Some recent block data is unavailable.",
+        "pruned": "Pruned",
+        "updated": "Updated"
+    },
     "bitaxe": {
         "hashrate": "Hash Rate",
         "temperature": "Temperature",

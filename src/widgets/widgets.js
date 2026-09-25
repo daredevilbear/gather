@@ -11,6 +11,7 @@ import backrest from "./backrest/widget";
 import bazarr from "./bazarr/widget";
 import beszel from "./beszel/widget";
 import bitaxe from "./bitaxe/widget";
+import bitcoinnode from "./bitcoinnode/widget";
 import booklore from "./booklore/widget";
 import caddy from "./caddy/widget";
 import calendar from "./calendar/widget";
@@ -174,6 +175,7 @@ const widgets = {
   booklore,
   beszel,
   bitaxe,
+  bitcoinnode,
   caddy,
   calibreweb,
   changedetectionio,

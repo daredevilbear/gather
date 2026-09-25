@@ -240,6 +240,26 @@
     "docUrl": "https://github.com/daredevilbear/gather/blob/dev/docs/widgets/services/bitaxe.md"
   },
   {
+    "id": "bitcoinnode",
+    "name": "Bitcoin Node",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "username",
+        "kind": "text"
+      },
+      {
+        "key": "password",
+        "kind": "password"
+      }
+    ],
+    "doc": "bitcoinnode",
+    "docUrl": "https://github.com/daredevilbear/gather/blob/dev/docs/widgets/services/bitcoinnode.md"
+  },
+  {
     "id": "booklore",
     "name": "Booklore",
     "fields": [

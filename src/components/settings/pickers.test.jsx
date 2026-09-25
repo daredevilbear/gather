@@ -6,6 +6,19 @@ import { EditorPreviewContext, IconPicker, IntegrationPicker, TokenList, matches
 
 afterEach(() => vi.unstubAllGlobals());
 describe("guided settings pickers", () => {
+  it("offers Bitcoin Node with RPC connection fields", () => {
+    const change = vi.fn();
+    const { rerender } = render(<IntegrationPicker value={null} onChange={change} />);
+    fireEvent.click(screen.getByRole("button", { name: "Choose integration widget" }));
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search widgets" }), { target: { value: "bitcoin" } });
+    fireEvent.click(screen.getByRole("button", { name: /Bitcoin Node/ }));
+    expect(change).toHaveBeenCalledWith({ type: "bitcoinnode" });
+    rerender(<IntegrationPicker value={{ type: "bitcoinnode" }} onChange={change} />);
+    expect(screen.getByRole("textbox", { name: "Server URL" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Username")).toBeInTheDocument();
+    expect(screen.getByLabelText("Password")).toHaveAttribute("type", "password");
+  });
+
   it("adds Bitaxe from the library and exposes its miner URL", () => {
     const change = vi.fn();
     const { rerender } = render(<IntegrationPicker value={null} onChange={change} />);
