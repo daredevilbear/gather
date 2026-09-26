@@ -51,3 +51,29 @@ it("shows unread count on the closed account control and clears it at zero", () 
   view.rerender(<AccountMenu unreadCount={0} />);
   expect(view.queryByRole("status")).toBeNull();
 });
+
+it("closes the account menu when its inbox closes, without reacting to nested preferences", () => {
+  useSession.mockReturnValue({ status: "authenticated", data: { user: { name: "Example User" } } });
+  const view = render(
+    <AccountMenu
+      notifications={
+        <details data-account-inbox="true">
+          <summary>Notifications</summary>
+          <details>
+            <summary>Preferences</summary>
+          </details>
+        </details>
+      }
+    />,
+  );
+  const [account, inbox, preferences] = view.container.querySelectorAll("details");
+  inbox.open = true;
+  fireEvent(inbox, new Event("toggle"));
+  expect(account.open).toBe(true);
+  fireEvent(preferences, new Event("toggle"));
+  expect(account.open).toBe(true);
+  inbox.open = false;
+  fireEvent(inbox, new Event("toggle"));
+  expect(account.open).toBe(false);
+  expect(account.querySelector("summary")).toHaveFocus();
+});

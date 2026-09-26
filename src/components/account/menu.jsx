@@ -71,7 +71,11 @@ export function AccountMenuView({
       ref={box}
       className={styles.account}
       onToggleCapture={(event) => {
-        if (event.target !== event.currentTarget && event.target.open) event.currentTarget.open = true;
+        if (event.target.dataset.accountInbox !== "true") return;
+        const account = event.currentTarget;
+        const wasOpen = account.open;
+        account.open = event.target.open;
+        if (wasOpen && !account.open) account.querySelector("summary")?.focus();
       }}
       onToggle={(event) => {
         if (event.target === event.currentTarget && !event.currentTarget.open) {
