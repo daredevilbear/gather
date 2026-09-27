@@ -124,11 +124,24 @@ export default function Inbox({
       navigator.serviceWorker?.removeEventListener("message", handoff);
     };
   }, [mutate]);
+  const closeInbox = useCallback(() => {
+    if (fullPage) return;
+    setOpen(false);
+    setSelected(null);
+    focused.current = null;
+    // Consume the push deep link so hash navigation and pageshow cannot reopen it.
+    const url = new URL(location.href);
+    if (url.searchParams.has("notifications") || url.searchParams.has("notification")) {
+      url.searchParams.delete("notifications");
+      url.searchParams.delete("notification");
+      history.replaceState(history.state, "", url.href);
+    }
+  }, [fullPage]);
   useEffect(() => {
     function close(event) {
       if (fullPage) return;
       if (event.key === "Escape" || (event.type === "pointerdown" && !box.current?.contains(event.target)))
-        setOpen(false);
+        closeInbox();
     }
     document.addEventListener("keydown", close);
     document.addEventListener("pointerdown", close);
@@ -136,7 +149,7 @@ export default function Inbox({
       document.removeEventListener("keydown", close);
       document.removeEventListener("pointerdown", close);
     };
-  }, [fullPage]);
+  }, [fullPage, closeInbox]);
   useEffect(() => {
     if (open && target.current && focused.current !== selected) {
       target.current.scrollIntoView?.({ block: "nearest" });
@@ -235,7 +248,11 @@ export default function Inbox({
       data-account-inbox={menuItem ? "true" : undefined}
       open={fullPage || open}
       className={fullPage ? styles.fullPage : menuItem ? `${styles.inbox} ${styles.menuItem}` : styles.inbox}
-      onToggle={(event) => setOpen(event.currentTarget.open)}
+      onToggle={(event) => {
+        if (event.target !== event.currentTarget) return;
+        if (event.currentTarget.open) setOpen(true);
+        else closeInbox();
+      }}
     >
       <summary
         hidden={fullPage}
@@ -262,7 +279,7 @@ export default function Inbox({
               <Link href={`/notifications${selected ? `?notification=${encodeURIComponent(selected)}` : ""}`}>
                 Expand inbox
               </Link>
-              <button type="button" onClick={() => setOpen(false)}>
+              <button type="button" onClick={closeInbox}>
                 Close
               </button>
             </>

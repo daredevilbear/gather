@@ -164,3 +164,42 @@ it("reports unread count while closed and updates after marking read", async () 
   fireEvent.click(screen.getByText("Mark read"));
   await waitFor(() => expect(onUnreadChange).toHaveBeenLastCalledWith(0));
 });
+
+it.each(["button", "escape", "outside", "toggle"])(
+  "consumes a push link on %s close and stays closed across tab navigation",
+  async (method) => {
+    history.replaceState({ marker: "preserved" }, "", "/?dashboard=mine&notifications=open&notification=one#home");
+    const view = mount();
+    await screen.findByText("First");
+    const details = view.container.querySelector("details");
+    expect(details.open).toBe(true);
+    if (method === "button") fireEvent.click(screen.getByText("Close"));
+    if (method === "escape") fireEvent.keyDown(document, { key: "Escape" });
+    if (method === "outside") fireEvent.pointerDown(document.body);
+    if (method === "toggle") {
+      details.open = false;
+      fireEvent(details, new Event("toggle"));
+    }
+    await waitFor(() => expect(details.open).toBe(false));
+    expect(location.search).toBe("?dashboard=mine");
+    expect(location.hash).toBe("#home");
+    expect(history.state.marker).toBe("preserved");
+    history.replaceState(history.state, "", "/?dashboard=mine#systems");
+    fireEvent.popState(window);
+    fireEvent(window, new Event("pageshow"));
+    expect(details.open).toBe(false);
+    view.unmount();
+    const reopened = mount();
+    await screen.findByText("First");
+    expect(reopened.container.querySelector("details").open).toBe(false);
+    await act(async () =>
+      navigator.serviceWorker.dispatchEvent(
+        new MessageEvent("message", {
+          origin: location.origin,
+          data: { type: "GATHER_OPEN_NOTIFICATION", messageId: "two" },
+        }),
+      ),
+    );
+    expect(reopened.container.querySelector("details").open).toBe(true);
+  },
+);
