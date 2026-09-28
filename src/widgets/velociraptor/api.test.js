@@ -34,6 +34,8 @@ it("handles no enrolled clients", async () => {
 it.each([
   { Response: "bad json" },
   { log: "ERROR: Permission denied" },
+  { log: "clients: Permission denied" },
+  { log: "client_info: Unable to access datastore" },
   { Response: '[{"client_id":"C.1"}]' },
   { uncompressed_size: 100 },
 ])("rejects partial or invalid results", async (message) => {
@@ -48,4 +50,14 @@ it("rejects failed streams even after receiving rows", async () => {
   stream.emit("data", { Response: "[]" });
   stream.emit("error", new Error("deadline"));
   await expect(result).rejects.toThrow();
+});
+
+it("accepts normal server progress logs containing the query name", async () => {
+  const { stream, result } = setup();
+  stream.emit("data", { log: "Starting query execution.\n" });
+  stream.emit("data", { log: "Time 0: GatherClients: Sending response part 0 1.1 kB (16 rows).\n" });
+  stream.emit("data", { Response: JSON.stringify([{ client_id: "C.test", last_seen_at: Date.now() * 1000 }]) });
+  stream.emit("end");
+  expect(await result).toEqual({ total: 1, recent: 1, stale: 0 });
+  expect(stream.cancel).not.toHaveBeenCalled();
 });

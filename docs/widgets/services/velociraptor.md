@@ -10,7 +10,7 @@ Allowed fields: `["total", "recent", "stale"]`.
 `recent` counts clients seen within the last 15 minutes; `stale` counts the remainder.
 These are last-seen counts, not a guarantee that a client has an open connection.
 
-Create a dedicated API client identity with `READ_RESULTS` permission using the
+Create a dedicated API client identity with `ANY_QUERY` and `READ_RESULTS` permissions using the
 [Velociraptor API setup instructions](https://docs.velociraptor.app/docs/server_automation/server_api/).
 Mount its generated API client YAML file read-only into the Gather container, for example
 `./velociraptor-api.yaml:/app/config/velociraptor-api.yaml:ro`.

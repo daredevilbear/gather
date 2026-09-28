@@ -72,7 +72,7 @@ export function queryClients(client, orgId = "") {
       try {
         if (
           Number(message.uncompressed_size) > 0 ||
-          /\b(error|fatal|denied|timeout|cancelled|canceled)\b|clients:|client_info:/i.test(message.log || "")
+          /\b(error|fatal|denied|timeout|cancelled|canceled)\b|^(?:clients|client_info):/im.test(message.log || "")
         ) {
           fail();
           return;
