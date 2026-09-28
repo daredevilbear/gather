@@ -1,4 +1,16 @@
 {
+    "wazuh": {
+        "total": "Agents",
+        "active": "Active",
+        "disconnected": "Disconnected",
+        "pending": "Pending",
+        "never_connected": "Never connected"
+    },
+    "velociraptor": {
+        "total": "Clients",
+        "recent": "Seen in 15m",
+        "stale": "Not seen in 15m"
+    },
     "bitcoinnode": {
         "connections": "Connections",
         "mempool": "Mempool",
