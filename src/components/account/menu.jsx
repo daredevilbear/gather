@@ -1,7 +1,11 @@
-
 import { signOut, useSession } from "next-auth/react";
 import { useTranslation } from "next-i18next/pages";
+import Link from "next/link";
+import { useEffect, useRef } from "react";
 
+import styles from "./menu.module.css";
+
+import GatherIcon from "components/gather/icon";
 import SettingsLink from "components/settings/link";
 
 export function accountSettingsUrl(value) {
@@ -14,19 +18,74 @@ export function accountSettingsUrl(value) {
   }
 }
 
-export default function AccountMenu({ settingsUrl }) {
+export default function AccountMenu({ settingsUrl, notifications, unreadCount = 0 }) {
   const { data: session, status } = useSession();
   const { t } = useTranslation();
   if (status !== "authenticated" || !session?.user) return null;
+  return (
+    <AccountMenuView
+      user={session.user}
+      notifications={notifications}
+      unreadCount={unreadCount}
+      settingsUrl={settingsUrl}
+      dashboardSettings={<SettingsLink />}
+      signOutLabel={t("auth.signout")}
+      onSignOut={() => signOut({ callbackUrl: "/auth/signin?autologin=0" })}
+    />
+  );
+}
 
-  const user = session.user;
+export function AccountMenuView({
+  user,
+  settingsUrl,
+  dashboardSettings,
+  notifications,
+  unreadCount = 0,
+  signOutLabel = "Sign out",
+  onSignOut,
+}) {
+  const box = useRef(null);
+  useEffect(() => {
+    function close(event) {
+      if (
+        box.current &&
+        (event.key === "Escape" || (event.type === "pointerdown" && !box.current.contains(event.target)))
+      ) {
+        if (event.key === "Escape" && box.current.open) box.current.querySelector("summary")?.focus();
+        box.current.open = false;
+      }
+    }
+    document.addEventListener("keydown", close);
+    document.addEventListener("pointerdown", close);
+    return () => {
+      document.removeEventListener("keydown", close);
+      document.removeEventListener("pointerdown", close);
+    };
+  }, []);
   const name = user.name?.trim().split(/\s+/)[0] || user.email || "Account";
   const settings = accountSettingsUrl(settingsUrl);
   const image = accountSettingsUrl(user.image);
 
   return (
-    <details className="w-full sm:w-auto rounded-xl border border-theme-500/30 bg-theme-100/10 dark:bg-theme-900/30 text-theme-800 dark:text-theme-200">
-      <summary className="flex min-h-12 cursor-pointer items-center gap-3 px-4 py-2 list-none">
+    <details
+      ref={box}
+      className={styles.account}
+      onToggleCapture={(event) => {
+        if (event.target.dataset.accountInbox !== "true") return;
+        const account = event.currentTarget;
+        const wasOpen = account.open;
+        account.open = event.target.open;
+        if (wasOpen && !account.open) account.querySelector("summary")?.focus();
+      }}
+      onToggle={(event) => {
+        if (event.target === event.currentTarget && !event.currentTarget.open) {
+          event.currentTarget.querySelectorAll("details[open]").forEach((child) => {
+            child.open = false;
+          });
+        }
+      }}
+    >
+      <summary className={styles.summary}>
         {image ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={image} alt="" referrerPolicy="no-referrer" className="h-7 w-7 rounded-full object-cover" />
@@ -36,19 +95,37 @@ export default function AccountMenu({ settingsUrl }) {
           </span>
         )}
         <span>{name}</span>
+        {unreadCount > 0 && (
+          <span className={styles.badge} role="status" aria-label={`${unreadCount} unread notifications`}>
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </span>
+        )}
         <span aria-hidden="true" className="ml-auto">
-          ⌄
+          <GatherIcon name="chevron" />
         </span>
       </summary>
-      <div className="flex flex-wrap gap-3 border-t border-theme-500/20 px-4 py-2">
-        <SettingsLink />
+      <div className={styles.panel}>
+        <strong>{user.name || name}</strong>
+        {user.email && <small>{user.email}</small>}
+        <Link href="/dashboard" className="flex min-h-11 items-center gap-2">
+          <GatherIcon name="home" />
+          My dashboard
+        </Link>
+        <Link href="/account" className="flex min-h-11 items-center gap-2">
+          <GatherIcon name="palette" />
+          My preferences
+        </Link>
+        {notifications}
+        {dashboardSettings}
         {settings && (
-          <a href={settings} className="flex min-h-11 items-center underline">
+          <a href={settings} className="flex min-h-11 items-center gap-2 underline">
+            <GatherIcon name="person" />
             Account settings
           </a>
         )}
-        <button type="button" className="min-h-11" onClick={() => signOut({ callbackUrl: "/auth/signin?autologin=0" })}>
-          {t("auth.signout")}
+        <button type="button" className="flex min-h-11 items-center gap-2" onClick={onSignOut}>
+          <GatherIcon name="signOut" />
+          {signOutLabel}
         </button>
       </div>
     </details>

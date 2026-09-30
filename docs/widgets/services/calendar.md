@@ -53,6 +53,22 @@ Currently integrated widgets are [sonarr](sonarr.md), [radarr](radarr.md), [lida
 
 Supported colors can be found on [color palette](../../configs/settings.md#color-palette).
 
+### Missing Radarr movies
+
+Use `missingOnly: true` to show only monitored movies without a downloaded file. Release dates are treated as all-day dates, and downloaded movies disappear on refresh. The integration reuses the selected Radarr widget’s credentials and headers.
+
+```yaml
+integrations:
+  - type: radarr
+    service_group: Library and requests
+    service_name: Radarr
+    baseUrl: https://radarr.example.com
+    color: amber
+    missingOnly: true
+```
+
+The default remains to show all returned movies.
+
 ### iCal
 
 This custom integration allows you to show events from any calendar that supports iCal format, for example, Google Calendar (go to `Settings`, select specific calendar, go to `Integrate calendar`, copy URL from `Public Address in iCal format`).

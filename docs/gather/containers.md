@@ -1,7 +1,7 @@
 # Container builds
 
 `.github/workflows/containers.yml` validates pull requests and builds three images.
-Pushes to `main` publish only after the full test suite and all image builds pass.
+Pushes to `dev` and `main` publish only after the full test suite and all image builds pass.
 No deployment is performed by this workflow.
 
 | Image | Purpose |
@@ -13,16 +13,25 @@ No deployment is performed by this workflow.
 Published images support `linux/amd64` and `linux/arm64`. The workflow uses the
 repository owner's namespace, so a fork can publish to its own account.
 
-- `main` follows successful builds of the default branch.
+- `dev` follows successful builds of the `dev` branch.
+- `latest` is the production channel and follows successful builds of `main`.
 - `sha-<full commit SHA>` identifies a particular source revision.
-- A `v1.2.3` tag produces `1.2.3` and `1.2` image tags; stable version tags also
-  update `latest`. Tagged commits must belong to `main` before they can publish.
+- A `v1.2.3` tag produces `1.2.3` and `1.2` image tags. Tagged commits must
+  belong to `main`. Version tags do not move `latest`, so tagging an older
+  release cannot roll the production channel backward.
 - A manual run validates by default. The optional publish checkbox only works
-  when running against `main`.
+  when running against `dev` or `main`.
 
 For deployment, prefer the immutable `image@sha256:...` digest recorded in the
 workflow summary. Tags can move. BuildKit generates an SBOM and build provenance
 with each published image; these are metadata, not an independent security audit.
+
+## Development and releases
+
+All development lands on `dev`; feature pull requests target `dev`. Keep `main`
+for releases. When a version is ready, review and merge `dev` into `main`, wait
+for the production pipeline to pass, then tag that main commit with its version.
+The same channel rules apply to all three images. Neither channel deploys itself.
 
 ## Permissions and secrets
 
@@ -60,3 +69,34 @@ bash scripts/ci/smoke-container.sh gather:test
 
 Official references: [GitHub container publishing](https://docs.github.com/en/actions/tutorials/publish-packages/publish-docker-images)
 and [Docker build attestations](https://docs.docker.com/build/ci/github-actions/attestations/).
+
+## Gateway recovery after container replacement
+
+`deploy/nginx-docker.conf` is a gateway template for a Compose network containing
+service names `gather` (port 3000) and `notifications` (port 8080). It listens on
+8080 and assumes TLS terminates at the external reverse proxy. Keep the gateway
+and both services on the same Docker network; adjust service names if your Compose
+file uses different names.
+
+Use Nginx 1.27.3 or newer. The template uses Docker DNS (`127.0.0.11`) and upstream
+`resolve` with shared zones so container IP changes do not leave the gateway
+pointing at a dead address. It preserves notification paths and query parameters.
+See the [Nginx upstream resolve documentation](https://nginx.org/en/docs/http/ngx_http_upstream_module.html#resolve).
+
+To roll out, back up the deployed gateway config, compare its routes and headers
+with the template, and update the existing mounted config. Check `nginx -t` in
+the gateway, then reload it with `nginx -s reload`. If the config is mounted as an
+individual file and was atomically replaced on the host, recreate only the gateway
+so Docker mounts the new file. Do not recreate the whole stack or remove volumes.
+Verify the application health endpoint and notification routes after rollout.
+This repository change does not update an already deployed gateway automatically.
+
+An isolated regression test deliberately replaces each upstream with a new IP and
+checks recovery without restarting the gateway:
+
+```sh
+python3 scripts/ci/test-gateway-dns.py
+```
+
+The test creates disposable containers and a network, exposes no host ports,
+mounts no deployment data, and removes its own resources on completion.

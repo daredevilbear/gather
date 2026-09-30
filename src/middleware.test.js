@@ -9,6 +9,9 @@ const { NextResponse, getToken } = vi.hoisted(() => ({
   getToken: vi.fn(),
 }));
 
+const { access } = vi.hoisted(() => ({ access: vi.fn(() => ({ role: "viewer", enabled: true })) }));
+vi.mock("utils/gather/users-store", () => ({ userAccess: access }));
+
 vi.mock("next/server", () => ({ NextResponse }));
 vi.mock("next-auth/jwt", () => ({ getToken }));
 
@@ -36,6 +39,7 @@ describe("middleware", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    access.mockReturnValue({ role: "viewer", enabled: true });
     process.env = { ...originalEnv };
     console.error = originalConsoleError;
   });
@@ -221,4 +225,14 @@ describe("middleware", () => {
     expect(NextResponse.next).toHaveBeenCalled();
     expect(res.type).toBe("next");
   });
+});
+
+it("blocks a disabled signed-in account before serving dashboard data", async () => {
+  process.env.HOMEPAGE_AUTH_ENABLED = "true";
+  getToken.mockResolvedValueOnce({ sub: "disabled" });
+  access.mockReturnValueOnce({ role: "editor", enabled: false });
+  const middleware = await loadMiddleware();
+  const result = await middleware(createReq("localhost:3000", "http://localhost:3000/api/services"));
+  expect(result.init.status).toBe(403);
+  expect(result.headers.get("Cache-Control")).toBe("private, no-store");
 });

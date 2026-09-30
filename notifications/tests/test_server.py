@@ -38,6 +38,38 @@ class PushTests(unittest.TestCase):
         handler.owner=lambda:owner
         handler.do_POST()
         return responses[-1]
+    def test_verified_legacy_email_state_migrates_to_stable_identity(self):
+        import hashlib
+        email='person@example.test'
+        legacy=hashlib.sha256(email.encode()).hexdigest()
+        owner=hashlib.sha256(b'stable-subject').hexdigest()
+        self.api('subscribe',owner=legacy)
+        self.api('inbox-state',owner=legacy,body={'account':legacy,'updates':{'old':'read'}})
+        session={'user':{'gatherIdentity':'stable-subject','email':email,'emailVerified':True}}
+        with patch.object(push,'urlopen',return_value=io.BytesIO(json.dumps(session).encode())):
+            self.assertEqual(push.owner_for_cookie('test'),owner)
+        with push.connect() as db:
+            self.assertEqual(db.execute('SELECT owner FROM subscriptions').fetchone()[0],owner)
+            self.assertEqual(db.execute('SELECT owner FROM inbox_state').fetchone()[0],owner)
+        session['user']['gatherIdentity']='another-subject'
+        session['user']['emailVerified']=False
+        with patch.object(push,'urlopen',return_value=io.BytesIO(json.dumps(session).encode())):
+            self.assertNotEqual(push.owner_for_cookie('test'),owner)
+        with push.connect() as db:
+            self.assertEqual(db.execute('SELECT owner FROM subscriptions').fetchone()[0],owner)
+
+    def test_notification_preferences_are_validated_and_account_scoped(self):
+        preferences = {'badge':False,'pushPage':False,'inboxView':'page'}
+        body = {'account':'account-a','updates':{},'preferences':preferences}
+        self.assertEqual(self.api('inbox-state',body=body)[1]['preferences'], preferences)
+        self.assertEqual(self.api('inbox-state',owner='account-b',body=body)[0],409)
+        other = self.api('inbox-state',owner='account-b',body={'account':'account-b','updates':{}})
+        self.assertEqual(other[1]['preferences'], {'badge':True,'pushPage':True,'inboxView':'panel'})
+        self.assertEqual(self.api('inbox-state',body={**body,'preferences':{'badge':'false'}})[0],400)
+        self.assertEqual(self.api('inbox-state',body=body,origin='https://evil.invalid')[0],403)
+        # Updating read state preserves preferences.
+        self.assertEqual(self.api('inbox-state',body={'account':'account-a','updates':{'one':'read'}})[1]['preferences'],preferences)
+
     def test_subscription_ownership_csrf_and_deletion(self):
         self.assertEqual(self.api('subscribe',origin='https://evil.invalid')[0],403)
         self.assertEqual(self.api('subscribe',header='')[0],403)

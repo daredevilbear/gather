@@ -5,6 +5,7 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "dev": "next dev",
+    "dev:preview": "next dev --webpack --hostname 127.0.0.1 --port 3022",
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint .",
@@ -14,6 +15,7 @@
     "telemetry": "next telemetry disable"
   },
   "dependencies": {
+    "@grpc/grpc-js": "^1.14.5",
     "@headlessui/react": "^2.2.10",
     "@kubernetes/client-node": "^2.0.0",
     "classnames": "^2.5.1",
@@ -33,12 +35,14 @@
     "next-i18next": "^16.3.1",
     "ping": "^1.0.0",
     "pretty-bytes": "^7.1.1",
+    "protobufjs": "^8.8.0",
     "raw-body": "^4.0.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-i18next": "^17.0.12",
     "react-icons": "^5.6.0",
     "recharts": "^3.1.2",
+    "sharp": "0.35.4",
     "swr": "^2.5.1",
     "systeminformation": "^5.33.1",
     "tough-cookie": "^6.0.2",
@@ -52,7 +56,7 @@
     "@tailwindcss/postcss": "^4.3.3",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
-    "@vitest/coverage-v8": "^4.1.10",
+    "@vitest/coverage-v8": "^4.1.11",
     "eslint": "^9.25.1",
     "eslint-config-next": "^16.3.3",
     "eslint-config-prettier": "^10.1.8",
@@ -63,7 +67,7 @@
     "tailwind-scrollbar": "^4.0.2",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.11"
   },
   "optionalDependencies": {
     "osx-temperature-sensor": "^1.0.8"

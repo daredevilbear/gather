@@ -47,3 +47,34 @@ describe("widgets/calendar/integrations/radarr", () => {
     expect(Object.values(next)[0].url).toBe("https://radarr.example/movie/movie");
   });
 });
+
+it("filters missing monitored movies, preserves local dates, and replaces its own events on refresh", () => {
+  const missing = {
+    id: 1,
+    title: "Missing",
+    monitored: true,
+    hasFile: false,
+    inCinemas: "2026-09-28T00:00:00Z",
+    digitalRelease: "2026-09-29T00:00:00Z",
+    physicalRelease: "2026-09-30T00:00:00Z",
+  };
+  useWidgetAPI.mockReturnValue({
+    data: [missing, { ...missing, id: 2, monitored: false }, { ...missing, id: 3, hasFile: true }],
+  });
+  let events = { unrelated: { title: "Other integration" } };
+  const setEvents = (update) => {
+    events = update(events);
+  };
+  const config = { type: "radarr", missingOnly: true };
+  const { rerender } = render(<Integration config={config} setEvents={setEvents} timezone="America/Los_Angeles" />);
+  expect(Object.keys(events)).toHaveLength(4);
+  expect(
+    Object.values(events)
+      .filter((e) => e.date)
+      .map((e) => e.date.toISODate())
+      .sort(),
+  ).toEqual(["2026-09-28", "2026-09-29", "2026-09-30"]);
+  useWidgetAPI.mockReturnValue({ data: [{ ...missing, hasFile: true }] });
+  rerender(<Integration config={config} setEvents={setEvents} timezone="America/Los_Angeles" />);
+  expect(events).toEqual({ unrelated: { title: "Other integration" } });
+});

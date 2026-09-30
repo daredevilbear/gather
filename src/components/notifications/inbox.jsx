@@ -1,4 +1,5 @@
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 
@@ -6,15 +7,23 @@ import styles from "./inbox.module.css";
 import Message from "./message";
 import PushControls from "./push";
 
+import GatherIcon from "components/gather/icon";
+
 const validId = (value) => typeof value === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(value);
-export default function Inbox({ prefix = "/gather-notifications/" }) {
+export default function Inbox({
+  prefix = "/gather-notifications/",
+  fullPage = false,
+  menuItem = false,
+  onUnreadChange,
+}) {
   const { data: session, status } = useSession();
-  const identity = session?.user?.id || session?.user?.email;
-  const [open, setOpen] = useState(false);
+  const identity = session?.user?.gatherIdentity || session?.user?.id || session?.user?.email;
+  const [open, setOpen] = useState(fullPage);
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState(null);
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [badgeRefresh, setBadgeRefresh] = useState(0);
   const box = useRef(null);
   const target = useRef(null);
   const focused = useRef(null);
@@ -46,6 +55,20 @@ export default function Inbox({ prefix = "/gather-notifications/" }) {
     },
     { refreshInterval: 30000, revalidateOnFocus: true },
   );
+  useEffect(() => {
+    function resume() {
+      if (status !== "authenticated" || document.visibilityState === "hidden") return;
+      // Reapply even if SWR returns unchanged data after the app was suspended.
+      setBadgeRefresh((value) => value + 1);
+      mutate().catch(() => console.warn("[Gather badge] Resume inbox refresh failed"));
+    }
+    window.addEventListener("pageshow", resume);
+    document.addEventListener("visibilitychange", resume);
+    return () => {
+      window.removeEventListener("pageshow", resume);
+      document.removeEventListener("visibilitychange", resume);
+    };
+  }, [status, mutate]);
   const { data: linked, error: linkedError } = useSWR(
     identity && selected ? ["gather-message", identity, selected, safePrefix] : null,
     () => api(`message/${selected}`),
@@ -101,10 +124,24 @@ export default function Inbox({ prefix = "/gather-notifications/" }) {
       navigator.serviceWorker?.removeEventListener("message", handoff);
     };
   }, [mutate]);
+  const closeInbox = useCallback(() => {
+    if (fullPage) return;
+    setOpen(false);
+    setSelected(null);
+    focused.current = null;
+    // Consume the push deep link so hash navigation and pageshow cannot reopen it.
+    const url = new URL(location.href);
+    if (url.searchParams.has("notifications") || url.searchParams.has("notification")) {
+      url.searchParams.delete("notifications");
+      url.searchParams.delete("notification");
+      history.replaceState(history.state, "", url.href);
+    }
+  }, [fullPage]);
   useEffect(() => {
     function close(event) {
+      if (fullPage) return;
       if (event.key === "Escape" || (event.type === "pointerdown" && !box.current?.contains(event.target)))
-        setOpen(false);
+        closeInbox();
     }
     document.addEventListener("keydown", close);
     document.addEventListener("pointerdown", close);
@@ -112,7 +149,7 @@ export default function Inbox({ prefix = "/gather-notifications/" }) {
       document.removeEventListener("keydown", close);
       document.removeEventListener("pointerdown", close);
     };
-  }, []);
+  }, [fullPage, closeInbox]);
   useEffect(() => {
     if (open && target.current && focused.current !== selected) {
       target.current.scrollIntoView?.({ block: "nearest" });
@@ -147,6 +184,38 @@ export default function Inbox({ prefix = "/gather-notifications/" }) {
       if (current === generation.current) setBusy(false);
     }
   }
+  const preferences = { badge: true, pushPage: true, inboxView: "panel", ...data?.preferences };
+  const badgeCount = (data?.messages || []).filter((message) => !data?.states?.[message.id]).length;
+  useEffect(() => {
+    onUnreadChange?.(status === "authenticated" ? badgeCount : 0);
+  }, [status, badgeCount, onUnreadChange]);
+  useEffect(() => {
+    if (!("setAppBadge" in navigator)) return;
+    if (status === "unauthenticated" || (data && (!preferences.badge || badgeCount === 0))) {
+      navigator.clearAppBadge?.().catch(() => console.warn("[Gather badge] Clear failed"));
+    } else if (status === "authenticated" && data && preferences.badge) {
+      navigator.setAppBadge(badgeCount).catch(() => console.warn("[Gather badge] Update failed"));
+    }
+  }, [status, data, preferences.badge, badgeCount, badgeRefresh]);
+
+  async function savePreferences(patch) {
+    if (busy || !data?.account) return;
+    const current = generation.current;
+    setBusy(true);
+    setSaveError("");
+    try {
+      const saved = await api("inbox-state", {
+        account: data.account,
+        updates: {},
+        preferences: { ...preferences, ...patch },
+      });
+      if (current === generation.current) await mutate((previous) => ({ ...previous, ...saved }), false);
+    } catch {
+      if (current === generation.current) setSaveError("Could not save notification preferences. Try again.");
+    } finally {
+      if (current === generation.current) setBusy(false);
+    }
+  }
   if (status !== "authenticated" || !identity) return null;
   const states = data?.states || {};
   const messages = [...(data?.messages || [])];
@@ -174,19 +243,47 @@ export default function Inbox({ prefix = "/gather-notifications/" }) {
             ? "Latest 200 · 30-day history"
             : "Loading notifications…");
   return (
-    <details ref={box} open={open} className={styles.inbox} onToggle={(event) => setOpen(event.currentTarget.open)}>
-      <summary className={styles.summary} aria-label={`${unread} unread notifications`}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M12 2a2 2 0 0 0-2 2v.35A6 6 0 0 0 6 10v4l-2 3v1h16v-1l-2-3v-4a6 6 0 0 0-4-5.65V4a2 2 0 0 0-2-2Zm-3 18a3 3 0 0 0 6 0H9Z" />
-        </svg>
+    <details
+      ref={box}
+      data-account-inbox={menuItem ? "true" : undefined}
+      open={fullPage || open}
+      className={fullPage ? styles.fullPage : menuItem ? `${styles.inbox} ${styles.menuItem}` : styles.inbox}
+      onToggle={(event) => {
+        if (event.target !== event.currentTarget) return;
+        if (event.currentTarget.open) setOpen(true);
+        else closeInbox();
+      }}
+    >
+      <summary
+        hidden={fullPage}
+        className={styles.summary}
+        aria-label={`${unread} unread notifications`}
+        onClick={(event) => {
+          if (preferences.inboxView === "page" && !fullPage) {
+            event.preventDefault();
+            // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- Full navigation remounts the independent inbox page and clears popup state.
+            window.location.assign("/notifications");
+          }
+        }}
+      >
+        <GatherIcon name="bell" />
         Notifications{unread ? ` · ${unread}` : ""}
       </summary>
       <section className={styles.panel} aria-label="Notification inbox">
         <div className={styles.actions}>
           <strong>Notifications</strong>
-          <button type="button" onClick={() => setOpen(false)}>
-            Close
-          </button>
+          {fullPage ? (
+            <Link href="/">Back to dashboard</Link>
+          ) : (
+            <>
+              <Link href={`/notifications${selected ? `?notification=${encodeURIComponent(selected)}` : ""}`}>
+                Expand inbox
+              </Link>
+              <button type="button" onClick={closeInbox}>
+                Close
+              </button>
+            </>
+          )}
         </div>
         <div className={styles.actions}>
           <select
@@ -221,7 +318,40 @@ export default function Inbox({ prefix = "/gather-notifications/" }) {
           </button>
         </div>
         <small role="status">{notice}</small>
-        <PushControls api={api} prefix={safePrefix} />
+        <details className={styles.preferences}>
+          <summary>Notification preferences</summary>
+          <label>
+            <input
+              type="checkbox"
+              checked={preferences.badge}
+              disabled={busy || !data}
+              onChange={(e) => savePreferences({ badge: e.target.checked })}
+            />
+            Show unread count on the app icon
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={preferences.pushPage}
+              disabled={busy || !data}
+              onChange={(e) => savePreferences({ pushPage: e.target.checked })}
+            />
+            Open push notifications in the full-page inbox
+          </label>
+          <label>
+            Open inbox as
+            <select
+              value={preferences.inboxView}
+              disabled={busy || !data}
+              onChange={(e) => savePreferences({ inboxView: e.target.value })}
+            >
+              <option value="panel">Compact panel</option>
+              <option value="page">Full page</option>
+            </select>
+          </label>
+          <small>App icon badges depend on your device and notification permissions.</small>
+          <PushControls api={api} prefix={safePrefix} />
+        </details>
         <div className={styles.list}>
           {visible.map((message) => (
             <article
@@ -255,7 +385,7 @@ export default function Inbox({ prefix = "/gather-notifications/" }) {
               </div>
             </article>
           ))}
-          {!visible.length && data && <p>No notifications to show.</p>}
+          {!visible.length && data && <p>You’re all caught up. No notifications in this view.</p>}
         </div>
         <small>Read and dismissed status syncs across devices signed in to this account.</small>
       </section>

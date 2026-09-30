@@ -44,7 +44,7 @@ export default function BookmarksGroup({
                   </div>
                 )}
                 <h2 className="text-theme-800 dark:text-theme-300 text-xl font-medium bookmark-group-name">
-                  {bookmarks.name}
+                  {layout?.displayName || bookmarks.name}
                 </h2>
                 <MdKeyboardArrowDown
                   className={classNames(

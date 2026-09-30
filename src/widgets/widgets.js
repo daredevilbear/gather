@@ -10,6 +10,8 @@ import azuredevops from "./azuredevops/widget";
 import backrest from "./backrest/widget";
 import bazarr from "./bazarr/widget";
 import beszel from "./beszel/widget";
+import bitaxe from "./bitaxe/widget";
+import bitcoinnode from "./bitcoinnode/widget";
 import booklore from "./booklore/widget";
 import caddy from "./caddy/widget";
 import calendar from "./calendar/widget";
@@ -149,9 +151,11 @@ import unraid from "./unraid/widget";
 import uptimekuma from "./uptimekuma/widget";
 import uptimerobot from "./uptimerobot/widget";
 import urbackup from "./urbackup/widget";
+import velociraptor from "./velociraptor/widget";
 import vikunja from "./vikunja/widget";
 import wallos from "./wallos/widget";
 import watchtower from "./watchtower/widget";
+import wazuh from "./wazuh/widget";
 import wgeasy from "./wgeasy/widget";
 import whatsupdocker from "./whatsupdocker/widget";
 import xteve from "./xteve/widget";
@@ -159,6 +163,8 @@ import yourspotify from "./yourspotify/widget";
 import zabbix from "./zabbix/widget";
 
 const widgets = {
+  wazuh,
+  velociraptor,
   adguard,
   apcups,
   arcane,
@@ -172,6 +178,8 @@ const widgets = {
   bazarr,
   booklore,
   beszel,
+  bitaxe,
+  bitcoinnode,
   caddy,
   calibreweb,
   changedetectionio,

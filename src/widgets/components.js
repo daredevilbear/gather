@@ -1,6 +1,8 @@
 import dynamic from "next/dynamic";
 
 const components = {
+  wazuh: dynamic(() => import("./wazuh/component")),
+  velociraptor: dynamic(() => import("./velociraptor/component")),
   adguard: dynamic(() => import("./adguard/component")),
   apcups: dynamic(() => import("./apcups/component")),
   arcane: dynamic(() => import("./arcane/component")),
@@ -13,6 +15,8 @@ const components = {
   backrest: dynamic(() => import("./backrest/component")),
   bazarr: dynamic(() => import("./bazarr/component")),
   beszel: dynamic(() => import("./beszel/component")),
+  bitaxe: dynamic(() => import("./bitaxe/component")),
+  bitcoinnode: dynamic(() => import("./bitcoinnode/component")),
   booklore: dynamic(() => import("./booklore/component")),
   caddy: dynamic(() => import("./caddy/component")),
   calendar: dynamic(() => import("./calendar/component")),

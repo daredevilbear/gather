@@ -16,10 +16,10 @@ const messages = [
   { id: "two", title: "Second", message: "Second body", topic: "test", time: 2 },
 ];
 let states;
-function mount() {
+function mount(props = {}) {
   return render(
     <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
-      <Inbox />
+      <Inbox {...props} />
     </SWRConfig>,
   );
 }
@@ -111,3 +111,95 @@ describe("native notification inbox", () => {
     expect(container.querySelector("img")).toBeNull();
   });
 });
+
+it("updates and clears the installed app badge as unread messages are read", async () => {
+  Object.defineProperty(navigator, "setAppBadge", { configurable: true, value: vi.fn().mockResolvedValue() });
+  Object.defineProperty(navigator, "clearAppBadge", { configurable: true, value: vi.fn().mockResolvedValue() });
+  mount();
+  await waitFor(() => expect(navigator.setAppBadge).toHaveBeenCalledWith(1));
+  fireEvent.click(screen.getByText("Mark read"));
+  await waitFor(() => expect(navigator.clearAppBadge).toHaveBeenCalled());
+});
+it("renders a full-page inbox and saves account-specific preferences", async () => {
+  render(
+    <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
+      <Inbox fullPage />
+    </SWRConfig>,
+  );
+  await screen.findByText("First");
+  expect(screen.getByRole("link", { name: "Back to dashboard" })).toHaveAttribute("href", "/");
+  fireEvent.click(screen.getByText("Notification preferences"));
+  fireEvent.click(screen.getByLabelText("Open push notifications in the full-page inbox"));
+  await waitFor(() =>
+    expect(fetch).toHaveBeenCalledWith(
+      "/gather-notifications/inbox-state",
+      expect.objectContaining({
+        body: JSON.stringify({
+          account: "account-one",
+          updates: {},
+          preferences: { badge: true, pushPage: false, inboxView: "panel" },
+        }),
+      }),
+    ),
+  );
+});
+
+it("reapplies the badge on app resume even when inbox data is unchanged", async () => {
+  Object.defineProperty(navigator, "setAppBadge", { configurable: true, value: vi.fn().mockResolvedValue() });
+  mount();
+  await waitFor(() => expect(navigator.setAppBadge).toHaveBeenCalledWith(1));
+  navigator.setAppBadge.mockClear();
+  fireEvent(window, new Event("pageshow"));
+  await waitFor(() => expect(navigator.setAppBadge).toHaveBeenCalledWith(1));
+  navigator.setAppBadge.mockClear();
+  fireEvent(document, new Event("visibilitychange"));
+  await waitFor(() => expect(navigator.setAppBadge).toHaveBeenCalledWith(1));
+});
+
+it("reports unread count while closed and updates after marking read", async () => {
+  const onUnreadChange = vi.fn();
+  const view = mount({ onUnreadChange });
+  await waitFor(() => expect(onUnreadChange).toHaveBeenLastCalledWith(1));
+  expect(view.container.querySelector("details").open).toBe(false);
+  fireEvent.click(screen.getByText("Mark read"));
+  await waitFor(() => expect(onUnreadChange).toHaveBeenLastCalledWith(0));
+});
+
+it.each(["button", "escape", "outside", "toggle"])(
+  "consumes a push link on %s close and stays closed across tab navigation",
+  async (method) => {
+    history.replaceState({ marker: "preserved" }, "", "/?dashboard=mine&notifications=open&notification=one#home");
+    const view = mount();
+    await screen.findByText("First");
+    const details = view.container.querySelector("details");
+    expect(details.open).toBe(true);
+    if (method === "button") fireEvent.click(screen.getByText("Close"));
+    if (method === "escape") fireEvent.keyDown(document, { key: "Escape" });
+    if (method === "outside") fireEvent.pointerDown(document.body);
+    if (method === "toggle") {
+      details.open = false;
+      fireEvent(details, new Event("toggle"));
+    }
+    await waitFor(() => expect(details.open).toBe(false));
+    expect(location.search).toBe("?dashboard=mine");
+    expect(location.hash).toBe("#home");
+    expect(history.state.marker).toBe("preserved");
+    history.replaceState(history.state, "", "/?dashboard=mine#systems");
+    fireEvent.popState(window);
+    fireEvent(window, new Event("pageshow"));
+    expect(details.open).toBe(false);
+    view.unmount();
+    const reopened = mount();
+    await screen.findByText("First");
+    expect(reopened.container.querySelector("details").open).toBe(false);
+    await act(async () =>
+      navigator.serviceWorker.dispatchEvent(
+        new MessageEvent("message", {
+          origin: location.origin,
+          data: { type: "GATHER_OPEN_NOTIFICATION", messageId: "two" },
+        }),
+      ),
+    );
+    expect(reopened.container.querySelector("details").open).toBe(true);
+  },
+);

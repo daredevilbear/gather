@@ -1,6 +1,8 @@
 # Secure system configuration
 
-Administrators open **System configuration** from Dashboard settings (`/system`).
+Protected server administrators open **System settings** within Dashboard settings.
+The compatibility route `/system` redirects to that section. Administrators added
+through Users & access cannot change these protected connection settings.
 The page manages OIDC issuer/client credentials, ntfy connection credentials and
 administrator subject IDs. It never returns stored secret values. Blank secret
 fields retain the current value; replacing a connection destination requires new

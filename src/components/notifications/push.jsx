@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 
+import styles from "./inbox.module.css";
+
 export default function PushControls({ api, prefix }) {
   const [ready, setReady] = useState(null);
   const [enabled, setEnabled] = useState(false);
+  const [needsReset, setNeedsReset] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("Checking push support…");
   const prepare = useCallback(async () => {
@@ -48,16 +51,23 @@ export default function PushControls({ api, prefix }) {
         });
       }
       const subscription = await registration.pushManager.getSubscription();
-      const active = subscription && (await api("status", subscription.toJSON())).enabled;
       setReady({ registration, publicKey: config.publicKey });
+      const active = subscription && (await api("status", subscription.toJSON())).enabled;
+      setNeedsReset(false);
       setEnabled(Boolean(active));
       setMessage(
         active
           ? "Push is on for this device, including when the dashboard is closed."
           : "Receive new notifications on this device, even when the dashboard is closed.",
       );
-    } catch {
-      setMessage("Push settings unavailable. Refresh to try again.");
+    } catch (error) {
+      if (error.status === 409) {
+        setEnabled(false);
+        setNeedsReset(true);
+        setMessage(
+          "This browser subscription belongs to a previous sign-in. Reset browser push, then enable it for this account.",
+        );
+      } else setMessage("Push settings unavailable. Refresh to try again.");
     }
   }, [api, prefix]);
   useEffect(() => {
@@ -100,22 +110,57 @@ export default function PushControls({ api, prefix }) {
       setBusy(false);
     }
   }
-  async function test() {
+  async function resetBrowserPush() {
+    if (!ready || busy) return;
     setBusy(true);
     try {
       const subscription = await ready.registration.pushManager.getSubscription();
-      await api("test", subscription.toJSON());
-      setMessage("Test notification queued.");
+      if (subscription && !(await subscription.unsubscribe())) throw Error();
+      setEnabled(false);
+      setNeedsReset(false);
+      setMessage("Browser push reset. Enable notifications for this account.");
     } catch {
-      setMessage("Could not send test notification.");
+      setMessage("Could not reset browser push. Check the notification permission in your browser settings.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function test() {
+    if (!ready || busy) return;
+    setBusy(true);
+    try {
+      const subscription = await ready.registration.pushManager.getSubscription();
+      if (!subscription) {
+        setEnabled(false);
+        setMessage("Push is no longer enabled on this device. Enable notifications again before testing.");
+        return;
+      }
+      await api("test", subscription.toJSON());
+      setMessage("Test notification queued. Wait one minute before sending another test.");
+    } catch (error) {
+      if (error.status === 429) {
+        setMessage("Tests are limited to one per minute. Wait one minute after your last test, then try again.");
+      } else if (error.status === 404) {
+        setEnabled(false);
+        setMessage("Push is no longer enabled on this device. Enable notifications again before testing.");
+      } else if (error.status === 401) {
+        setMessage("Your session has expired. Sign in again before sending a test.");
+      } else {
+        setMessage("Could not send test notification. Try again shortly.");
+      }
     } finally {
       setBusy(false);
     }
   }
   return (
     <section aria-label="Push notifications">
-      <div>
-        <button type="button" disabled={busy || !ready} onClick={toggle}>
+      <div className={styles.actions}>
+        {needsReset && (
+          <button type="button" disabled={busy || !ready} onClick={resetBrowserPush}>
+            Reset browser push
+          </button>
+        )}
+        <button type="button" disabled={busy || !ready || needsReset} onClick={toggle}>
           {enabled ? "Disable push on this device" : "Enable push notifications"}
         </button>
         {enabled && (

@@ -23,9 +23,19 @@ in this repository.
 
 ## Configuration editor
 
+Start with the [setup guide](docs/gather/setup.md). Existing Homepage installations
+can use the [migration guide](docs/gather/administration.md#homepage-migration).
+See [administration](docs/gather/administration.md) for users, secrets and account preferences.
+
 The administrator-only [settings editor](docs/gather/settings.md) supports dashboard
 configuration, services, bookmarks, widgets, notification preferences, custom code,
 and versioned backup/restore. Enable it explicitly in deployment configuration.
+
+## Local UI development
+
+Run `pnpm dev:preview` and open [the local settings preview](http://127.0.0.1:3022/preview/settings).
+Changes refresh immediately with isolated sample data; no image build is needed.
+See [local preview](docs/gather/local-preview.md) for scope and usage.
 
 ## License and upstream
 

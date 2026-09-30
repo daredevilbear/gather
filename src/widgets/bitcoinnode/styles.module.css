@@ -1,0 +1,106 @@
+.card {
+  width: 100%;
+  min-width: 0;
+  container-type: inline-size;
+}
+.card :global(.service-container) {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.card :global(.service-block) {
+  min-width: 0;
+  padding: 0.65rem;
+  overflow-wrap: anywhere;
+}
+.connections {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 1rem;
+}
+.ring {
+  width: 7rem;
+  height: 7rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.ring > div {
+  width: 5.2rem;
+  height: 5.2rem;
+  border-radius: 50%;
+  background: #161719;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+.ring small {
+  font-size: 0.7rem;
+  font-weight: 400;
+}
+.legend {
+  font-size: 0.8rem;
+}
+.legend > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0.4rem 0;
+}
+.legend dt {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.legend i {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+}
+.recent {
+  grid-column: 1 / -1;
+  min-width: 0;
+  padding: 0.5rem;
+}
+.recent h4 {
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 0.6rem;
+}
+.blocks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(5rem, 1fr));
+  gap: 0.4rem;
+}
+.blocks li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 1.3rem 0.4rem 0.5rem;
+  background: linear-gradient(145deg, #753802, #241a0e);
+  color: #fff2e0;
+  border: 1px solid #bb7128;
+  border-radius: 0.3rem;
+  font-size: 0.65rem;
+}
+.blocks strong {
+  font-size: 0.8rem;
+}
+.recent p,
+.updated {
+  font-size: 0.7rem;
+  opacity: 0.7;
+  margin: 0.5rem;
+}
+@container (min-width: 600px) {
+  .card :global(.service-container) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

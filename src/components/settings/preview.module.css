@@ -1,0 +1,35 @@
+.banner {
+  position: relative;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 32px;
+  background: #243a32;
+  color: #d7ebdf;
+  font:
+    12px Manrope,
+    system-ui,
+    sans-serif;
+  border-bottom: 1px solid #9bc9b933;
+}
+.banner strong {
+  margin-right: 14px;
+}
+.banner span {
+  opacity: 0.8;
+}
+.banner small {
+  display: block;
+  margin-top: 4px;
+}
+@media (max-width: 700px) {
+  .banner {
+    padding: 10px 16px;
+  }
+  .banner > div > span {
+    display: block;
+    margin-top: 5px;
+  }
+}

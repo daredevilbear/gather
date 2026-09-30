@@ -1,8 +1,11 @@
-import { administrator, validEditorOrigin } from "utils/gather/admin";
+import handler from "pages/api/gather/settings";
+import { administrator, systemAdministrator, validEditorOrigin } from "utils/gather/admin";
 import { createStore } from "utils/gather/config-store";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import handler from "./settings";
-vi.mock("utils/gather/admin", () => ({ administrator: vi.fn(), validEditorOrigin: vi.fn() }));
+vi.mock("utils/gather/admin", () => {
+  const admin = vi.fn();
+  return { administrator: admin, systemAdministrator: vi.fn(async () => true), validEditorOrigin: vi.fn() };
+});
 vi.mock("utils/config/config", () => ({ CONF_DIR: "/test" }));
 vi.mock("utils/gather/config-store", async (importOriginal) => {
   const original = await importOriginal();
@@ -45,7 +48,12 @@ describe("settings API", () => {
     );
     expect(save).toHaveBeenCalledWith("settings.yaml", "title: Test", "old", undefined);
     expect(res.revalidate).toHaveBeenCalledWith("/");
-    expect(res.json).toHaveBeenCalledWith({ revision: "next", backups: [], applied: true });
+    expect(res.json).toHaveBeenCalledWith({
+      revision: "next",
+      backups: [],
+      applied: true,
+      capabilities: { system: true },
+    });
   });
   it("validates source without mutating any files", async () => {
     administrator.mockResolvedValue(true);
@@ -60,4 +68,21 @@ describe("settings API", () => {
     expect(save).not.toHaveBeenCalled();
     expect(res.json).toHaveBeenCalledWith({ valid: true });
   });
+});
+
+it("denies connection reads and writes to ordinary administrators", async () => {
+  administrator.mockResolvedValue(true);
+  systemAdministrator.mockResolvedValue(false);
+  const store = { document: vi.fn(), save: vi.fn() };
+  createStore.mockReturnValue(store);
+  for (const method of ["GET", "POST"]) {
+    const res = response();
+    await handler(
+      { method, query: { file: "docker.yaml" }, body: { file: "docker.yaml", action: "save", text: "{}" } },
+      res,
+    );
+    expect(res.status).toHaveBeenCalledWith(403);
+  }
+  expect(store.document).not.toHaveBeenCalled();
+  expect(store.save).not.toHaveBeenCalled();
 });

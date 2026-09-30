@@ -1,11 +1,12 @@
 import classNames from "classnames";
-import { useContext, useState } from "react";
+import { useContext, useId, useState } from "react";
 
 import KubernetesStatus from "./kubernetes-status";
 import Ping from "./ping";
 import ProxmoxStatus from "./proxmox-status";
 import SiteMonitor from "./site-monitor";
 import Status from "./status";
+import { VcenterDetails, VcenterStatus } from "./vcenter";
 import Widget from "./widget";
 
 import ResolvedIcon from "components/resolvedicon";
@@ -21,6 +22,8 @@ export default function Item({ service, groupName, useEqualHeights }) {
   const statusStyle = service.statusStyle !== undefined ? service.statusStyle : settings.statusStyle;
   const [statsOpen, setStatsOpen] = useState(service.showStats);
   const [statsClosing, setStatsClosing] = useState(false);
+  const [vcenterOpen, setVcenterOpen] = useState(service.showStats !== false);
+  const vcenterDetailsId = useId();
 
   // set stats to closed after 300ms
   const closeStats = () => {
@@ -184,6 +187,32 @@ export default function Item({ service, groupName, useEqualHeights }) {
               />
             )}
           </div>
+        )}
+
+        {service.vcenterServer && (service.vcenterVM || service.vcenterHost) && (
+          <>
+            <div className="flex flex-wrap items-center justify-between gap-2 px-2 py-1 text-xs">
+              <span className="flex items-center gap-1">
+                {service.vcenterHost ? "Connection:" : "Power:"} <VcenterStatus service={service} />
+              </span>
+              <button
+                type="button"
+                aria-expanded={vcenterOpen}
+                aria-controls={vcenterDetailsId}
+                onClick={() => setVcenterOpen((open) => !open)}
+                className="min-h-[44px] rounded-md border border-current/20 px-3 py-2 hover:bg-theme-300/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              >
+                {vcenterOpen ? "Hide metrics" : "Show metrics"}
+                <span aria-hidden="true"> {vcenterOpen ? "▴" : "▾"}</span>
+              </button>
+            </div>
+            <div id={vcenterDetailsId} hidden={!vcenterOpen}>
+              {vcenterOpen && <VcenterDetails service={service} />}
+            </div>
+          </>
+        )}
+        {service.vcenterServer && service.vcenterSummary && !service.vcenterVM && !service.vcenterHost && (
+          <VcenterDetails service={service} />
         )}
 
         {service.widgets.map((widget) => (

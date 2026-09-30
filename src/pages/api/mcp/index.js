@@ -7,7 +7,8 @@ import { handleMcpRequest, mcpEnabled, mcpTokenAuthorized, mcpTokenConfigError }
 
 async function hasHomepageSession(req, res) {
   if (!isAuthEnabled()) return false;
-  return Boolean(await getServerSession(req, res, authOptions));
+  const session = await getServerSession(req, res, authOptions);
+  return Boolean(session?.user);
 }
 
 export default async function handler(req, res) {

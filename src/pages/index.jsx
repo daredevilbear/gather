@@ -1,22 +1,22 @@
 import classNames from "classnames";
+import { useSession } from "next-auth/react";
 import { useTranslation } from "next-i18next/pages";
 import { serverSideTranslations } from "next-i18next/pages/serverSideTranslations";
 import dynamic from "next/dynamic";
 import Head from "next/head";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import Script from "next/script";
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { BiError } from "react-icons/bi";
 import useSWR, { SWRConfig } from "swr";
 
-import AccountMenu from "components/account/menu";
 import BookmarksGroup from "components/bookmarks/group";
 import ErrorBoundary from "components/errorboundry";
-import Inbox from "components/notifications/inbox";
-import notificationStyles from "components/notifications/inbox.module.css";
+import GatherHeader from "components/gather/header";
 import QuickLaunch from "components/quicklaunch";
 import ServicesGroup from "components/services/group";
-import Tab, { initialTabFromPath, slugifyAndEncode } from "components/tab";
+import { initialTabFromPath, slugifyAndEncode } from "components/tab";
 import Revalidate from "components/toggles/revalidate";
 import Widget from "components/widgets/widget";
 import { bookmarksResponse, servicesResponse, widgetsResponse } from "utils/config/api-response";
@@ -25,6 +25,8 @@ import { ColorContext } from "utils/contexts/color";
 import { SettingsContext } from "utils/contexts/settings";
 import { TabContext } from "utils/contexts/tab";
 import { ThemeContext } from "utils/contexts/theme";
+import { applyPersonalLayout } from "utils/gather/personal-layout";
+import { dashboardTabs } from "utils/gather/tabs";
 import useWindowFocus from "utils/hooks/window-focus";
 import createLogger from "utils/logger";
 import themes from "utils/styles/themes";
@@ -220,17 +222,60 @@ function Home({ initialSettings }) {
   const { i18n } = useTranslation();
   const { theme, setTheme } = useContext(ThemeContext);
   const { color, setColor } = useContext(ColorContext);
-  const { settings, setSettings } = useContext(SettingsContext);
+  const { settings: sharedSettings, setSettings } = useContext(SettingsContext);
   const { activeTab, setActiveTab } = useContext(TabContext);
-  const { asPath } = useRouter();
+  const { asPath, query = {} } = useRouter();
+  const { data: session, status: sessionStatus } = useSession();
+  const identity = session?.user?.gatherIdentity || session?.user?.email;
+  const { data: personal, error: personalError } = useSWR(
+    sessionStatus === "authenticated" && identity && query.shared !== "1" ? ["my-dashboard", identity] : null,
+    async () => {
+      const response = await fetch("/api/gather/dashboard", { cache: "no-store", credentials: "same-origin" });
+      if (!response.ok) throw Error("Could not load your personal layout.");
+      return response.json();
+    },
+  );
 
+  const { data: workspace, error: workspaceError } = useSWR(
+    sessionStatus === "authenticated" && identity
+      ? ["dashboard-view", identity, query.dashboard || (query.shared === "1" ? "shared" : "current")]
+      : null,
+    async () => {
+      const target = query.dashboard || (query.shared === "1" ? "shared" : "");
+      const response = await fetch(
+        `/api/gather/dashboard-view${target ? `?dashboard=${encodeURIComponent(target)}` : ""}`,
+        { cache: "no-store", credentials: "same-origin" },
+      );
+      const result = await response.json();
+      if (!response.ok) throw Error(result.error || "Could not load dashboard.");
+      return result;
+    },
+  );
   useEffect(() => {
     setSettings(initialSettings);
   }, [initialSettings, setSettings]);
 
-  const { data: services } = useSWR("/api/services");
-  const { data: bookmarks } = useSWR("/api/bookmarks");
-  const { data: widgets } = useSWR("/api/widgets");
+  const { data: sharedServices = [] } = useSWR("/api/services");
+  const { data: sharedBookmarks = [] } = useSWR("/api/bookmarks");
+  const { data: sharedWidgets = [] } = useSWR("/api/widgets");
+  const personalLayoutActive =
+    Boolean(workspace?.view) ||
+    (query.shared !== "1" &&
+      (!workspace || workspace.legacy) &&
+      !workspaceError &&
+      Boolean(personal?.dashboard?.layout));
+  const { settings, services, bookmarks, widgets } = useMemo(
+    () =>
+      workspace?.view ||
+      applyPersonalLayout(
+        sharedSettings,
+        sharedServices,
+        sharedBookmarks,
+        sharedWidgets,
+        query.shared === "1" || (workspace && !workspace.legacy) || workspaceError ? null : personal?.dashboard?.layout,
+      ),
+    [sharedSettings, sharedServices, sharedBookmarks, sharedWidgets, personal, query.shared, workspace, workspaceError],
+  );
 
   const servicesAndBookmarks = [...bookmarks.map((bg) => bg.bookmarks).flat(), ...getAllServices(services)].filter(
     (i) => i?.href,
@@ -288,22 +333,16 @@ function Home({ initialSettings }) {
     };
   });
 
-  const tabs = useMemo(
-    () => [
-      ...new Set(
-        Object.keys(settings.layout ?? {})
-          .map((groupName) => settings.layout[groupName]?.tab?.toString())
-          .filter((group) => group),
-      ),
-    ],
-    [settings.layout],
-  );
+  const tabs = useMemo(() => dashboardTabs(settings), [settings]);
 
   useEffect(() => {
-    if (!activeTab) {
+    if (!activeTab || !tabs.some((tab) => slugifyAndEncode(tab) === activeTab)) {
       setActiveTab(initialTabFromPath(asPath, tabs));
     }
   });
+
+  const homeTab = tabs.find((tab) => slugifyAndEncode(tab) === "home") || tabs[0];
+  const showWelcome = !tabs.length || (activeTab || initialTabFromPath(asPath, tabs)) === slugifyAndEncode(homeTab);
 
   const servicesAndBookmarksGroups = useMemo(() => {
     const tabGroupFilter = (g) => g && [activeTab, ""].includes(slugifyAndEncode(settings.layout?.[g.name]?.tab));
@@ -323,24 +362,6 @@ function Home({ initialSettings }) {
 
     return (
       <>
-        {tabs.length > 0 && (
-          <div key="tabs" id="tabs" className="m-5 sm:m-9 sm:mt-4 sm:mb-0">
-            <ul
-              className={classNames(
-                "sm:flex rounded-md bg-theme-100/20 dark:bg-white/5",
-                settings.cardBlur !== undefined &&
-                  `backdrop-blur${settings.cardBlur.length ? "-" : ""}${settings.cardBlur}`,
-              )}
-              id="myTab"
-              data-tabs-toggle="#myTabContent"
-              role="tablist"
-            >
-              {tabs.map((tab) => (
-                <Tab key={tab} tab={tab} />
-              ))}
-            </ul>
-          </div>
-        )}
         {layoutGroups.length > 0 && (
           <div key="layoutGroups" id="layout-groups" className="flex flex-wrap m-4 sm:m-8 sm:mt-4 items-start mb-2">
             {layoutGroups.map((group) =>
@@ -399,7 +420,6 @@ function Home({ initialSettings }) {
       </>
     );
   }, [
-    tabs,
     activeTab,
     services,
     bookmarks,
@@ -409,7 +429,6 @@ function Home({ initialSettings }) {
     settings.maxBookmarkGroupColumns,
     settings.disableCollapse,
     settings.useEqualHeights,
-    settings.cardBlur,
     settings.groupsInitiallyCollapsed,
     settings.bookmarksStyle,
     initialSettings.layout,
@@ -418,7 +437,7 @@ function Home({ initialSettings }) {
   return (
     <>
       <Head>
-        <title>{initialSettings.title || "Homepage"}</title>
+        <title>{initialSettings.title || "Gather"}</title>
         <meta
           name="description"
           content={
@@ -436,11 +455,11 @@ function Home({ initialSettings }) {
           </>
         ) : (
           <>
-            <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=4" />
-            <link rel="shortcut icon" href="/homepage.ico" />
-            <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=4" />
-            <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=4" />
-            <link rel="mask-icon" href="/safari-pinned-tab.svg?v=4" color="#1e9cd7" />
+            <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=gather-1" />
+            <link rel="icon" type="image/svg+xml" href="/gather.svg" />
+            <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=gather-1" />
+            <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=gather-1" />
+            <link rel="mask-icon" href="/gather-mask.svg" color="#173c38" />
           </>
         )}
         <meta name="msapplication-TileColor" content={themes[settings.color || "slate"][settings.theme || "dark"]} />
@@ -456,6 +475,70 @@ function Home({ initialSettings }) {
           "relative m-auto flex flex-col justify-start z-10 h-full min-h-screen",
         )}
       >
+        <GatherHeader
+          settings={settings}
+          tabs={tabs}
+          onSearch={() => setSearching(true)}
+          informationWidgets={
+            showWelcome && (
+              <div
+                id="information-widgets"
+                className={classNames(
+                  "flex flex-row flex-wrap justify-between z-20",
+                  headerStyles[headerStyle],
+                  settings.cardBlur !== undefined &&
+                    headerStyle === "boxed" &&
+                    `backdrop-blur${settings.cardBlur.length ? "-" : ""}${settings.cardBlur}`,
+                )}
+              >
+                <div id="widgets-wrap" className={classNames("flex flex-row w-full flex-wrap justify-between gap-x-2")}>
+                  {widgets && (
+                    <>
+                      {widgets
+                        .filter((widget) => personalLayoutActive || !rightAlignedWidgets.includes(widget.type))
+                        .map((widget, i) => (
+                          <Widget
+                            key={i}
+                            widget={widget}
+                            style={{ header: headerStyle, isRightAligned: false, cardBlur: settings.cardBlur }}
+                          />
+                        ))}
+
+                      <div
+                        id="information-widgets-right"
+                        className={classNames(
+                          "m-auto flex flex-wrap grow sm:basis-auto justify-between md:justify-end",
+                          "m-auto flex flex-wrap grow sm:basis-auto justify-between md:justify-end gap-x-2",
+                        )}
+                      >
+                        {widgets
+                          .filter((widget) => !personalLayoutActive && rightAlignedWidgets.includes(widget.type))
+                          .map((widget, i) => (
+                            <Widget
+                              key={i}
+                              widget={widget}
+                              style={{ header: headerStyle, isRightAligned: true, cardBlur: settings.cardBlur }}
+                            />
+                          ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )
+          }
+        />
+        {workspaceError && (
+          <p role="alert">
+            {workspaceError.message} Showing the shared dashboard. Choose another in{" "}
+            <Link href="/dashboard">My dashboard</Link>.
+          </p>
+        )}
+        {personalError && (
+          <p role="alert" className="m-4 p-4">
+            Your personal layout could not be loaded. Showing the shared layout; reload to try again.
+          </p>
+        )}
         <QuickLaunch
           servicesAndBookmarks={servicesAndBookmarks}
           searchString={searchString}
@@ -463,56 +546,6 @@ function Home({ initialSettings }) {
           isOpen={searching}
           setSearching={setSearching}
         />
-        <div
-          id="information-widgets"
-          className={classNames(
-            "flex flex-row flex-wrap justify-between z-20",
-            headerStyles[headerStyle],
-            settings.cardBlur !== undefined &&
-              headerStyle === "boxed" &&
-              `backdrop-blur${settings.cardBlur.length ? "-" : ""}${settings.cardBlur}`,
-          )}
-        >
-          <div id="widgets-wrap" className={classNames("flex flex-row w-full flex-wrap justify-between gap-x-2")}>
-            {(settings.gather?.accountMenu || settings.gather?.notifications) && (
-              <div className={notificationStyles.header}>
-                {settings.gather?.notifications && <Inbox prefix={settings.gather.notificationPrefix} />}
-                {settings.gather?.accountMenu && <AccountMenu settingsUrl={settings.gather.accountSettingsUrl} />}
-              </div>
-            )}
-            {widgets && (
-              <>
-                {widgets
-                  .filter((widget) => !rightAlignedWidgets.includes(widget.type))
-                  .map((widget, i) => (
-                    <Widget
-                      key={i}
-                      widget={widget}
-                      style={{ header: headerStyle, isRightAligned: false, cardBlur: settings.cardBlur }}
-                    />
-                  ))}
-
-                <div
-                  id="information-widgets-right"
-                  className={classNames(
-                    "m-auto flex flex-wrap grow sm:basis-auto justify-between md:justify-end",
-                    "m-auto flex flex-wrap grow sm:basis-auto justify-between md:justify-end gap-x-2",
-                  )}
-                >
-                  {widgets
-                    .filter((widget) => rightAlignedWidgets.includes(widget.type))
-                    .map((widget, i) => (
-                      <Widget
-                        key={i}
-                        widget={widget}
-                        style={{ header: headerStyle, isRightAligned: true, cardBlur: settings.cardBlur }}
-                      />
-                    ))}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
 
         {servicesAndBookmarksGroups}
 
@@ -520,7 +553,7 @@ function Home({ initialSettings }) {
           <div id="style" className="flex w-full justify-end">
             {!settings?.color && <ColorToggle />}
             <Revalidate />
-            {!settings.gather?.accountMenu && <SignOut />}
+            {settings.gather?.accountMenu === false && <SignOut />}
             {!settings.theme && <ThemeToggle />}
           </div>
 

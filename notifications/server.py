@@ -89,6 +89,8 @@ def initialize():
           body TEXT NOT NULL, created REAL NOT NULL, next_try REAL NOT NULL, attempts INTEGER NOT NULL DEFAULT 0,
           PRIMARY KEY(event,subscriber));
         CREATE TABLE IF NOT EXISTS state (key TEXT PRIMARY KEY,value TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS preferences (
+          owner TEXT PRIMARY KEY, body TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS inbox_state (
           owner TEXT NOT NULL, message TEXT NOT NULL, status TEXT NOT NULL CHECK(status IN ('read','dismissed')),
           updated REAL NOT NULL, PRIMARY KEY(owner,message));
@@ -104,10 +106,25 @@ def owner_for_cookie(cookie):
     with urlopen(request, timeout=5) as response:
         session = json.loads(response.read(32768))
     user = session.get('user') or {}
-    identity = user.get('id') or user.get('email')
+    identity = user.get('gatherIdentity') or user.get('id') or user.get('email')
     if not isinstance(identity, str) or not identity:
         return None
-    return hashlib.sha256(identity.encode()).hexdigest()
+    owner = hashlib.sha256(identity.encode()).hexdigest()
+    # Upgrade email-keyed installations only when the identity provider verified the email.
+    email = user.get('email')
+    if user.get('gatherIdentity') and user.get('emailVerified') is True and isinstance(email, str) and email:
+        legacy = hashlib.sha256(email.encode()).hexdigest()
+        if legacy != owner:
+            with connect() as db:
+                db.execute('UPDATE subscriptions SET owner=? WHERE owner=?', (owner,legacy))
+                db.execute('''INSERT INTO inbox_state SELECT ?,message,status,updated FROM inbox_state WHERE owner=?
+                  ON CONFLICT(owner,message) DO UPDATE SET
+                  status=CASE WHEN inbox_state.status='dismissed' OR excluded.status='dismissed' THEN 'dismissed' ELSE 'read' END,
+                  updated=MAX(inbox_state.updated,excluded.updated)''', (owner,legacy))
+                db.execute('DELETE FROM inbox_state WHERE owner=?', (legacy,))
+                db.execute('INSERT OR IGNORE INTO preferences SELECT ?,body FROM preferences WHERE owner=?', (owner,legacy))
+                db.execute('DELETE FROM preferences WHERE owner=?', (legacy,))
+    return owner
 
 def validate_subscription(value):
     if not isinstance(value, dict):
@@ -254,8 +271,15 @@ class Handler(BaseHTTPRequestHandler):
             self.respond(401,{'error':'Sign in to Gather'})
         return owner
 
-    def inbox(self, owner, updates=None):
+    def inbox(self, owner, updates=None, preferences=None):
         with connect() as db:
+            if preferences is not None:
+                db.execute('INSERT INTO preferences VALUES (?,?) ON CONFLICT(owner) DO UPDATE SET body=excluded.body',
+                           (owner,json.dumps(preferences)))
+            row = db.execute('SELECT body FROM preferences WHERE owner=?', (owner,)).fetchone()
+            saved_preferences = {'badge':True, 'pushPage':True, 'inboxView':'panel'}
+            if row:
+                saved_preferences.update(json.loads(row['body']))
             if updates is not None:
                 # Dismissal wins over a stale device's read/import operation.
                 db.executemany('''INSERT INTO inbox_state VALUES (?,?,?,?)
@@ -265,7 +289,7 @@ class Handler(BaseHTTPRequestHandler):
                   [(owner, ident, status, time.time()) for ident, status in updates.items()])
             states = {row['message']:row['status'] for row in db.execute(
                 'SELECT message,status FROM inbox_state WHERE owner=? AND updated>=?', (owner,time.time()-31*86400))}
-        return self.respond(200, {'account':owner, 'states':states})
+        return self.respond(200, {'account':owner, 'states':states, 'preferences':saved_preferences})
 
     def do_GET(self):
         try:
@@ -346,7 +370,13 @@ class Handler(BaseHTTPRequestHandler):
                     not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', ident) or status not in ('read','dismissed')
                     for ident,status in updates.items()):
                     return self.respond(400,{'error':'Invalid notification status updates'})
-                return self.inbox(owner, updates)
+                preferences = value.get('preferences')
+                if preferences is not None and (not isinstance(preferences, dict) or
+                    set(preferences) != {'badge','pushPage','inboxView'} or
+                    type(preferences.get('badge')) is not bool or type(preferences.get('pushPage')) is not bool or
+                    preferences.get('inboxView') not in ('panel','page')):
+                    return self.respond(400,{'error':'Invalid notification preferences'})
+                return self.inbox(owner, updates, preferences)
             subscription = validate_subscription(value)
         except (ValueError, TypeError, KeyError):
             return self.respond(400,{'error':'Invalid browser subscription'})
