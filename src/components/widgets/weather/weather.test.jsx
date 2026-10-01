@@ -34,6 +34,17 @@ describe("components/widgets/weather", () => {
     expect(screen.getAllByText("widget.api_error").length).toBeGreaterThan(0);
   });
 
+  it("uses configured zero coordinates without requesting geolocation", () => {
+    useSWR.mockReturnValue({ data: undefined, error: undefined });
+    const getCurrentPosition = vi.fn();
+    vi.stubGlobal("navigator", { geolocation: { getCurrentPosition } });
+    renderWithProviders(<WeatherApi options={{ latitude: 0, longitude: 0, units: "metric" }} />, { settings: {} });
+    expect(screen.getByText("weather.updating")).toBeInTheDocument();
+    expect(screen.queryByText("weather.allow")).not.toBeInTheDocument();
+    expect(useSWR.mock.calls.at(-1)[0]).toContain("latitude=0&longitude=0");
+    expect(getCurrentPosition).not.toHaveBeenCalled();
+  });
+
   it("renders a location prompt when no coordinates are available", () => {
     renderWithProviders(<WeatherApi options={{}} />, { settings: { target: "_self" } });
 

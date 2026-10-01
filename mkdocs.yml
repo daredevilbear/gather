@@ -1,17 +1,30 @@
-site_name: Homepage
+site_name: Gather
 
 # Project information
-site_url: https://gethomepage.dev/
+# Documentation is hosted as Markdown in the GitHub repository.
+# Set site_url when a standalone documentation site is deployed.
 
 # Repository
-repo_name: gethomepage/homepage
-repo_url: https://github.com/gethomepage/homepage
-edit_uri: https://github.com/gethomepage/homepage/tree/main/docs/
+repo_name: daredevilbear/gather
+repo_url: https://github.com/daredevilbear/gather
+edit_uri: https://github.com/daredevilbear/gather/edit/dev/docs/
 
 nav:
   - "Home":
       - index.md
-  - "Installation":
+  - "Gather":
+      - gather/index.md
+      - gather/setup.md
+      - gather/navigation.md
+      - gather/settings.md
+      - gather/administration.md
+      - gather/notifications.md
+      - gather/system.md
+      - gather/containers.md
+      - gather/operations.md
+      - gather/troubleshooting.md
+      - gather/local-preview.md
+  - "Upstream installation reference":
       - installation/index.md
       - installation/docker.md
       - installation/k8s.md
@@ -45,6 +58,7 @@ nav:
           - widgets/services/bazarr.md
           - widgets/services/booklore.md
           - widgets/services/beszel.md
+          - widgets/services/bitaxe.md
           - widgets/services/caddy.md
           - widgets/services/calendar.md
           - widgets/services/calibre-web.md
@@ -116,6 +130,7 @@ nav:
           - widgets/services/mylar.md
           - widgets/services/myspeed.md
           - widgets/services/navidrome.md
+          - widgets/services/nerdaxe.md
           - widgets/services/netdata.md
           - widgets/services/netalertx.md
           - widgets/services/nextcloud.md

@@ -59,7 +59,7 @@ export default function WeatherApi({ options }) {
   const [location, setLocation] = useState(false);
   const [requesting, setRequesting] = useState(false);
 
-  if (!location && options.latitude && options.longitude) {
+  if (!location && options.latitude != null && options.longitude != null) {
     setLocation({ latitude: options.latitude, longitude: options.longitude });
   }
 
@@ -84,7 +84,7 @@ export default function WeatherApi({ options }) {
   }, []);
 
   useEffect(() => {
-    if (!options.latitude && !options.longitude && typeof navigator !== "undefined") {
+    if (options.latitude == null && options.longitude == null && typeof navigator !== "undefined") {
       navigator.permissions?.query({ name: "geolocation" }).then((result) => {
         if (result.state === "granted") {
           requestLocation();

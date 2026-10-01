@@ -302,6 +302,48 @@
     "doc": "caddy"
   },
   {
+    "id": "calendar",
+    "name": "Calendar",
+    "description": "Monthly calendar or agenda with iCal and media event sources",
+    "fields": [
+      {
+        "key": "view",
+        "options": ["monthly", "agenda"],
+        "help": "Default: monthly."
+      },
+      {
+        "key": "firstDayInWeek",
+        "title": "First day of week",
+        "options": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+        "help": "Default: Monday."
+      },
+      {
+        "key": "maxEvents",
+        "kind": "number",
+        "min": 1,
+        "step": 1,
+        "help": "Maximum displayed events. Default: 10."
+      },
+      {
+        "key": "previousDays",
+        "kind": "number",
+        "min": 0,
+        "step": 1,
+        "help": "Days before today in agenda view. Default: 0."
+      },
+      {
+        "key": "showTime",
+        "kind": "boolean",
+        "title": "Show event time"
+      },
+      {
+        "key": "timezone",
+        "validation": "timezone",
+        "help": "Optional IANA time zone, for example America/Los_Angeles. Blank uses the detected zone."
+      }
+    ]
+  },
+  {
     "id": "calibreweb",
     "name": "Calibre-web",
     "fields": [
@@ -1025,9 +1067,65 @@
     "doc": "homebridge"
   },
   {
-    "id": "ical",
-    "name": "ical",
-    "fields": []
+    "id": "iframe",
+    "name": "IFrame",
+    "description": "Embed a page that permits framing",
+    "fields": [
+      {
+        "key": "src",
+        "title": "Page URL",
+        "kind": "url",
+        "validation": "http",
+        "required": true
+      },
+      {
+        "key": "name",
+        "title": "Frame name"
+      },
+      {
+        "key": "classes",
+        "title": "Height and CSS classes",
+        "help": "Optional Tailwind classes; default height is h-60 (2xl:h-72)."
+      },
+      {
+        "key": "loadingStrategy",
+        "options": ["lazy", "eager"]
+      },
+      {
+        "key": "allowScrolling",
+        "options": ["yes", "no", "auto"]
+      },
+      {
+        "key": "allowfullscreen",
+        "kind": "boolean",
+        "title": "Allow full screen"
+      },
+      {
+        "key": "referrerPolicy",
+        "options": [
+          "no-referrer",
+          "same-origin",
+          "strict-origin",
+          "strict-origin-when-cross-origin",
+          "origin",
+          "origin-when-cross-origin",
+          "no-referrer-when-downgrade",
+          "unsafe-url"
+        ]
+      },
+      {
+        "key": "allowPolicy",
+        "title": "Permissions policy",
+        "help": "Optional iframe allow attribute; grant only the features the embedded page needs."
+      },
+      {
+        "key": "refreshInterval",
+        "kind": "number",
+        "min": 1000,
+        "step": 1,
+        "help": "Optional refresh interval in milliseconds; minimum 1000."
+      }
+    ]
   },
   {
     "id": "immich",
@@ -2752,11 +2850,6 @@
     "doc": "unifi-drive"
   },
   {
-    "id": "unifi_console",
-    "name": "unifi_console",
-    "fields": []
-  },
-  {
     "id": "unmanic",
     "name": "Unmanic",
     "fields": [
@@ -2852,6 +2945,30 @@
     "doc": "urbackup"
   },
   {
+    "id": "velociraptor",
+    "name": "Velociraptor",
+    "description": "Client counts through the mutual TLS gRPC API",
+    "fields": [
+      {
+        "key": "apiConfig",
+        "title": "API client file path",
+        "required": true,
+        "help": "Path inside the Gather container, e.g. /app/config/velociraptor-api.yaml. Mount the generated file read-only. It contains the API address, CA certificate, client certificate and private key; this editor never reads its contents. The API identity needs ANY_QUERY and READ_RESULTS."
+      },
+      {
+        "key": "orgId",
+        "title": "Organization ID",
+        "help": "Optional; blank uses the root organization."
+      },
+      {
+        "key": "fields",
+        "kind": "list",
+        "options": ["total", "recent", "stale"],
+        "help": "Recent means seen within 15 minutes. Leave empty for default fields."
+      }
+    ]
+  },
+  {
     "id": "vikunja",
     "name": "Vikunja",
     "fields": [
@@ -2903,6 +3020,36 @@
       }
     ],
     "doc": "watchtower"
+  },
+  {
+    "id": "wazuh",
+    "name": "Wazuh",
+    "description": "Agent connection counts from the Wazuh manager API",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url",
+        "required": true,
+        "validation": "http",
+        "help": "Manager API URL, usually https://wazuh.example.net:55000. Use an API account with agent:read access."
+      },
+      {
+        "key": "username",
+        "required": true
+      },
+      {
+        "key": "password",
+        "kind": "password",
+        "required": true,
+        "help": "API user password or an unresolved {{HOMEPAGE_VAR_WAZUH_PASSWORD}} reference. Gather renews the token automatically."
+      },
+      {
+        "key": "fields",
+        "kind": "list",
+        "options": ["total", "active", "disconnected", "pending", "never_connected"],
+        "help": "Leave empty to show the default fields."
+      }
+    ]
   },
   {
     "id": "wgeasy",
