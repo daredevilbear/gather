@@ -20,6 +20,7 @@ import SystemSettings from "./system";
 import Users from "./users";
 import Variables from "./variables";
 import Vcenter from "./vcenter";
+import widgetCatalogPolicy from "./widget-catalog-policy.json";
 
 import GatherIcon from "components/gather/icon";
 import GatherMark from "components/gather/mark";
@@ -1013,7 +1014,7 @@ function Widgets({ value, onChange }) {
           title="Home widget library"
           items={
             personal
-              ? HOME_WIDGETS.filter((item) => ["greeting", "search", "datetime", "openmeteo", "logo"].includes(item.id))
+              ? HOME_WIDGETS.filter((item) => widgetCatalogPolicy.personalHomeAllowed.includes(item.id))
               : HOME_WIDGETS
           }
           onSelect={(item) => {
@@ -1060,7 +1061,13 @@ function Widgets({ value, onChange }) {
             {item ? (
               <GuidedFields
                 fields={[
-                  ...item.fields,
+                  ...item.fields
+                    .filter((field) => !personal || !["apiKey", "key", "username", "password"].includes(field.key))
+                    .map((field) =>
+                      type === "weatherapi" && ["latitude", "longitude"].includes(field.key)
+                        ? { ...field, required: config[field.key === "latitude" ? "longitude" : "latitude"] != null }
+                        : field,
+                    ),
                   ...(type === "search" && config.provider === "custom"
                     ? [{ key: "url", kind: "url", title: "Search URL" }]
                     : []),
@@ -1071,7 +1078,9 @@ function Widgets({ value, onChange }) {
             ) : (
               <p>This widget uses custom settings. Edit them in Source.</p>
             )}
-            {type === "openmeteo" && <p>Leave coordinates empty to use the browser’s location.</p>}
+            {["openmeteo", "weatherapi"].includes(type) && (
+              <p>Enter both coordinates, or leave both empty to use the browser’s location.</p>
+            )}
             <Move
               label={item?.name || type || "widget"}
               index={index}

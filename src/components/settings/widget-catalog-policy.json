@@ -1,0 +1,24 @@
+{
+  "serviceRendererExceptions": {
+    "docker": "Container status is attached through service server/container settings and discovery, not a generic integration connection.",
+    "kubernetes": "Pod status is attached through service namespace/app settings and discovery; cluster Home widgets remain in the Home library."
+  },
+  "proxyOnlyExceptions": {
+    "ical": "Internal calendar feed proxy alias; add an iCal event source inside Calendar, not a standalone service widget.",
+    "unifi_console": "Home UniFi Controller proxy alias; the service renderer is unifi."
+  },
+  "personalHomeAllowed": ["greeting", "search", "datetime", "openmeteo", "logo"],
+  "personalHomeExceptions": {
+    "weatherapi": "Requires a shared provider credential; personal configuration cannot add credentials or provider-backed Home widgets.",
+    "openweathermap": "Requires a shared provider credential.",
+    "resources": "Exposes host metrics; operator-controlled.",
+    "glances": "Requires a remote connection and credentials.",
+    "unifi_console": "Requires a controller connection and credentials.",
+    "kubernetes": "Requires operator-managed cluster access.",
+    "longhorn": "Requires an operator-managed storage provider.",
+    "stocks": "Requires a shared Finnhub credential."
+  },
+  "standaloneComponentExceptions": {
+    "proxmoxvm": "VM status is rendered directly by the service item through its Proxmox binding, not the integration renderer registry."
+  }
+}

@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useId, useRef, useState } from "react";
 
 import styles from "./editor.module.css";
+import { fieldError, isConfigReference } from "./field-validation";
 import integrations from "./widget-catalog.json";
 
 export const EditorPreviewContext = createContext(false);
@@ -19,6 +20,7 @@ const label = (key) =>
     fields: "Display fields",
     text_size: "Text size",
     cputemp: "CPU temperature",
+    weatherapi: "WeatherAPI",
   })[key] ||
   key
     .replaceAll("_", " ")
@@ -356,7 +358,7 @@ export function Catalog({ items, title, onSelect }) {
 export function GuidedFields({ fields, value, onChange }) {
   return (
     <div className={styles.grid}>
-      {fields.map(({ key, kind = "text", options, min, max, title, help }) => {
+      {fields.map(({ key, kind = "text", options, min, max, step, required, validation, error, title, help }) => {
         const parts = key.split(".");
         const current = parts.reduce((v, part) => v?.[part], value);
         const set = (next) => {
@@ -370,13 +372,38 @@ export function GuidedFields({ fields, value, onChange }) {
           else target[parts.at(-1)] = next;
           onChange(copy);
         };
+        if (
+          kind === "list" &&
+          (current === undefined || (Array.isArray(current) && current.every((entry) => typeof entry === "string")))
+        )
+          return (
+            <fieldset key={key}>
+              <legend>{title || label(key)}</legend>
+              {[...new Set([...options, ...(current || [])])].map((option) => (
+                <label key={option} className={styles.check}>
+                  <input
+                    type="checkbox"
+                    checked={current?.includes(option) || false}
+                    onChange={(e) => {
+                      const next = e.target.checked
+                        ? [...(current || []), option]
+                        : current.filter((entry) => entry !== option);
+                      set(next.length ? next : "");
+                    }}
+                  />
+                  {label(option)}
+                </label>
+              ))}
+              {help && <small>{help}</small>}
+            </fieldset>
+          );
         if (current !== undefined && current !== null && typeof current === "object")
           return <p key={key}>{title || label(key)} uses a custom configuration. Edit it in Source.</p>;
         return (
           <label key={key} className={kind === "boolean" ? styles.check : undefined}>
             {kind !== "boolean" && (title || label(key))}
             {options ? (
-              <select value={current ?? ""} onChange={(e) => set(e.target.value)}>
+              <select required={required} value={current ?? ""} onChange={(e) => set(e.target.value)}>
                 <option value="">Default</option>
                 {current && !options.includes(current) && <option value={current}>{current} (custom)</option>}
                 {options.map((option) => (
@@ -392,13 +419,13 @@ export function GuidedFields({ fields, value, onChange }) {
               </>
             ) : (
               <input
-                type={
-                  kind === "url" && /{{HOMEPAGE_(?:VAR|FILE)_[A-Z0-9_]+}}/.test(String(current || "")) ? "text" : kind
-                }
+                type={kind === "url" && isConfigReference(current) ? "text" : kind}
                 value={current ?? ""}
                 min={min}
                 max={max}
-                step={kind === "number" ? "any" : undefined}
+                step={kind === "number" ? (step ?? "any") : undefined}
+                required={required}
+                ref={(node) => node?.setCustomValidity(error || fieldError(current, validation))}
                 autoComplete={kind === "password" ? "new-password" : "off"}
                 onChange={(e) =>
                   set(kind === "number" && e.target.value !== "" ? Number(e.target.value) : e.target.value)
@@ -456,6 +483,7 @@ export function IntegrationPicker({ value, onChange }) {
       {value?.type && (
         <>
           <GuidedFields fields={item?.fields || []} value={value} onChange={onChange} />
+          {value.type === "calendar" && <CalendarSources value={value} onChange={onChange} />}
           <p className={styles.sourceHint}>
             Additional options are available in Source.
             {item?.doc && (
@@ -481,6 +509,119 @@ export function IntegrationPicker({ value, onChange }) {
     </section>
   );
 }
+const CALENDAR_SOURCE_TYPES = ["ical", "sonarr", "radarr", "lidarr", "readarr"];
+const CALENDAR_COLORS = [
+  "amber",
+  "blue",
+  "cyan",
+  "emerald",
+  "fuchsia",
+  "gray",
+  "green",
+  "indigo",
+  "lime",
+  "neutral",
+  "orange",
+  "pink",
+  "purple",
+  "red",
+  "rose",
+  "sky",
+  "slate",
+  "stone",
+  "teal",
+  "violet",
+  "white",
+  "yellow",
+  "zinc",
+];
+export function CalendarSources({ value, onChange }) {
+  const [type, setType] = useState("ical");
+  const sources = value.integrations ?? [];
+  if (!Array.isArray(sources)) return <p>Event sources use a custom configuration. Edit them in Source.</p>;
+  const update = (next) => onChange({ ...value, integrations: next });
+  return (
+    <section className={styles.contentGroup}>
+      <h4>Event sources</h4>
+      <p>
+        iCal uses a feed URL. Media sources reuse an existing service widget’s connection and credentials; enter its
+        exact group and service name.
+      </p>
+      {sources.map((source, index) => (
+        <fieldset key={index}>
+          <legend>
+            Event source {index + 1}: {source?.type || "custom"}
+          </legend>
+          {CALENDAR_SOURCE_TYPES.includes(source?.type) ? (
+            <GuidedFields
+              value={source}
+              onChange={(next) => update(sources.map((entry, i) => (i === index ? next : entry)))}
+              fields={[
+                ...(source.type === "ical"
+                  ? [
+                      {
+                        key: "name",
+                        title: "Feed name",
+                        required: true,
+                        error: sources.some((entry, i) => i !== index && entry?.name === source.name && source.name)
+                          ? "Feed names must be unique within this calendar."
+                          : "",
+                      },
+                      {
+                        key: "url",
+                        title: "iCal feed URL",
+                        kind: "password",
+                        required: true,
+                        validation: "http",
+                        help: "HTTP(S) feed URL or an unresolved variable reference. Private feed links are credentials; use a stored variable when possible.",
+                      },
+                      { key: "params.showName", kind: "boolean", title: "Show feed name before events" },
+                    ]
+                  : [
+                      { key: "service_group", title: "Service group", required: true },
+                      { key: "service_name", title: "Service name", required: true },
+                      {
+                        key: "baseUrl",
+                        title: "Event link base URL",
+                        kind: "url",
+                        validation: "http",
+                        help: "Optional link to the media application.",
+                      },
+                      { key: "params.unmonitored", kind: "boolean", title: "Include unmonitored items" },
+                      ...(source.type === "radarr"
+                        ? [{ key: "missingOnly", kind: "boolean", title: "Only missing monitored movies" }]
+                        : []),
+                    ]),
+                { key: "color", options: CALENDAR_COLORS, title: "Event color" },
+              ]}
+            />
+          ) : (
+            <p>This source is preserved. Edit its custom configuration in Source.</p>
+          )}
+          <button type="button" onClick={() => update(sources.filter((_, i) => i !== index))}>
+            Remove event source {index + 1}
+          </button>
+        </fieldset>
+      ))}
+      <div className={styles.add}>
+        <label>
+          Source type
+          <select value={type} onChange={(e) => setType(e.target.value)}>
+            {CALENDAR_SOURCE_TYPES.map((entry) => (
+              <option key={entry} value={entry}>
+                {entry === "ical" ? "iCal feed" : label(entry)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button type="button" onClick={() => update([...sources, { type }])}>
+          Add event source
+        </button>
+      </div>
+    </section>
+  );
+}
+
 export const HOME_WIDGETS = [
   {
     id: "greeting",
@@ -524,6 +665,39 @@ export const HOME_WIDGETS = [
       { key: "latitude", kind: "number", min: -90, max: 90 },
       { key: "longitude", kind: "number", min: -180, max: 180 },
       { key: "units", options: ["metric", "imperial"] },
+    ],
+  },
+  {
+    id: "weatherapi",
+    name: "WeatherAPI",
+    description: "Current weather with your WeatherAPI key",
+    defaults: { units: "metric", provider: "weatherapi" },
+    fields: [
+      { key: "label", title: "Location name" },
+      { key: "latitude", kind: "number", min: -90, max: 90 },
+      { key: "longitude", kind: "number", min: -180, max: 180 },
+      { key: "units", options: ["metric", "imperial"] },
+      {
+        key: "provider",
+        title: "Shared key provider",
+        options: ["weatherapi"],
+        help: "Select WeatherAPI to use the operator’s shared provider key when the widget key is blank.",
+      },
+      {
+        key: "apiKey",
+        kind: "password",
+        title: "WeatherAPI key",
+        help: "API key or an unresolved variable reference. Blank uses the shared key when the WeatherAPI provider is selected.",
+      },
+      { key: "cache", kind: "number", min: 1, step: 1, title: "Cache duration (minutes)", help: "Default: 5 minutes." },
+      {
+        key: "format.maximumFractionDigits",
+        kind: "number",
+        min: 0,
+        max: 20,
+        step: 1,
+        title: "Temperature decimal places",
+      },
     ],
   },
   {
