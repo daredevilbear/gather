@@ -16,6 +16,7 @@ const components = {
   bazarr: dynamic(() => import("./bazarr/component")),
   beszel: dynamic(() => import("./beszel/component")),
   bitaxe: dynamic(() => import("./bitaxe/component")),
+  nerdaxe: dynamic(() => import("./nerdaxe/component")),
   bitcoinnode: dynamic(() => import("./bitcoinnode/component")),
   booklore: dynamic(() => import("./booklore/component")),
   caddy: dynamic(() => import("./caddy/component")),

@@ -81,6 +81,7 @@ import moonraker from "./moonraker/widget";
 import mylar from "./mylar/widget";
 import myspeed from "./myspeed/widget";
 import navidrome from "./navidrome/widget";
+import nerdaxe from "./nerdaxe/widget";
 import netalertx from "./netalertx/widget";
 import netdata from "./netdata/widget";
 import nextcloud from "./nextcloud/widget";
@@ -179,6 +180,7 @@ const widgets = {
   booklore,
   beszel,
   bitaxe,
+  nerdaxe,
   bitcoinnode,
   caddy,
   calibreweb,
