@@ -46,3 +46,12 @@ it("rejects private connection configuration, code and environment expansion", (
   expect(() => validateDashboardDocument("custom.js", "alert(1)")).toThrow();
   expect(() => validateDashboardDocument("settings.yaml", "gather: {accountMenu: false}")).toThrow();
 });
+
+it("rejects personal source credentials for guided integration widgets", () => {
+  expect(() => validateDashboardDocument("widgets.yaml", "- weatherapi: {apiKey: fictional}")).toThrow(/credentials/);
+  for (const type of ["calendar", "wazuh", "velociraptor", "iframe"]) {
+    expect(() =>
+      validateDashboardDocument("services.yaml", yaml.dump([{ Lab: [{ Example: { widget: { type } } }] }])),
+    ).toThrow(/credentials/);
+  }
+});

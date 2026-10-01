@@ -2,7 +2,6 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import * as yaml from "js-yaml";
 import { useState } from "react";
-import { validateDashboardDocument } from "utils/gather/dashboard-documents";
 import { describe, expect, it, vi } from "vitest";
 import SettingsEditor from "./editor";
 import { IntegrationPicker } from "./pickers";
@@ -231,12 +230,6 @@ it("does not expose credential inputs on inherited personal WeatherAPI widgets",
   fireEvent.click(screen.getByRole("button", { name: "Home widgets", exact: true }));
   await screen.findByLabelText("Location name");
   expect(screen.queryByLabelText(/WeatherAPI key/)).not.toBeInTheDocument();
-  expect(() => validateDashboardDocument("widgets.yaml", "- weatherapi: {apiKey: fictional}")).toThrow(/credentials/);
-  for (const type of ["calendar", "wazuh", "velociraptor", "iframe"]) {
-    expect(() =>
-      validateDashboardDocument("services.yaml", yaml.dump([{ Lab: [{ Example: { widget: { type } } }] }])),
-    ).toThrow(/credentials/);
-  }
 });
 
 it("edits iframe options while preserving custom configuration", () => {
