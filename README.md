@@ -5,10 +5,10 @@ configuration, user accounts, personal dashboards, and notifications. It is
 based on [Homepage](https://github.com/gethomepage/homepage), with native Gather
 features built on the inherited dashboard and widget system.
 
-**[Read the documentation](docs/gather/index.md)** ·
-[Set up Gather](docs/gather/setup.md) ·
-[Migrate from Homepage](docs/gather/administration.md#homepage-migration) ·
-[Troubleshoot](docs/gather/troubleshooting.md)
+**[Read the documentation](https://gather.daredevilbear.dev/gather/)** ·
+[Set up Gather](https://gather.daredevilbear.dev/gather/setup/) ·
+[Migrate from Homepage](https://gather.daredevilbear.dev/gather/migration/) ·
+[Troubleshoot](https://gather.daredevilbear.dev/gather/troubleshooting/)
 
 ## What Gather includes
 
@@ -25,21 +25,27 @@ features built on the inherited dashboard and widget system.
   Bitaxe, NerdAxe, Wazuh, and Velociraptor.
 
 Gather remains in active development. Validate authentication, recovery, and
-integrations in an isolated instance before adopting an update. Documentation on
-`dev` follows development; use the same branch or commit as your deployed image.
+integrations in an isolated instance before adopting an update. The website provides one current documentation set; compare its release-note baseline
+with your deployed image before upgrading.
 
 ## Documentation
 
+The [Gather website](https://gather.daredevilbear.dev/) is the authoritative documentation source.
+Documentation changes belong in [gather-docs](https://github.com/daredevilbear/gather-docs).
+The website and both repositories remain private during staging; the site currently requires the approved reviewer account.
+The inherited `docs/` files remain a source snapshot, not a second independently maintained guide.
+
+
 | Task                                                      | Guide                                              |
 | --------------------------------------------------------- | -------------------------------------------------- |
-| Install and configure authentication                      | [Setup](docs/gather/setup.md)                      |
-| Choose images and release channels                        | [Containers](docs/gather/containers.md)            |
-| Edit a shared dashboard                                   | [Settings](docs/gather/settings.md)                |
-| Manage users, personal dashboards, secrets, and migration | [Administration](docs/gather/administration.md)    |
-| Configure inbox and push delivery                         | [Notifications](docs/gather/notifications.md)      |
-| Configure encrypted connections and recovery              | [System settings](docs/gather/system.md)           |
-| Upgrade, back up, and restore                             | [Operations](docs/gather/operations.md)            |
-| Find integration configuration                            | [Widget reference](docs/widgets/services/index.md) |
+| Install and configure authentication                      | [Setup](https://gather.daredevilbear.dev/gather/setup/)                      |
+| Choose images and release channels                        | [Containers](https://gather.daredevilbear.dev/gather/containers/)            |
+| Edit a shared dashboard                                   | [Settings](https://gather.daredevilbear.dev/gather/settings/)                |
+| Manage users, personal dashboards, secrets, and migration | [Administration](https://gather.daredevilbear.dev/gather/administration/)    |
+| Configure inbox and push delivery                         | [Notifications](https://gather.daredevilbear.dev/gather/notifications/)      |
+| Configure encrypted connections and recovery              | [System settings](https://gather.daredevilbear.dev/gather/system/)           |
+| Upgrade, back up, and restore                             | [Operations](https://gather.daredevilbear.dev/gather/operations/)            |
+| Find integration configuration                            | [Widget reference](https://gather.daredevilbear.dev/widgets/services/) |
 
 ## Local UI development
 
@@ -53,13 +59,13 @@ pnpm dev:preview
 
 Open [the settings preview](http://127.0.0.1:3022/preview/settings). It uses
 isolated sample data and refreshes as source changes. See
-[Local interface preview](docs/gather/local-preview.md) for other preview routes
+[Local interface preview](https://gather.daredevilbear.dev/gather/local-preview/) for other preview routes
 and their limits. Real OIDC sign-in, service connections, and device push need
 separate integration checks.
 
 Development changes target `dev`; `main` is reserved for releases. Successful
 container builds publish `dev` or `latest`, respectively. Publishing an image
-does not deploy it. See [Container builds](docs/gather/containers.md).
+does not deploy it. See [Container builds](https://gather.daredevilbear.dev/gather/containers/).
 
 ## License and upstream
 
