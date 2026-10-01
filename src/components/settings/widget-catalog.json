@@ -228,6 +228,18 @@
     "doc": "beszel"
   },
   {
+    "id": "nerdaxe",
+    "name": "NerdAxe / NerdQAxe",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      }
+    ],
+    "doc": "nerdaxe",
+    "docUrl": "https://github.com/daredevilbear/gather/blob/dev/docs/widgets/services/nerdaxe.md"
+  },
+  {
     "id": "bitaxe",
     "name": "Bitaxe",
     "fields": [

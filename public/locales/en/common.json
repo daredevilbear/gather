@@ -35,6 +35,20 @@
         "pruned": "Pruned",
         "updated": "Updated"
     },
+    "nerdaxe": {
+        "hashrate": "Hash Rate",
+        "temperature": "Temperature",
+        "voltage": "Voltage",
+        "bestdifficulty": "Best Difficulty",
+        "fan": "Fan",
+        "sessionbest": "Session Best Diff",
+        "pool": "Pool",
+        "primary": "primary",
+        "fallback": "fallback",
+        "updated": "Last updated:",
+        "rejectedshares": "Rejected Shares",
+        "poolping": "Pool Ping"
+    },
     "bitaxe": {
         "hashrate": "Hash Rate",
         "temperature": "Temperature",

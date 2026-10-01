@@ -6,6 +6,19 @@ import { EditorPreviewContext, IconPicker, IntegrationPicker, TokenList, matches
 
 afterEach(() => vi.unstubAllGlobals());
 describe("guided settings pickers", () => {
+  it("adds NerdAxe from the library with its miner URL", () => {
+    const change = vi.fn();
+    const { rerender } = render(<IntegrationPicker value={null} onChange={change} />);
+    fireEvent.click(screen.getByRole("button", { name: "Choose integration widget" }));
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search widgets" }), { target: { value: "nerdaxe" } });
+    fireEvent.click(screen.getByRole("button", { name: /NerdAxe \/ NerdQAxe/ }));
+    expect(change).toHaveBeenCalledWith({ type: "nerdaxe" });
+    rerender(<IntegrationPicker value={{ type: "nerdaxe" }} onChange={change} />);
+    fireEvent.change(screen.getByRole("textbox", { name: "Server URL" }), {
+      target: { value: "http://192.168.100.11" },
+    });
+    expect(change).toHaveBeenLastCalledWith({ type: "nerdaxe", url: "http://192.168.100.11" });
+  });
   it("offers Bitcoin Node with RPC connection fields", () => {
     const change = vi.fn();
     const { rerender } = render(<IntegrationPicker value={null} onChange={change} />);
