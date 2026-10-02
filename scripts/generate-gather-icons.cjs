@@ -1,5 +1,6 @@
 const fs = require("node:fs/promises");
 const path = require("node:path");
+
 const sharp = require("sharp");
 (async () => {
   const root = path.join(__dirname, "..", "public");

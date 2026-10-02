@@ -1,6 +1,7 @@
 const fs = require("node:fs");
 const crypto = require("node:crypto");
 const path = require("node:path");
+
 const database = require("./database.cjs");
 const PURPOSE = "gather-system-v1";
 function seal(value, key, domain) {

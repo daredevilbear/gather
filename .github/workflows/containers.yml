@@ -219,6 +219,12 @@ jobs:
           docker buildx imagetools inspect "$IMAGE:sha-$GITHUB_SHA" --format '{{json .Provenance}}' > /tmp/provenance.json
           docker buildx imagetools inspect "$IMAGE:sha-$GITHUB_SHA" --format '{{json .SBOM}}' > /tmp/sbom.json
           python3 scripts/ci/verify-image.py /tmp/image-config.json /tmp/provenance.json /tmp/sbom.json
+      - name: Record package visibility
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ steps.registry.outputs.owner }}
+          PACKAGE: ${{ matrix.image }}
+        run: gh api "users/$OWNER/packages/container/$PACKAGE" --jq '{name, visibility, html_url}'
       - name: Record immutable image digest
         if: steps.image.outcome == 'success'
         env:
