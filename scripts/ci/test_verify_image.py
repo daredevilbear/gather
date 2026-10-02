@@ -18,7 +18,9 @@ class ImageVerificationTests(unittest.TestCase):
                 "org.opencontainers.image.licenses": "GPL-3.0",
                 "org.opencontainers.image.source": "https://github.com/example/gather",
             }}}
-            predicate = {"buildType": "https://mobyproject.org/buildkit@v1"}
+            build_type = ("https://github.com/moby/buildkit/blob/master/docs/attestations/slsa-definitions.md"
+                          if version == 1 else "https://mobyproject.org/buildkit@v1")
+            predicate = {"buildType": build_type}
             provenance[platform] = {"SLSA": {"buildDefinition": predicate} if version == 1 else predicate}
             sbom[platform] = {"SPDX": {"spdxVersion": "SPDX-2.3"}}
         if invalid == "revision":
@@ -27,6 +29,10 @@ class ImageVerificationTests(unittest.TestCase):
             del sbom["linux/arm64"]
         if invalid == "provenance":
             provenance["linux/amd64"] = {"SLSA": {}}
+        if invalid == "build_type":
+            provenance["linux/amd64"]["SLSA"]["buildDefinition"]["buildType"] = "https://example.com/other-builder"
+        if invalid == "legacy_type_in_v1":
+            provenance["linux/amd64"]["SLSA"]["buildDefinition"]["buildType"] = "https://mobyproject.org/buildkit@v1"
         with tempfile.TemporaryDirectory() as directory:
             files = []
             for index, data in enumerate((configs, provenance, sbom)):
@@ -51,6 +57,12 @@ class ImageVerificationTests(unittest.TestCase):
 
     def test_rejects_missing_buildkit_provenance(self):
         self.assertNotEqual(self.verify(invalid="provenance").returncode, 0)
+
+    def test_rejects_other_builder(self):
+        self.assertNotEqual(self.verify(invalid="build_type").returncode, 0)
+
+    def test_rejects_legacy_type_uri_in_slsa_v1(self):
+        self.assertNotEqual(self.verify(invalid="legacy_type_in_v1").returncode, 0)
 
 
 if __name__ == "__main__":

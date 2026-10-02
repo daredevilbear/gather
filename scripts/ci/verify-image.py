@@ -12,8 +12,11 @@ for platform in ("linux/amd64", "linux/arm64"):
     assert labels["org.opencontainers.image.licenses"] == "GPL-3.0"
     assert labels["org.opencontainers.image.source"] == f"https://github.com/{os.environ['GITHUB_REPOSITORY']}"
     predicate = provenance[platform]["SLSA"]
-    # BuildKit emits SLSA v1 now; retained images can use the v0.2 shape.
-    build_type = predicate.get("buildType") or predicate.get("buildDefinition", {}).get("buildType")
-    assert build_type == "https://mobyproject.org/buildkit@v1"
+    # BuildKit changed both the field location and type URI for SLSA v1.
+    # https://github.com/moby/buildkit/blob/master/docs/attestations/slsa-definitions.md
+    if "buildDefinition" in predicate:
+        assert predicate["buildDefinition"]["buildType"] == "https://github.com/moby/buildkit/blob/master/docs/attestations/slsa-definitions.md"
+    else:
+        assert predicate["buildType"] == "https://mobyproject.org/buildkit@v1"
     assert sbom[platform]["SPDX"]["spdxVersion"]
     print(f"{os.environ['IMAGE']}: {platform} source, version, license, provenance, and SBOM verified")
