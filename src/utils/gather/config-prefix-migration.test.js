@@ -47,7 +47,10 @@ it("previews without writes, then migrates placeholders, environment and encrypt
   const yamlFile = path.join(configDir, "services.yaml");
   fs.writeFileSync(yamlFile, 'key: "{{LEGACY_VAR_TOKEN}}"\nurl: https://legacy.example.test\n');
   const envFile = path.join(root, ".env");
-  fs.writeFileSync(envFile, "LEGACY_AUTH_SECRET=disposable-value\nGATHER_ADMIN_IDS=existing-account\n");
+  fs.writeFileSync(
+    envFile,
+    "LEGACY_AUTH_SECRET=disposable-value\nGATHER_ADMIN_IDS=existing-account\nGATHER_OIDC_PROVIDER_ID=previous-oidc\n",
+  );
   const usersFile = path.join(configDir, ".gather-users.sqlite");
   let db = new DatabaseSync(usersFile);
   db.exec("CREATE TABLE dashboards(owner TEXT PRIMARY KEY,body TEXT,revision INTEGER)");
@@ -61,7 +64,13 @@ it("previews without writes, then migrates placeholders, environment and encrypt
   for (const slot of ["active", "rollback"])
     db.prepare("INSERT INTO records VALUES (?,?)").run(
       slot,
-      JSON.stringify(vault.seal({ revision: slot, env: { LEGACY_AUTH_SECRET: "sealed-value" } }, key, "app")),
+      JSON.stringify(
+        vault.seal(
+          { revision: slot, env: { LEGACY_AUTH_SECRET: "sealed-value", GATHER_OIDC_PROVIDER_ID: "previous-oidc" } },
+          key,
+          "app",
+        ),
+      ),
     );
   db.close();
   const opts = { ...options(), envFile, systemDir, backupDir: path.join(root, "backup") };
@@ -74,6 +83,7 @@ it("previews without writes, then migrates placeholders, environment and encrypt
   expect(fs.readFileSync(yamlFile, "utf8")).toContain("https://legacy.example.test");
   expect(fs.readFileSync(envFile, "utf8")).toContain("GATHER_AUTH_SECRET=disposable-value");
   expect(fs.readFileSync(envFile, "utf8")).toContain("GATHER_ADMIN_IDS=existing-account");
+  expect(fs.readFileSync(envFile, "utf8")).toContain("GATHER_OIDC_PROVIDER_ID=gather-oidc");
   const store = variablesStore(configDir, key);
   expect(store.list()).toEqual([expect.objectContaining({ name: "GATHER_VAR_TOKEN", enabled: false })]);
   store.toggle("GATHER_VAR_TOKEN", true);
@@ -90,7 +100,7 @@ it("previews without writes, then migrates placeholders, environment and encrypt
   for (const row of db.prepare("SELECT * FROM records").all())
     expect(vault.unseal(JSON.parse(row.envelope), key, "app")).toEqual({
       revision: row.slot,
-      env: { GATHER_AUTH_SECRET: "sealed-value" },
+      env: { GATHER_AUTH_SECRET: "sealed-value", GATHER_OIDC_PROVIDER_ID: "gather-oidc" },
     });
   db.close();
   const manifest = JSON.parse(fs.readFileSync(path.join(opts.backupDir, "manifest.json")));

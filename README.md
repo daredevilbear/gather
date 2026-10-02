@@ -121,7 +121,8 @@ legacy configuration aliases and the old SSO callback are removed.
    `--system-dir /path/to/system-data`. The helper migrates YAML placeholders,
    `.env` keys, encrypted variables, personal dashboard placeholders and both
    active and rollback app vault records. It re-encrypts variables with their
-   new names, preserves values and access identities, and rejects collisions.
+   new names, selects the Gather callback, preserves secret values and access
+   identities, and rejects collisions.
    Preview changes no files. To apply, repeat with `--apply` and
    `--backup-dir /path/to/new-private-backup` outside the migrated directories.
    Keep the backup and original keys. If applying fails, restore every file

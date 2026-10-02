@@ -13,6 +13,7 @@ function migrate(options) {
     throw Error("Supply a different uppercase --from-prefix ending with an underscore.");
   if (!configDir || !fs.statSync(configDir).isDirectory()) throw Error("Supply --config-dir.");
   const rename = (name) => (name.startsWith(fromPrefix) ? `GATHER_${name.slice(fromPrefix.length)}` : name);
+  const setting = (name, value) => (rename(name) === "GATHER_OIDC_PROVIDER_ID" ? "gather-oidc" : value);
   const replace = (text) => text.replaceAll(`{{${fromPrefix}`, "{{GATHER_");
   const plans = [];
   const databases = [];
@@ -46,8 +47,8 @@ function migrate(options) {
     regularFile(envFile);
     const original = fs.readFileSync(envFile, "utf8");
     const content = original.replace(
-      /^([ \t]*(?:export[ \t]+)?)([A-Z][A-Z0-9_]*)=/gm,
-      (_, lead, name) => `${lead}${rename(name)}=`,
+      /^([ \t]*(?:export[ \t]+)?)([A-Z][A-Z0-9_]*)=(.*)$/gm,
+      (_, lead, name, value) => `${lead}${rename(name)}=${setting(name, value)}`,
     );
     const keys = [...content.matchAll(/^[ \t]*(?:export[ \t]+)?([A-Z][A-Z0-9_]*)=/gm)].map((m) => m[1]);
     if (new Set(keys).size !== keys.length) throw Error("Environment migration would create duplicate keys.");
@@ -102,10 +103,13 @@ function migrate(options) {
         .flatMap((row) => {
           const record = vault.unseal(JSON.parse(row.envelope), key, "app");
           const entries = Object.entries(record.env);
-          if (!entries.some(([name]) => rename(name) !== name)) return [];
+          if (!entries.some(([name, value]) => rename(name) !== name || setting(name, value) !== value)) return [];
           const names = entries.map(([name]) => rename(name));
           if (new Set(names).size !== names.length) throw Error("System migration would create duplicate keys.");
-          const next = { ...record, env: Object.fromEntries(entries.map(([name, value]) => [rename(name), value])) };
+          const next = {
+            ...record,
+            env: Object.fromEntries(entries.map(([name, value]) => [rename(name), setting(name, value)])),
+          };
           return [
             ["UPDATE records SET envelope=? WHERE slot=?", [JSON.stringify(vault.seal(next, key, "app")), row.slot]],
           ];
