@@ -65,6 +65,18 @@ afterEach(() => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 describe("encrypted system configuration", () => {
+  it("reports the running callback selection for encrypted and environment-based deployments", () => {
+    expect(publicConfig()).toMatchObject({
+      oidcProviderId: "homepage-oidc",
+      callbackUrl: "https://gather.example.test/api/auth/callback/homepage-oidc",
+    });
+    vi.stubEnv("GATHER_OIDC_PROVIDER_ID", "gather-oidc");
+    expect(publicConfig()).toMatchObject({
+      oidcProviderId: "gather-oidc",
+      callbackUrl: "https://gather.example.test/api/auth/callback/gather-oidc",
+    });
+  });
+
   it("encrypts authenticated records and rejects tampering, wrong keys and domains", () => {
     const encrypted = vault.seal(original, key, "app");
     expect(JSON.stringify(encrypted)).not.toContain("super-secret");

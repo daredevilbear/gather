@@ -47,13 +47,23 @@ release review, use a GitHub account with package access or build from source.
 Set `HOMEPAGE_OIDC_ISSUER`, `HOMEPAGE_OIDC_CLIENT_ID`, and
 `HOMEPAGE_OIDC_CLIENT_SECRET` in `.env`, keep the session secret, clear the password,
 and set `GATHER_ADMIN_IDS` to your administrator's stable provider subject. OIDC
-configuration selects the OIDC provider instead of password login. Register:
+configuration selects SSO instead of password login. With a build supporting the Gather
+callback, set `GATHER_OIDC_PROVIDER_ID=gather-oidc` and register:
 
 ```text
-https://gather.example.com/api/auth/callback/homepage-oidc
+https://gather.example.com/api/auth/callback/gather-oidc
 ```
 
-Replace the sample hostname with yours. Use verified email claims and distinct
+Replace the sample hostname with yours. This callback selection is available in the
+`dev` channel after the Gather OIDC rename. Older builds use
+`/api/auth/callback/homepage-oidc`. Existing deployments with no provider selection
+keep that legacy callback. Upgrade to a supporting build, add the Gather callback
+at your identity provider, then set `GATHER_OIDC_PROVIDER_ID=gather-oidc` and restart.
+Both routes remain supported, including authorization flows already in progress.
+The callback selection is an operator-owned container environment setting, including
+when encrypted system storage is enabled. The example Compose forwards it from `.env`.
+
+ Use verified email claims and distinct
 subjects. Users & access manages Gather roles and personal dashboards; it does
 not create identity-provider accounts. Validate administrator and viewer access
 before adopting the instance. See [Setup](https://gather.daredevilbear.dev/gather/setup/).

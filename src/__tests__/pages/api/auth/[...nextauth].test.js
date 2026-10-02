@@ -28,6 +28,7 @@ describe("pages/api/auth/[...nextauth]", () => {
     delete process.env.HOMEPAGE_EXTERNAL_URL;
     delete process.env.NEXTAUTH_SECRET;
     delete process.env.NEXTAUTH_URL;
+    delete process.env.GATHER_OIDC_PROVIDER_ID;
   });
 
   it("configures no providers when auth is disabled", async () => {
@@ -197,7 +198,7 @@ describe("pages/api/auth/[...nextauth]", () => {
     expect(mod.authOptions.useSecureCookies).toBe(true);
     await expect(provider.options.authorize({ password: "secret" })).resolves.toEqual({
       id: "homepage",
-      name: "Homepage",
+      name: "Gather",
     });
     await expect(provider.options.authorize({ password: "wrong" })).resolves.toBeNull();
     await expect(provider.options.authorize({ password: 123 })).resolves.toBeNull();
@@ -237,7 +238,7 @@ describe("pages/api/auth/[...nextauth]", () => {
     await expect(provider.options.authorize({ password: "a" })).resolves.toBeNull();
     await expect(provider.options.authorize({ password: "é" })).resolves.toEqual({
       id: "homepage",
-      name: "Homepage",
+      name: "Gather",
     });
   });
 
@@ -315,6 +316,45 @@ describe("pages/api/auth/[...nextauth]", () => {
       email: null,
       image: null,
     });
+  });
+
+  it.each(["gather-oidc", "homepage-oidc"])(
+    "supports the selected %s callback and its compatibility route",
+    async (id) => {
+      Object.assign(process.env, {
+        HOMEPAGE_AUTH_ENABLED: "true",
+        HOMEPAGE_AUTH_SECRET: "test-session-secret-that-is-at-least-32-characters",
+        HOMEPAGE_EXTERNAL_URL: "https://gather.example.test",
+        HOMEPAGE_OIDC_ISSUER: "https://identity.example.test",
+        HOMEPAGE_OIDC_CLIENT_ID: "gather",
+        HOMEPAGE_OIDC_CLIENT_SECRET: "test-client-secret",
+        GATHER_OIDC_PROVIDER_ID: id,
+      });
+      const { authOptions } = await import("pages/api/auth/[...nextauth]");
+      expect(authOptions.providers.map((p) => p.id)).toEqual([
+        id,
+        id === "gather-oidc" ? "homepage-oidc" : "gather-oidc",
+      ]);
+      expect(authOptions.providers[0].gatherCompatibilityAlias).toBe(false);
+      expect(authOptions.providers[1].gatherCompatibilityAlias).toBe(true);
+      for (const provider of authOptions.providers) {
+        expect(provider.name).toBe("Gather OIDC");
+        expect(provider.checks).toEqual(["pkce", "state", "nonce"]);
+      }
+    },
+  );
+
+  it("rejects an unsupported callback selection", async () => {
+    Object.assign(process.env, {
+      HOMEPAGE_AUTH_ENABLED: "true",
+      HOMEPAGE_AUTH_SECRET: "test-session-secret-that-is-at-least-32-characters",
+      HOMEPAGE_EXTERNAL_URL: "https://gather.example.test",
+      HOMEPAGE_OIDC_ISSUER: "https://identity.example.test",
+      HOMEPAGE_OIDC_CLIENT_ID: "gather",
+      HOMEPAGE_OIDC_CLIENT_SECRET: "test-client-secret",
+      GATHER_OIDC_PROVIDER_ID: "unexpected-provider",
+    });
+    await expect(import("pages/api/auth/[...nextauth]")).rejects.toThrow("GATHER_OIDC_PROVIDER_ID");
   });
 
   it("throws when only partial OIDC settings are provided", async () => {
