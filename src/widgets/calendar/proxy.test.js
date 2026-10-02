@@ -70,7 +70,7 @@ describe("widgets/calendar/proxy", () => {
     await calendarProxyHandler(req, res);
 
     expect(httpProxy).toHaveBeenCalledWith("https://example.com/outlook.ics", {
-      headers: { "User-Agent": "gethomepage/1.2.3" },
+      headers: { "User-Agent": "gather/1.2.3" },
     });
     expect(res.setHeader).toHaveBeenCalledWith("Content-Type", "text/calendar");
     expect(res.statusCode).toBe(200);

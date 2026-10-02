@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { state, DockerCtor, getDockerArguments, containersFromConfig, hasHomepageLabels, getSettings } = vi.hoisted(
+const { state, DockerCtor, getDockerArguments, containersFromConfig, hasGatherLabels, getSettings } = vi.hoisted(
   () => {
     const state = {
       docker: null,
@@ -18,7 +18,7 @@ const { state, DockerCtor, getDockerArguments, containersFromConfig, hasHomepage
       DockerCtor,
       getDockerArguments: vi.fn(() => state.dockerArgs),
       containersFromConfig: vi.fn(async () => new Set()),
-      hasHomepageLabels: vi.fn(() => false),
+      hasGatherLabels: vi.fn(() => false),
       getSettings: vi.fn(() => ({ instanceName: undefined })),
     };
   },
@@ -26,7 +26,7 @@ const { state, DockerCtor, getDockerArguments, containersFromConfig, hasHomepage
 
 vi.mock("dockerode", () => ({ default: DockerCtor }));
 vi.mock("utils/config/docker", () => ({ default: getDockerArguments }));
-vi.mock("utils/config/service-helpers", () => ({ containersFromConfig, hasHomepageLabels }));
+vi.mock("utils/config/service-helpers", () => ({ containersFromConfig, hasGatherLabels }));
 vi.mock("utils/config/config", () => ({ getSettings }));
 
 import { getDockerStats } from "./stats";
@@ -60,7 +60,7 @@ describe("utils/docker/stats", () => {
       })),
     };
     containersFromConfig.mockResolvedValue(new Set());
-    hasHomepageLabels.mockReturnValue(false);
+    hasGatherLabels.mockReturnValue(false);
     getSettings.mockReturnValue({ instanceName: undefined });
   });
 
@@ -89,9 +89,9 @@ describe("utils/docker/stats", () => {
     expect(state.docker.getContainer).not.toHaveBeenCalledWith("cid2");
   });
 
-  it("includes containers discovered through homepage labels", async () => {
-    hasHomepageLabels.mockImplementation((labels) => labels?.["homepage.name"] !== undefined);
-    state.containers = [{ Names: ["/labelled"], Id: "cid1", State: "running", Labels: { "homepage.name": "App" } }];
+  it("includes containers discovered through gather labels", async () => {
+    hasGatherLabels.mockImplementation((labels) => labels?.["gather.name"] !== undefined);
+    state.containers = [{ Names: ["/labelled"], Id: "cid1", State: "running", Labels: { "gather.name": "App" } }];
     state.statsById.cid1 = rawStats();
 
     expect(Object.keys((await getDockerStats("local")).stats)).toEqual(["labelled"]);

@@ -3,9 +3,9 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "pages/api/auth/[...nextauth]";
 import { isAuthEnabled } from "utils/env";
 import createLogger from "utils/logger";
-import { handleMcpRequest, mcpEnabled, mcpTokenAuthorized, mcpTokenConfigError } from "utils/mcp/homepage-mcp";
+import { handleMcpRequest, mcpEnabled, mcpTokenAuthorized, mcpTokenConfigError } from "utils/mcp/gather-mcp";
 
-async function hasHomepageSession(req, res) {
+async function hasGatherSession(req, res) {
   if (!isAuthEnabled()) return false;
   const session = await getServerSession(req, res, authOptions);
   return Boolean(session?.user);
@@ -28,7 +28,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "MCP token is misconfigured. See logs for details." });
   }
 
-  if (!mcpTokenAuthorized(req) && !(await hasHomepageSession(req, res))) {
+  if (!mcpTokenAuthorized(req) && !(await hasGatherSession(req, res))) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 

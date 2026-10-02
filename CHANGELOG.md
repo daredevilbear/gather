@@ -1,5 +1,13 @@
 # Gather release notes
 
+## Unreleased
+
+- Use Gather names in source, environment configuration, discovery labels,
+  Kubernetes annotations, integration client identifiers, MCP tools and help links.
+- Use one `gather-oidc` callback and a configurable shared-password account subject.
+- Provide an offline, preview-first prefix migration with protected backups and
+  authenticated re-encryption of managed variables and app vault records.
+
 ## 1.0.0
 
 Gather's first public release builds on Homepage v2.4.0. Gather's version is
@@ -22,7 +30,7 @@ independent of the inherited Homepage release series.
 
 Use [INSTALL.md](INSTALL.md) and the current
 [documentation](https://gather.daredevilbear.dev/). Existing Homepage YAML formats
-and `HOMEPAGE_*` settings remain compatibility interfaces. Review Homepage imports
+remain importable after migrating configuration names. Review dashboard imports
 before saving; back up configuration, all SQLite state, and keys separately.
 Shared integration visibility is unchanged by personal dashboard layouts.
 

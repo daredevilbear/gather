@@ -47,7 +47,7 @@ const {
   const getSettings = vi.fn(() => ({
     providers: {},
     language: "en",
-    title: "Homepage",
+    title: "Gather",
   }));
 
   const servicesResponse = vi.fn(async () => {
@@ -196,12 +196,12 @@ describe("pages/index getStaticProps", () => {
   });
 
   it("returns initial settings and api fallbacks for swr", async () => {
-    getSettings.mockReturnValueOnce({ providers: { x: 1 }, language: "en", title: "Homepage" });
+    getSettings.mockReturnValueOnce({ providers: { x: 1 }, language: "en", title: "Gather" });
 
     const { getStaticProps } = await import("pages/index.jsx");
     const result = await getStaticProps();
 
-    expect(result.props.initialSettings).toEqual({ language: "en", title: "Homepage" });
+    expect(result.props.initialSettings).toEqual({ language: "en", title: "Gather" });
     expect(result.props.fallback["/api/services"]).toEqual([{ name: "svc" }]);
     expect(result.props.fallback["/api/bookmarks"]).toEqual([{ name: "bm" }]);
     expect(result.props.fallback["/api/widgets"]).toEqual([{ type: "search" }]);
@@ -235,7 +235,7 @@ describe("pages/index getStaticProps", () => {
 });
 
 async function renderIndex({
-  initialSettings = { title: "Homepage", layout: {} },
+  initialSettings = { title: "Gather", layout: {} },
   fallback = {},
   theme = "dark",
   color = "slate",
@@ -279,7 +279,7 @@ describe("pages/index Wrapper", () => {
   it("applies theme/color classes and renders a background overlay when configured", async () => {
     await renderIndex({
       initialSettings: {
-        title: "Homepage",
+        title: "Gather",
         color: "slate",
         background: { image: "https://example.com/bg.jpg", opacity: 10, blur: true, saturate: 150, brightness: 125 },
         layout: {},
@@ -304,7 +304,7 @@ describe("pages/index Wrapper", () => {
   it("supports legacy string backgrounds in settings", async () => {
     await renderIndex({
       initialSettings: {
-        title: "Homepage",
+        title: "Gather",
         color: "slate",
         background: "https://example.com/bg.jpg",
         layout: {},
@@ -330,7 +330,7 @@ describe("pages/index Index routing + SWR branches", () => {
   it("renders the validation error screen when /api/validate returns an error", async () => {
     state.validateData = { error: "bad config" };
 
-    await renderIndex({ initialSettings: { title: "Homepage", layout: {} }, settings: { layout: {} } });
+    await renderIndex({ initialSettings: { title: "Gather", layout: {} }, settings: { layout: {} } });
 
     expect(screen.getByText("Error")).toBeInTheDocument();
     expect(screen.getByText("bad config")).toBeInTheDocument();
@@ -339,7 +339,7 @@ describe("pages/index Index routing + SWR branches", () => {
   it("renders config errors when /api/validate returns a list of errors", async () => {
     state.validateData = [{ config: "services.yaml", name: "Service 1", reason: "broken", mark: { line: 4 } }];
 
-    await renderIndex({ initialSettings: { title: "Homepage", layout: {} }, settings: { layout: {} } });
+    await renderIndex({ initialSettings: { title: "Gather", layout: {} }, settings: { layout: {} } });
 
     expect(screen.getByText(/services.yaml/)).toBeInTheDocument();
     expect(screen.getByText(/line 4/)).toBeInTheDocument();
@@ -363,7 +363,7 @@ describe("pages/index Index routing + SWR branches", () => {
       reloadSpy = vi.spyOn(window.location, "reload").mockImplementation(() => {});
     }
 
-    await renderIndex({ initialSettings: { title: "Homepage", layout: {} }, settings: { layout: {} } });
+    await renderIndex({ initialSettings: { title: "Gather", layout: {} }, settings: { layout: {} } });
     act(() => state.hashConfig.onSuccess(state.hashData));
 
     await waitFor(() => {
@@ -380,7 +380,7 @@ describe("pages/index Index routing + SWR branches", () => {
     state.hashData = { hash: "h" };
     state.windowFocused = true;
 
-    await renderIndex({ initialSettings: { title: "Homepage", layout: {} }, settings: { layout: {} } });
+    await renderIndex({ initialSettings: { title: "Gather", layout: {} }, settings: { layout: {} } });
 
     await waitFor(() => {
       expect(state.mutateHash).toHaveBeenCalled();
@@ -392,7 +392,7 @@ describe("pages/index Index routing + SWR branches", () => {
     state.hashData = { hash: "first-hash" };
     localStorage.removeItem("hash");
 
-    await renderIndex({ initialSettings: { title: "Homepage", layout: {} }, settings: { layout: {} } });
+    await renderIndex({ initialSettings: { title: "Gather", layout: {} }, settings: { layout: {} } });
     act(() => state.hashConfig.onSuccess(state.hashData));
 
     await waitFor(() => {
@@ -404,7 +404,7 @@ describe("pages/index Index routing + SWR branches", () => {
     state.validateData = [];
     localStorage.setItem("hash", "old-hash");
 
-    await renderIndex({ initialSettings: { title: "Homepage", layout: {} }, settings: { layout: {} } });
+    await renderIndex({ initialSettings: { title: "Gather", layout: {} }, settings: { layout: {} } });
 
     expect(() => act(() => state.hashConfig.onSuccess(null))).not.toThrow();
     expect(() => act(() => state.hashConfig.onSuccess({}))).not.toThrow();
@@ -433,8 +433,8 @@ describe("pages/index Home behavior", () => {
 
   it("passes href-bearing services and bookmarks to QuickLaunch and toggles search on keydown", async () => {
     await renderIndex({
-      initialSettings: { title: "Homepage", layout: {} },
-      settings: { title: "Homepage", layout: {}, language: "en" },
+      initialSettings: { title: "Gather", layout: {} },
+      settings: { title: "Gather", layout: {}, language: "en" },
     });
 
     await waitFor(() => {
@@ -454,8 +454,8 @@ describe("pages/index Home behavior", () => {
 
   it("opens search on space without seeding the query with whitespace", async () => {
     await renderIndex({
-      initialSettings: { title: "Homepage", layout: {} },
-      settings: { title: "Homepage", layout: {}, language: "en" },
+      initialSettings: { title: "Gather", layout: {} },
+      settings: { title: "Gather", layout: {}, language: "en" },
     });
 
     await waitFor(() => {
@@ -469,8 +469,8 @@ describe("pages/index Home behavior", () => {
 
   it("renders services and bookmark groups when present", async () => {
     await renderIndex({
-      initialSettings: { title: "Homepage", layout: {} },
-      settings: { title: "Homepage", layout: {}, language: "en" },
+      initialSettings: { title: "Gather", layout: {} },
+      settings: { title: "Gather", layout: {}, language: "en" },
     });
 
     expect(await screen.findByTestId("services-group")).toHaveTextContent("Services");
@@ -482,8 +482,8 @@ describe("pages/index Home behavior", () => {
     state.bookmarksData = [{ name: "Bookmarks", bookmarks: [] }];
 
     await renderIndex({
-      initialSettings: { title: "Homepage", layout: { Services: { tab: "Main" }, Bookmarks: { tab: "Main" } } },
-      settings: { title: "Homepage", layout: { Services: { tab: "Main" }, Bookmarks: { tab: "Main" } } },
+      initialSettings: { title: "Gather", layout: { Services: { tab: "Main" }, Bookmarks: { tab: "Main" } } },
+      settings: { title: "Gather", layout: { Services: { tab: "Main" }, Bookmarks: { tab: "Main" } } },
       activeTab: "main",
     });
 
@@ -512,9 +512,9 @@ describe("pages/index Home behavior", () => {
     state.bookmarksData = [{ name: "Bookmarks", bookmarks: [] }];
 
     await renderIndex({
-      initialSettings: { title: "Homepage", layout: {} },
+      initialSettings: { title: "Gather", layout: {} },
       // Missing layout triggers the temporary `<div />` return to avoid eager widget fetches.
-      settings: { title: "Homepage" },
+      settings: { title: "Gather" },
     });
 
     expect(screen.queryByTestId("services-group")).toBeNull();
@@ -527,9 +527,9 @@ describe("pages/index Home behavior", () => {
     state.widgetsData = [{ type: "search" }];
 
     await renderIndex({
-      initialSettings: { title: "Homepage", layout: { Services: { tab: "Main" }, Bookmarks: { tab: "Main" } } },
+      initialSettings: { title: "Gather", layout: { Services: { tab: "Main" }, Bookmarks: { tab: "Main" } } },
       settings: {
-        title: "Homepage",
+        title: "Gather",
         layout: { Services: { tab: "Main" }, Bookmarks: { tab: "Main" } },
         headerStyle: "boxed",
         cardBlur: "sm",
@@ -548,9 +548,9 @@ describe("pages/index Home behavior", () => {
     state.widgetsData = [];
 
     const { setTheme, setColor, setSettings } = await renderIndex({
-      initialSettings: { title: "Homepage", layout: {}, favicon: "/x.ico" },
+      initialSettings: { title: "Gather", layout: {}, favicon: "/x.ico" },
       settings: {
-        title: "Homepage",
+        title: "Gather",
         layout: {},
         language: "en",
         theme: "light",
@@ -578,7 +578,7 @@ describe("pages/index Home behavior", () => {
   // settings context is populated, and mask-icon must not be
   it("renders a custom favicon before the settings context is populated", async () => {
     await renderIndex({
-      initialSettings: { title: "Homepage", layout: {}, favicon: "/x.ico" },
+      initialSettings: { title: "Gather", layout: {}, favicon: "/x.ico" },
       settings: {},
     });
 
@@ -590,8 +590,8 @@ describe("pages/index Home behavior", () => {
 
   it("marks information widgets as right-aligned for known widget types", async () => {
     await renderIndex({
-      initialSettings: { title: "Homepage", layout: {} },
-      settings: { title: "Homepage", layout: {}, language: "en" },
+      initialSettings: { title: "Gather", layout: {} },
+      settings: { title: "Gather", layout: {}, language: "en" },
     });
 
     await waitFor(() => {

@@ -21,7 +21,7 @@ describe("utils/config/config checkAndCopyConfig", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
-    process.env = { ...originalEnv, HOMEPAGE_CONFIG_DIR: "/conf" };
+    process.env = { ...originalEnv, GATHER_CONFIG_DIR: "/conf" };
   });
 
   it("returns false when it cannot create the config directory", async () => {

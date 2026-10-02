@@ -14,7 +14,7 @@ os.environ.setdefault('GATHER_ORIGIN', 'https://dashboard.example.test')
 os.environ.setdefault('NTFY_TOPICS', 'apps')
 
 source=Path(os.environ.get('PUSH_SERVER_MODULE',Path(__file__).resolve().parents[1]/'server.py'))
-spec=importlib.util.spec_from_file_location('homepage_push',source)
+spec=importlib.util.spec_from_file_location('gather_push',source)
 push=importlib.util.module_from_spec(spec);spec.loader.exec_module(push)
 
 def b64(data): return base64.urlsafe_b64encode(data).decode().rstrip('=')

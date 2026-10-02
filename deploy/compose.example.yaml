@@ -1,7 +1,7 @@
 # Dashboard only. Configure your own HTTPS proxy; companions are opt-in.
 services:
   gather:
-    image: ghcr.io/daredevilbear/gather:${GATHER_VERSION:-1.0.0}
+    image: ghcr.io/daredevilbear/gather:${GATHER_VERSION:-dev}
     restart: unless-stopped
     user: "1001:1001"
     cap_drop: [ALL]
@@ -9,15 +9,16 @@ services:
     ports:
       - "127.0.0.1:3000:3000"
     environment:
-      HOMEPAGE_AUTH_ENABLED: "true"
-      HOMEPAGE_EXTERNAL_URL: ${HOMEPAGE_EXTERNAL_URL:?Set the external HTTPS origin}
-      HOMEPAGE_ALLOWED_HOSTS: ${HOMEPAGE_ALLOWED_HOSTS:?Set exact allowed hosts}
-      HOMEPAGE_AUTH_SECRET: ${HOMEPAGE_AUTH_SECRET:?Generate a session secret}
-      HOMEPAGE_AUTH_PASSWORD: ${HOMEPAGE_AUTH_PASSWORD:-}
+      GATHER_AUTH_ENABLED: "true"
+      GATHER_EXTERNAL_URL: ${GATHER_EXTERNAL_URL:?Set the external HTTPS origin}
+      GATHER_ALLOWED_HOSTS: ${GATHER_ALLOWED_HOSTS:?Set exact allowed hosts}
+      GATHER_AUTH_SECRET: ${GATHER_AUTH_SECRET:?Generate a session secret}
+      GATHER_AUTH_PASSWORD: ${GATHER_AUTH_PASSWORD:-}
+      GATHER_PASSWORD_USER_ID: ${GATHER_PASSWORD_USER_ID:-gather}
       GATHER_OIDC_PROVIDER_ID: ${GATHER_OIDC_PROVIDER_ID:-}
-      HOMEPAGE_OIDC_ISSUER: ${HOMEPAGE_OIDC_ISSUER:-}
-      HOMEPAGE_OIDC_CLIENT_ID: ${HOMEPAGE_OIDC_CLIENT_ID:-}
-      HOMEPAGE_OIDC_CLIENT_SECRET: ${HOMEPAGE_OIDC_CLIENT_SECRET:-}
+      GATHER_OIDC_ISSUER: ${GATHER_OIDC_ISSUER:-}
+      GATHER_OIDC_CLIENT_ID: ${GATHER_OIDC_CLIENT_ID:-}
+      GATHER_OIDC_CLIENT_SECRET: ${GATHER_OIDC_CLIENT_SECRET:-}
       GATHER_EDITOR_ENABLED: "true"
       GATHER_ADMIN_IDS: ${GATHER_ADMIN_IDS:?Set the bootstrap administrator identity}
     volumes:

@@ -215,7 +215,7 @@ export default function Vcenter({ preview, request, connectionsDirty = false }) 
       {connectionsDirty && <p role="status">Save & apply your connection changes before loading inventory.</p>}
       <pre>
         {
-          'lab:\n  url: https://vcenter.example.com\n  username: "{{HOMEPAGE_VAR_VCENTER_USER}}"\n  password: "{{HOMEPAGE_VAR_VCENTER_PASSWORD}}"'
+          'lab:\n  url: https://vcenter.example.com\n  username: "{{GATHER_VAR_VCENTER_USER}}"\n  password: "{{GATHER_VAR_VCENTER_PASSWORD}}"'
         }
       </pre>
       <div className={styles.personalRow}>

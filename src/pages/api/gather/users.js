@@ -13,10 +13,10 @@ export default async function handler(req, res) {
   }
   if (req.method === "POST" && !validEditorOrigin(req))
     return res.status(403).json({ error: "Invalid request origin." });
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || process.env.HOMEPAGE_AUTH_SECRET });
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || process.env.GATHER_AUTH_SECRET });
   if (!token?.sub) return res.status(401).json({ error: "Sign in again." });
   const canAddUsers = Boolean(
-    process.env.HOMEPAGE_OIDC_ISSUER && process.env.HOMEPAGE_OIDC_CLIENT_ID && process.env.HOMEPAGE_OIDC_CLIENT_SECRET,
+    process.env.GATHER_OIDC_ISSUER && process.env.GATHER_OIDC_CLIENT_ID && process.env.GATHER_OIDC_CLIENT_SECRET,
   );
   if (req.method === "POST" && req.body?.action === "add" && !canAddUsers)
     return res.status(409).json({

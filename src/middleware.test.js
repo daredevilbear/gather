@@ -71,8 +71,8 @@ describe("middleware", () => {
     expect(res.init.status).toBe(400);
   });
 
-  it("allows requests when HOMEPAGE_ALLOWED_HOSTS is '*'", async () => {
-    process.env.HOMEPAGE_ALLOWED_HOSTS = "*";
+  it("allows requests when GATHER_ALLOWED_HOSTS is '*'", async () => {
+    process.env.GATHER_ALLOWED_HOSTS = "*";
 
     const middleware = await loadMiddleware();
     const res = await middleware(createReq("anything.example"));
@@ -81,9 +81,9 @@ describe("middleware", () => {
     expect(res.type).toBe("next");
   });
 
-  it("allows requests when host is included in HOMEPAGE_ALLOWED_HOSTS", async () => {
+  it("allows requests when host is included in GATHER_ALLOWED_HOSTS", async () => {
     process.env.PORT = "3000";
-    process.env.HOMEPAGE_ALLOWED_HOSTS = "example.com:3000,other:3000";
+    process.env.GATHER_ALLOWED_HOSTS = "example.com:3000,other:3000";
 
     const middleware = await loadMiddleware();
     const res = await middleware(createReq("example.com:3000", "http://example.com:3000/"));
@@ -93,8 +93,8 @@ describe("middleware", () => {
   });
 
   it("allows healthcheck requests without auth when host is allowed", async () => {
-    process.env.HOMEPAGE_AUTH_ENABLED = "true";
-    process.env.HOMEPAGE_AUTH_SECRET = "secret";
+    process.env.GATHER_AUTH_ENABLED = "true";
+    process.env.GATHER_AUTH_SECRET = "secret";
 
     const middleware = await loadMiddleware();
     const res = await middleware(createReq("localhost:3000", "http://localhost:3000/api/healthcheck"));
@@ -105,8 +105,8 @@ describe("middleware", () => {
   });
 
   it("allows custom CSS without auth so it can style the signin page", async () => {
-    process.env.HOMEPAGE_AUTH_ENABLED = "true";
-    process.env.HOMEPAGE_AUTH_SECRET = "secret";
+    process.env.GATHER_AUTH_ENABLED = "true";
+    process.env.GATHER_AUTH_SECRET = "secret";
 
     const middleware = await loadMiddleware();
     const res = await middleware(createReq("localhost:3000", "http://localhost:3000/api/config/custom.css"));
@@ -117,8 +117,8 @@ describe("middleware", () => {
   });
 
   it("continues to require auth for custom JavaScript", async () => {
-    process.env.HOMEPAGE_AUTH_ENABLED = "true";
-    process.env.HOMEPAGE_AUTH_SECRET = "secret";
+    process.env.GATHER_AUTH_ENABLED = "true";
+    process.env.GATHER_AUTH_SECRET = "secret";
 
     getToken.mockResolvedValueOnce(null);
 
@@ -129,8 +129,8 @@ describe("middleware", () => {
     expect(res.type).toBe("redirect");
   });
 
-  it.each(["false", "0", "no", "off", ""])("treats HOMEPAGE_AUTH_ENABLED=%j as disabled", async (value) => {
-    process.env.HOMEPAGE_AUTH_ENABLED = value;
+  it.each(["false", "0", "no", "off", ""])("treats GATHER_AUTH_ENABLED=%j as disabled", async (value) => {
+    process.env.GATHER_AUTH_ENABLED = value;
 
     const middleware = await loadMiddleware();
     const res = await middleware(createReq("localhost:3000", "http://localhost:3000/some"));
@@ -140,8 +140,8 @@ describe("middleware", () => {
   });
 
   it("redirects to signin when auth is enabled and no token is present", async () => {
-    process.env.HOMEPAGE_AUTH_ENABLED = "true";
-    process.env.HOMEPAGE_AUTH_SECRET = "secret";
+    process.env.GATHER_AUTH_ENABLED = "true";
+    process.env.GATHER_AUTH_SECRET = "secret";
 
     getToken.mockResolvedValueOnce(null);
 
@@ -158,8 +158,8 @@ describe("middleware", () => {
   });
 
   it("preserves the requested path and query as the callback url", async () => {
-    process.env.HOMEPAGE_AUTH_ENABLED = "true";
-    process.env.HOMEPAGE_AUTH_SECRET = "secret";
+    process.env.GATHER_AUTH_ENABLED = "true";
+    process.env.GATHER_AUTH_SECRET = "secret";
 
     getToken.mockResolvedValueOnce(null);
 
@@ -170,8 +170,8 @@ describe("middleware", () => {
   });
 
   it("allows requests when auth is enabled and a token is present", async () => {
-    process.env.HOMEPAGE_AUTH_ENABLED = "true";
-    process.env.HOMEPAGE_AUTH_SECRET = "secret";
+    process.env.GATHER_AUTH_ENABLED = "true";
+    process.env.GATHER_AUTH_SECRET = "secret";
 
     getToken.mockResolvedValueOnce({ sub: "user" });
 
@@ -183,8 +183,8 @@ describe("middleware", () => {
   });
 
   it("marks responses private so shared caches cannot store them when auth is enabled", async () => {
-    process.env.HOMEPAGE_AUTH_ENABLED = "true";
-    process.env.HOMEPAGE_AUTH_SECRET = "secret";
+    process.env.GATHER_AUTH_ENABLED = "true";
+    process.env.GATHER_AUTH_SECRET = "secret";
 
     getToken.mockResolvedValueOnce({ sub: "user" });
 
@@ -195,8 +195,8 @@ describe("middleware", () => {
   });
 
   it("marks the signin redirect private as well", async () => {
-    process.env.HOMEPAGE_AUTH_ENABLED = "true";
-    process.env.HOMEPAGE_AUTH_SECRET = "secret";
+    process.env.GATHER_AUTH_ENABLED = "true";
+    process.env.GATHER_AUTH_SECRET = "secret";
 
     getToken.mockResolvedValueOnce(null);
 
@@ -215,8 +215,8 @@ describe("middleware", () => {
   });
 
   it("delegates MCP authorization to the API handler", async () => {
-    process.env.HOMEPAGE_AUTH_ENABLED = "true";
-    process.env.HOMEPAGE_AUTH_SECRET = "secret";
+    process.env.GATHER_AUTH_ENABLED = "true";
+    process.env.GATHER_AUTH_SECRET = "secret";
 
     const middleware = await loadMiddleware();
     const res = await middleware(createReq("localhost:3000", "http://localhost:3000/api/mcp"));
@@ -228,7 +228,7 @@ describe("middleware", () => {
 });
 
 it("blocks a disabled signed-in account before serving dashboard data", async () => {
-  process.env.HOMEPAGE_AUTH_ENABLED = "true";
+  process.env.GATHER_AUTH_ENABLED = "true";
   getToken.mockResolvedValueOnce({ sub: "disabled" });
   access.mockReturnValueOnce({ role: "editor", enabled: false });
   const middleware = await loadMiddleware();

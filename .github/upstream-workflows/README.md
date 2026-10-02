@@ -1,7 +1,4 @@
-# Archived upstream workflows
+# Upstream workflow history
 
-These Homepage workflows are preserved as references outside the active
-`.github/workflows` directory. Gather's initial import does not enable upstream
-publishing, localization, or repository maintenance automation. Gather's active
-CI and three-image publishing are defined in `../workflows/containers.yml`.
-These archived workflows do not run; adapt them only through a reviewed change.
+The inherited workflow definitions remain in Git history and the private release
+backup. Gather uses only the workflows in `../workflows/` for CI and publishing.

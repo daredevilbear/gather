@@ -6,11 +6,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 async function loadMcpWithConfigDir(configDir) {
   vi.resetModules();
-  process.env.HOMEPAGE_CONFIG_DIR = configDir;
-  return import("./homepage-mcp");
+  process.env.GATHER_CONFIG_DIR = configDir;
+  return import("./gather-mcp");
 }
 
-describe("utils/mcp/homepage-mcp", () => {
+describe("utils/mcp/gather-mcp", () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
@@ -23,15 +23,15 @@ describe("utils/mcp/homepage-mcp", () => {
   });
 
   it("is disabled by default", async () => {
-    delete process.env.HOMEPAGE_MCP_ENABLED;
+    delete process.env.GATHER_MCP_ENABLED;
 
-    const mod = await loadMcpWithConfigDir(mkdtempSync(path.join(tmpdir(), "homepage-mcp-test-")));
+    const mod = await loadMcpWithConfigDir(mkdtempSync(path.join(tmpdir(), "gather-mcp-test-")));
 
     expect(mod.mcpEnabled()).toBe(false);
   });
 
   it("returns initialize capabilities", async () => {
-    const mod = await loadMcpWithConfigDir(mkdtempSync(path.join(tmpdir(), "homepage-mcp-test-")));
+    const mod = await loadMcpWithConfigDir(mkdtempSync(path.join(tmpdir(), "gather-mcp-test-")));
 
     const response = mod.handleMcpRequest({ jsonrpc: "2.0", id: 1, method: "initialize", params: {} });
 
@@ -39,8 +39,8 @@ describe("utils/mcp/homepage-mcp", () => {
     expect(response.result.capabilities).toEqual({ tools: {}, resources: {} });
   });
 
-  it("lists Homepage configuration tools", async () => {
-    const mod = await loadMcpWithConfigDir(mkdtempSync(path.join(tmpdir(), "homepage-mcp-test-")));
+  it("lists Gather configuration tools", async () => {
+    const mod = await loadMcpWithConfigDir(mkdtempSync(path.join(tmpdir(), "gather-mcp-test-")));
 
     const response = mod.handleMcpRequest({ jsonrpc: "2.0", id: 2, method: "tools/list" });
 
@@ -51,7 +51,7 @@ describe("utils/mcp/homepage-mcp", () => {
   });
 
   it("validates YAML and reports line and column details", async () => {
-    const mod = await loadMcpWithConfigDir(mkdtempSync(path.join(tmpdir(), "homepage-mcp-test-")));
+    const mod = await loadMcpWithConfigDir(mkdtempSync(path.join(tmpdir(), "gather-mcp-test-")));
 
     const response = mod.handleMcpRequest({
       jsonrpc: "2.0",
@@ -73,7 +73,7 @@ describe("utils/mcp/homepage-mcp", () => {
   });
 
   it("does not write configuration files unless write mode is enabled", async () => {
-    const configDir = mkdtempSync(path.join(tmpdir(), "homepage-mcp-test-"));
+    const configDir = mkdtempSync(path.join(tmpdir(), "gather-mcp-test-"));
     const mod = await loadMcpWithConfigDir(configDir);
 
     const response = mod.handleMcpRequest({
@@ -93,8 +93,8 @@ describe("utils/mcp/homepage-mcp", () => {
   });
 
   it("writes valid YAML when write mode is enabled", async () => {
-    process.env.HOMEPAGE_MCP_ALLOW_WRITE = "true";
-    const configDir = mkdtempSync(path.join(tmpdir(), "homepage-mcp-test-"));
+    process.env.GATHER_MCP_ALLOW_WRITE = "true";
+    const configDir = mkdtempSync(path.join(tmpdir(), "gather-mcp-test-"));
     const mod = await loadMcpWithConfigDir(configDir);
 
     const response = mod.handleMcpRequest({
@@ -115,8 +115,8 @@ describe("utils/mcp/homepage-mcp", () => {
   });
 
   it("reads config resources", async () => {
-    process.env.HOMEPAGE_MCP_ALLOW_WRITE = "true";
-    const configDir = mkdtempSync(path.join(tmpdir(), "homepage-mcp-test-"));
+    process.env.GATHER_MCP_ALLOW_WRITE = "true";
+    const configDir = mkdtempSync(path.join(tmpdir(), "gather-mcp-test-"));
     const mod = await loadMcpWithConfigDir(configDir);
 
     mod.handleMcpRequest({
@@ -136,15 +136,15 @@ describe("utils/mcp/homepage-mcp", () => {
       jsonrpc: "2.0",
       id: 7,
       method: "resources/read",
-      params: { uri: "homepage://config/bookmarks.yaml" },
+      params: { uri: "gather://config/bookmarks.yaml" },
     });
 
     expect(response.result.contents[0].text).toBe("- Links: []\n");
   });
 
   it("adds a service to a new group when write mode is enabled", async () => {
-    process.env.HOMEPAGE_MCP_ALLOW_WRITE = "true";
-    const configDir = mkdtempSync(path.join(tmpdir(), "homepage-mcp-test-"));
+    process.env.GATHER_MCP_ALLOW_WRITE = "true";
+    const configDir = mkdtempSync(path.join(tmpdir(), "gather-mcp-test-"));
     const mod = await loadMcpWithConfigDir(configDir);
 
     const response = mod.handleMcpRequest({
@@ -185,17 +185,17 @@ describe("utils/mcp/homepage-mcp", () => {
   });
 
   it("preserves env placeholders when adding a service", async () => {
-    process.env.HOMEPAGE_MCP_ALLOW_WRITE = "true";
-    const configDir = mkdtempSync(path.join(tmpdir(), "homepage-mcp-test-"));
+    process.env.GATHER_MCP_ALLOW_WRITE = "true";
+    const configDir = mkdtempSync(path.join(tmpdir(), "gather-mcp-test-"));
     writeFileSync(
       path.join(configDir, "services.yaml"),
       "- Media:\n" +
         "    - Jellyfin:\n" +
-        "        href: http://{{HOMEPAGE_VAR_HOST}}:8096\n" +
+        "        href: http://{{GATHER_VAR_HOST}}:8096\n" +
         "        widget:\n" +
         "          type: jellyfin\n" +
-        "          key: {{HOMEPAGE_VAR_JELLYFIN_KEY}}\n" +
-        '          password: "{{HOMEPAGE_FILE_PASSWORD}}"\n',
+        "          key: {{GATHER_VAR_JELLYFIN_KEY}}\n" +
+        '          password: "{{GATHER_FILE_PASSWORD}}"\n',
     );
     const mod = await loadMcpWithConfigDir(configDir);
 
@@ -210,19 +210,19 @@ describe("utils/mcp/homepage-mcp", () => {
     expect(readFileSync(path.join(configDir, "services.yaml"), "utf8")).toBe(
       "- Media:\n" +
         "    - Jellyfin:\n" +
-        "        href: http://{{HOMEPAGE_VAR_HOST}}:8096\n" +
+        "        href: http://{{GATHER_VAR_HOST}}:8096\n" +
         "        widget:\n" +
         "          type: jellyfin\n" +
-        "          key: {{HOMEPAGE_VAR_JELLYFIN_KEY}}\n" +
-        '          password: "{{HOMEPAGE_FILE_PASSWORD}}"\n' +
+        "          key: {{GATHER_VAR_JELLYFIN_KEY}}\n" +
+        '          password: "{{GATHER_FILE_PASSWORD}}"\n' +
         "- Tools:\n" +
         "    - Grafana: {}\n",
     );
   });
 
   it("does not add a duplicate service in the same group", async () => {
-    process.env.HOMEPAGE_MCP_ALLOW_WRITE = "true";
-    const configDir = mkdtempSync(path.join(tmpdir(), "homepage-mcp-test-"));
+    process.env.GATHER_MCP_ALLOW_WRITE = "true";
+    const configDir = mkdtempSync(path.join(tmpdir(), "gather-mcp-test-"));
     const mod = await loadMcpWithConfigDir(configDir);
     const request = {
       jsonrpc: "2.0",
@@ -245,8 +245,8 @@ describe("utils/mcp/homepage-mcp", () => {
   });
 
   it("adds an info widget when write mode is enabled", async () => {
-    process.env.HOMEPAGE_MCP_ALLOW_WRITE = "true";
-    const configDir = mkdtempSync(path.join(tmpdir(), "homepage-mcp-test-"));
+    process.env.GATHER_MCP_ALLOW_WRITE = "true";
+    const configDir = mkdtempSync(path.join(tmpdir(), "gather-mcp-test-"));
     const mod = await loadMcpWithConfigDir(configDir);
 
     const response = mod.handleMcpRequest({
@@ -278,7 +278,7 @@ describe("utils/mcp/homepage-mcp", () => {
   });
 
   it("does not add services or info widgets unless write mode is enabled", async () => {
-    const configDir = mkdtempSync(path.join(tmpdir(), "homepage-mcp-test-"));
+    const configDir = mkdtempSync(path.join(tmpdir(), "gather-mcp-test-"));
     const mod = await loadMcpWithConfigDir(configDir);
 
     const serviceResponse = mod.handleMcpRequest({
@@ -310,8 +310,8 @@ describe("utils/mcp/homepage-mcp", () => {
   });
 
   it("lists config file metadata and resources", async () => {
-    process.env.HOMEPAGE_MCP_ALLOW_WRITE = "true";
-    const configDir = mkdtempSync(path.join(tmpdir(), "homepage-mcp-test-"));
+    process.env.GATHER_MCP_ALLOW_WRITE = "true";
+    const configDir = mkdtempSync(path.join(tmpdir(), "gather-mcp-test-"));
     writeFileSync(path.join(configDir, "settings.yaml"), "title: Test\n");
     const mod = await loadMcpWithConfigDir(configDir);
 
@@ -327,16 +327,14 @@ describe("utils/mcp/homepage-mcp", () => {
     expect(files.find((file) => file.file === "settings.yaml")).toMatchObject({
       exists: true,
       writable: true,
-      docs: "https://gethomepage.dev/configs/settings/",
+      docs: "https://gather.daredevilbear.dev/configs/settings/",
     });
     expect(files.find((file) => file.file === "services.yaml").exists).toBe(false);
-    expect(resourcesResponse.result.resources.map((resource) => resource.uri)).toContain(
-      "homepage://config/custom.css",
-    );
+    expect(resourcesResponse.result.resources.map((resource) => resource.uri)).toContain("gather://config/custom.css");
   });
 
   it("reads missing files and non-YAML resources as empty text", async () => {
-    const mod = await loadMcpWithConfigDir(mkdtempSync(path.join(tmpdir(), "homepage-mcp-test-")));
+    const mod = await loadMcpWithConfigDir(mkdtempSync(path.join(tmpdir(), "gather-mcp-test-")));
 
     const readResponse = mod.handleMcpRequest({
       jsonrpc: "2.0",
@@ -351,7 +349,7 @@ describe("utils/mcp/homepage-mcp", () => {
       jsonrpc: "2.0",
       id: 17,
       method: "resources/read",
-      params: { uri: "homepage://config/custom.css" },
+      params: { uri: "gather://config/custom.css" },
     });
 
     expect(readResponse.result.content[0].text).toBe("");
@@ -362,7 +360,7 @@ describe("utils/mcp/homepage-mcp", () => {
   });
 
   it("validates non-YAML files and can validate file contents from disk", async () => {
-    const configDir = mkdtempSync(path.join(tmpdir(), "homepage-mcp-test-"));
+    const configDir = mkdtempSync(path.join(tmpdir(), "gather-mcp-test-"));
     writeFileSync(path.join(configDir, "settings.yaml"), "title: Test\n");
     const mod = await loadMcpWithConfigDir(configDir);
 
@@ -390,7 +388,7 @@ describe("utils/mcp/homepage-mcp", () => {
   });
 
   it("returns JSON-RPC errors for invalid requests and unknown methods", async () => {
-    const mod = await loadMcpWithConfigDir(mkdtempSync(path.join(tmpdir(), "homepage-mcp-test-")));
+    const mod = await loadMcpWithConfigDir(mkdtempSync(path.join(tmpdir(), "gather-mcp-test-")));
 
     const invalidResponse = mod.handleMcpRequest({ id: 20, method: "tools/list" });
     const unknownMethodResponse = mod.handleMcpRequest({ jsonrpc: "2.0", id: 21, method: "unknown/method" });
@@ -402,7 +400,7 @@ describe("utils/mcp/homepage-mcp", () => {
   });
 
   it("returns JSON-RPC errors for unsupported files, resources, and tools", async () => {
-    const mod = await loadMcpWithConfigDir(mkdtempSync(path.join(tmpdir(), "homepage-mcp-test-")));
+    const mod = await loadMcpWithConfigDir(mkdtempSync(path.join(tmpdir(), "gather-mcp-test-")));
 
     const unsupportedFileResponse = mod.handleMcpRequest({
       jsonrpc: "2.0",
@@ -417,7 +415,7 @@ describe("utils/mcp/homepage-mcp", () => {
       jsonrpc: "2.0",
       id: 23,
       method: "resources/read",
-      params: { uri: "homepage://unknown/settings.yaml" },
+      params: { uri: "gather://unknown/settings.yaml" },
     });
     const unknownToolResponse = mod.handleMcpRequest({
       jsonrpc: "2.0",
@@ -430,14 +428,14 @@ describe("utils/mcp/homepage-mcp", () => {
     expect(unsupportedFileResponse.error.message).toContain("Unsupported config file");
     expect(badResourceResponse.error).toMatchObject({
       code: -32602,
-      message: "Unsupported resource URI. Use homepage://config/<filename>.",
+      message: "Unsupported resource URI. Use gather://config/<filename>.",
     });
     expect(unknownToolResponse.error).toMatchObject({ code: -32602, message: "Unknown tool 'missing_tool'" });
   });
 
   it("rejects invalid write_config_file arguments and YAML", async () => {
-    process.env.HOMEPAGE_MCP_ALLOW_WRITE = "true";
-    const mod = await loadMcpWithConfigDir(mkdtempSync(path.join(tmpdir(), "homepage-mcp-test-")));
+    process.env.GATHER_MCP_ALLOW_WRITE = "true";
+    const mod = await loadMcpWithConfigDir(mkdtempSync(path.join(tmpdir(), "gather-mcp-test-")));
 
     const nonStringResponse = mod.handleMcpRequest({
       jsonrpc: "2.0",
@@ -464,8 +462,8 @@ describe("utils/mcp/homepage-mcp", () => {
   });
 
   it("adds a service to an existing group", async () => {
-    process.env.HOMEPAGE_MCP_ALLOW_WRITE = "true";
-    const configDir = mkdtempSync(path.join(tmpdir(), "homepage-mcp-test-"));
+    process.env.GATHER_MCP_ALLOW_WRITE = "true";
+    const configDir = mkdtempSync(path.join(tmpdir(), "gather-mcp-test-"));
     writeFileSync(
       path.join(configDir, "services.yaml"),
       "- Media:\n    - Jellyfin:\n        href: https://jellyfin.example.com\n",
@@ -492,8 +490,8 @@ describe("utils/mcp/homepage-mcp", () => {
   });
 
   it("rejects invalid add_service arguments and existing file shapes", async () => {
-    process.env.HOMEPAGE_MCP_ALLOW_WRITE = "true";
-    const invalidArgsMod = await loadMcpWithConfigDir(mkdtempSync(path.join(tmpdir(), "homepage-mcp-test-")));
+    process.env.GATHER_MCP_ALLOW_WRITE = "true";
+    const invalidArgsMod = await loadMcpWithConfigDir(mkdtempSync(path.join(tmpdir(), "gather-mcp-test-")));
 
     expect(
       invalidArgsMod.handleMcpRequest({
@@ -520,7 +518,7 @@ describe("utils/mcp/homepage-mcp", () => {
       }).error.message,
     ).toBe("service must be an object");
 
-    const invalidYamlDir = mkdtempSync(path.join(tmpdir(), "homepage-mcp-test-"));
+    const invalidYamlDir = mkdtempSync(path.join(tmpdir(), "gather-mcp-test-"));
     writeFileSync(path.join(invalidYamlDir, "services.yaml"), "- Media:\n  - Broken: [");
     const invalidYamlMod = await loadMcpWithConfigDir(invalidYamlDir);
     const invalidYamlResponse = invalidYamlMod.handleMcpRequest({
@@ -531,7 +529,7 @@ describe("utils/mcp/homepage-mcp", () => {
     });
     expect(invalidYamlResponse.result.isError).toBe(true);
 
-    const nonArrayDir = mkdtempSync(path.join(tmpdir(), "homepage-mcp-test-"));
+    const nonArrayDir = mkdtempSync(path.join(tmpdir(), "gather-mcp-test-"));
     writeFileSync(path.join(nonArrayDir, "services.yaml"), "Media: []\n");
     const nonArrayMod = await loadMcpWithConfigDir(nonArrayDir);
     expect(
@@ -543,7 +541,7 @@ describe("utils/mcp/homepage-mcp", () => {
       }).error.message,
     ).toBe("services.yaml must contain a top-level array");
 
-    const nonArrayGroupDir = mkdtempSync(path.join(tmpdir(), "homepage-mcp-test-"));
+    const nonArrayGroupDir = mkdtempSync(path.join(tmpdir(), "gather-mcp-test-"));
     writeFileSync(path.join(nonArrayGroupDir, "services.yaml"), "- Media: {}\n");
     const nonArrayGroupMod = await loadMcpWithConfigDir(nonArrayGroupDir);
     expect(
@@ -557,8 +555,8 @@ describe("utils/mcp/homepage-mcp", () => {
   });
 
   it("rejects invalid add_info_widget arguments and existing file shapes", async () => {
-    process.env.HOMEPAGE_MCP_ALLOW_WRITE = "true";
-    const invalidArgsMod = await loadMcpWithConfigDir(mkdtempSync(path.join(tmpdir(), "homepage-mcp-test-")));
+    process.env.GATHER_MCP_ALLOW_WRITE = "true";
+    const invalidArgsMod = await loadMcpWithConfigDir(mkdtempSync(path.join(tmpdir(), "gather-mcp-test-")));
 
     expect(
       invalidArgsMod.handleMcpRequest({
@@ -577,7 +575,7 @@ describe("utils/mcp/homepage-mcp", () => {
       }).error.message,
     ).toBe("options must be an object");
 
-    const invalidYamlDir = mkdtempSync(path.join(tmpdir(), "homepage-mcp-test-"));
+    const invalidYamlDir = mkdtempSync(path.join(tmpdir(), "gather-mcp-test-"));
     writeFileSync(path.join(invalidYamlDir, "widgets.yaml"), "- resources: [");
     const invalidYamlMod = await loadMcpWithConfigDir(invalidYamlDir);
     const invalidYamlResponse = invalidYamlMod.handleMcpRequest({
@@ -588,7 +586,7 @@ describe("utils/mcp/homepage-mcp", () => {
     });
     expect(invalidYamlResponse.result.isError).toBe(true);
 
-    const nonArrayDir = mkdtempSync(path.join(tmpdir(), "homepage-mcp-test-"));
+    const nonArrayDir = mkdtempSync(path.join(tmpdir(), "gather-mcp-test-"));
     writeFileSync(path.join(nonArrayDir, "widgets.yaml"), "resources: {}\n");
     const nonArrayMod = await loadMcpWithConfigDir(nonArrayDir);
     expect(
@@ -602,8 +600,8 @@ describe("utils/mcp/homepage-mcp", () => {
   });
 
   it("adds an info widget with default options", async () => {
-    process.env.HOMEPAGE_MCP_ALLOW_WRITE = "true";
-    const configDir = mkdtempSync(path.join(tmpdir(), "homepage-mcp-test-"));
+    process.env.GATHER_MCP_ALLOW_WRITE = "true";
+    const configDir = mkdtempSync(path.join(tmpdir(), "gather-mcp-test-"));
     const mod = await loadMcpWithConfigDir(configDir);
 
     const response = mod.handleMcpRequest({
@@ -618,84 +616,84 @@ describe("utils/mcp/homepage-mcp", () => {
   });
 
   it("returns documentation links with default and fallback topics", async () => {
-    const mod = await loadMcpWithConfigDir(mkdtempSync(path.join(tmpdir(), "homepage-mcp-test-")));
+    const mod = await loadMcpWithConfigDir(mkdtempSync(path.join(tmpdir(), "gather-mcp-test-")));
 
     const defaultResponse = mod.handleMcpRequest({
       jsonrpc: "2.0",
       id: 39,
       method: "tools/call",
-      params: { name: "homepage_docs" },
+      params: { name: "gather_docs" },
     });
     const fallbackResponse = mod.handleMcpRequest({
       jsonrpc: "2.0",
       id: 40,
       method: "tools/call",
-      params: { name: "homepage_docs", arguments: { topic: "not-real" } },
+      params: { name: "gather_docs", arguments: { topic: "not-real" } },
     });
     const fileResponse = mod.handleMcpRequest({
       jsonrpc: "2.0",
       id: 41,
       method: "tools/call",
-      params: { name: "homepage_docs", arguments: { topic: "services.yaml" } },
+      params: { name: "gather_docs", arguments: { topic: "services.yaml" } },
     });
 
     expect(JSON.parse(defaultResponse.result.content[0].text)).toEqual({
       topic: "overview",
-      url: "https://gethomepage.dev/configs/",
+      url: "https://gather.daredevilbear.dev/configs/",
     });
     expect(JSON.parse(fallbackResponse.result.content[0].text)).toEqual({
       topic: "not-real",
-      url: "https://gethomepage.dev/configs/",
+      url: "https://gather.daredevilbear.dev/configs/",
     });
     expect(JSON.parse(fileResponse.result.content[0].text)).toEqual({
       topic: "services.yaml",
-      url: "https://gethomepage.dev/configs/services/",
+      url: "https://gather.daredevilbear.dev/configs/services/",
     });
   });
 
   it("requires a matching MCP token for token authorization", async () => {
-    const mod = await loadMcpWithConfigDir(mkdtempSync(path.join(tmpdir(), "homepage-mcp-test-")));
+    const mod = await loadMcpWithConfigDir(mkdtempSync(path.join(tmpdir(), "gather-mcp-test-")));
 
     expect(mod.mcpTokenAuthorized({ headers: {} })).toBe(false);
 
     const token = "mcp-tok-0123456789abcdefghijklmnopqrstuv"; // 40 chars
-    process.env.HOMEPAGE_MCP_TOKEN = token;
+    process.env.GATHER_MCP_TOKEN = token;
     expect(mod.mcpTokenAuthorized({ headers: { authorization: `Bearer ${token}` } })).toBe(true);
-    expect(mod.mcpTokenAuthorized({ headers: { "x-homepage-mcp-token": token } })).toBe(true);
+    expect(mod.mcpTokenAuthorized({ headers: { "x-gather-mcp-token": token } })).toBe(true);
     expect(mod.mcpTokenAuthorized({ headers: { authorization: "Bearer wrong" } })).toBe(false);
 
     // multibyte token at the minimum length still authorizes and doesn't throw on byte-length mismatch
     const multibyteToken = "é".repeat(32);
-    process.env.HOMEPAGE_MCP_TOKEN = multibyteToken;
+    process.env.GATHER_MCP_TOKEN = multibyteToken;
     expect(mod.mcpTokenAuthorized({ headers: { authorization: "Bearer a" } })).toBe(false);
     expect(mod.mcpTokenAuthorized({ headers: { authorization: `Bearer ${multibyteToken}` } })).toBe(true);
   });
 
   it("never authorizes a token below the minimum length, even when presented verbatim", async () => {
-    const mod = await loadMcpWithConfigDir(mkdtempSync(path.join(tmpdir(), "homepage-mcp-test-")));
+    const mod = await loadMcpWithConfigDir(mkdtempSync(path.join(tmpdir(), "gather-mcp-test-")));
 
-    process.env.HOMEPAGE_MCP_TOKEN = "change-me";
+    process.env.GATHER_MCP_TOKEN = "change-me";
     expect(mod.mcpTokenAuthorized({ headers: { authorization: "Bearer change-me" } })).toBe(false);
-    expect(mod.mcpTokenAuthorized({ headers: { "x-homepage-mcp-token": "change-me" } })).toBe(false);
+    expect(mod.mcpTokenAuthorized({ headers: { "x-gather-mcp-token": "change-me" } })).toBe(false);
   });
 
   it("reports a config error only when MCP is enabled with a too-short token", async () => {
-    const mod = await loadMcpWithConfigDir(mkdtempSync(path.join(tmpdir(), "homepage-mcp-test-")));
+    const mod = await loadMcpWithConfigDir(mkdtempSync(path.join(tmpdir(), "gather-mcp-test-")));
 
-    process.env.HOMEPAGE_MCP_ENABLED = "true";
-    process.env.HOMEPAGE_MCP_TOKEN = "change-me";
+    process.env.GATHER_MCP_ENABLED = "true";
+    process.env.GATHER_MCP_TOKEN = "change-me";
     expect(mod.mcpTokenConfigError()).toMatch(/at least 32 characters/i);
 
-    process.env.HOMEPAGE_MCP_TOKEN = "mcp-tok-0123456789abcdefghijklmnopqrstuv";
+    process.env.GATHER_MCP_TOKEN = "mcp-tok-0123456789abcdefghijklmnopqrstuv";
     expect(mod.mcpTokenConfigError()).toBeNull();
 
     // no token configured is valid (session-only mode), so it is not an error
-    delete process.env.HOMEPAGE_MCP_TOKEN;
+    delete process.env.GATHER_MCP_TOKEN;
     expect(mod.mcpTokenConfigError()).toBeNull();
 
     // a weak token is ignored entirely when MCP is disabled
-    process.env.HOMEPAGE_MCP_ENABLED = "false";
-    process.env.HOMEPAGE_MCP_TOKEN = "change-me";
+    process.env.GATHER_MCP_ENABLED = "false";
+    process.env.GATHER_MCP_TOKEN = "change-me";
     expect(mod.mcpTokenConfigError()).toBeNull();
   });
 });

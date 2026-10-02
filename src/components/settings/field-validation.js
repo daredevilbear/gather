@@ -1,4 +1,4 @@
-const reference = /{{HOMEPAGE_(?:VAR|FILE)_[A-Z0-9_]+}}/;
+const reference = /{{GATHER_(?:VAR|FILE)_[A-Z0-9_]+}}/;
 export const isConfigReference = (value) => reference.test(String(value ?? ""));
 
 // Validate literal inputs without resolving environment variables or reading files.

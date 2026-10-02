@@ -3,9 +3,9 @@ import { useEffect, useState } from "react";
 
 import styles from "./editor.module.css";
 
-import { CONNECTION_FILES, HOMEPAGE_FILES } from "utils/gather/config-files";
+import { CONFIG_FILES, CONNECTION_FILES } from "utils/gather/config-files";
 export default function Migration({ request, onDirtyChange, titleRef, canManageConnections = false }) {
-  const files = HOMEPAGE_FILES.filter((file) => canManageConnections || !CONNECTION_FILES.includes(file));
+  const files = CONFIG_FILES.filter((file) => canManageConnections || !CONNECTION_FILES.includes(file));
   const [acknowledged, setAcknowledged] = useState(false);
   const [review, setReview] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -37,7 +37,7 @@ export default function Migration({ request, onDirtyChange, titleRef, canManageC
       if (file.name === "settings.yaml") {
         const existing = yaml.load(current.text, { schema: yaml.JSON_SCHEMA }) || {};
         const incoming = yaml.load(text, { schema: yaml.JSON_SCHEMA }) || {};
-        // Keep the destination's native Gather controls; import Homepage appearance and layout.
+        // Keep the destination's native Gather controls; import dashboard appearance and layout.
         if (existing.gather)
           text = yaml.dump({ ...incoming, gather: existing.gather }, { noRefs: true, lineWidth: 120 });
         await request({ action: "validate", file: file.name, text, revision: current.revision });
@@ -70,7 +70,7 @@ export default function Migration({ request, onDirtyChange, titleRef, canManageC
   return (
     <section>
       <h2 ref={titleRef} tabIndex={-1} className={styles.sectionTitle}>
-        Import from Homepage
+        Import configuration
       </h2>
       <p>
         Import one configuration file at a time. Gather validates it before replacing the matching file and saves a
@@ -79,7 +79,7 @@ export default function Migration({ request, onDirtyChange, titleRef, canManageC
       <section className={styles.card}>
         <h3>1. Choose a configuration file</h3>
         <label>
-          Homepage configuration file
+          Dashboard configuration file
           <input
             type="file"
             accept=".yaml,.css,.js"

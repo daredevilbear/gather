@@ -27,7 +27,7 @@ export function createPreviewStore() {
               href: "https://example.com/home",
               description: "Home automation",
               icon: "home-assistant.png",
-              widget: { type: "homeassistant", url: "https://example.com", key: "{{HOMEPAGE_VAR_HOME_ASSISTANT_KEY}}" },
+              widget: { type: "homeassistant", url: "https://example.com", key: "{{GATHER_VAR_HOME_ASSISTANT_KEY}}" },
             },
           },
           {

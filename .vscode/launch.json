@@ -1,7 +1,7 @@
 {
   "configurations": [
     {
-      "name": "Debug homepage",
+      "name": "Debug gather",
       "type": "node",
       "preLaunchTask": "pnpm install",
       "request": "launch",

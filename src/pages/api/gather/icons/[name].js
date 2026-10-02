@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   }
   if (
     isAuthEnabled() &&
-    !(await getToken({ req, secret: process.env.NEXTAUTH_SECRET || process.env.HOMEPAGE_AUTH_SECRET }))
+    !(await getToken({ req, secret: process.env.NEXTAUTH_SECRET || process.env.GATHER_AUTH_SECRET }))
   )
     return res.status(401).end();
   try {

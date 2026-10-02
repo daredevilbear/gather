@@ -38,16 +38,16 @@ export function publicConfig() {
     revision: app.revision,
     status: state(),
     configured: true,
-    origin: app.env.HOMEPAGE_EXTERNAL_URL,
-    issuer: app.env.HOMEPAGE_OIDC_ISSUER || "",
-    clientId: app.env.HOMEPAGE_OIDC_CLIENT_ID || "",
-    providerName: app.env.HOMEPAGE_OIDC_NAME || "SSO",
-    clientSecretSet: !!app.env.HOMEPAGE_OIDC_CLIENT_SECRET,
+    origin: app.env.GATHER_EXTERNAL_URL,
+    issuer: app.env.GATHER_OIDC_ISSUER || "",
+    clientId: app.env.GATHER_OIDC_CLIENT_ID || "",
+    providerName: app.env.GATHER_OIDC_NAME || "SSO",
+    clientSecretSet: !!app.env.GATHER_OIDC_CLIENT_SECRET,
     admins: (app.env.GATHER_ADMIN_IDS || "").split(",").filter(Boolean),
     ntfyUrl: notification.env.NTFY_URL,
     ntfyAuthSet: !!notification.env.NTFY_AUTH,
     oidcProviderId: oidcProviderId(),
-    callbackUrl: app.env.HOMEPAGE_EXTERNAL_URL + "/api/auth/callback/" + oidcProviderId(),
+    callbackUrl: app.env.GATHER_EXTERNAL_URL + "/api/auth/callback/" + oidcProviderId(),
   };
 }
 export function candidate(input, subject) {
@@ -89,24 +89,24 @@ export function candidate(input, subject) {
   )
     fail("Use a Bearer token or Basic authorization value.");
   const changedClient =
-    input.issuer.replace(/\/+$/, "") !== app.env.HOMEPAGE_OIDC_ISSUER?.replace(/\/+$/, "") ||
-    input.clientId !== app.env.HOMEPAGE_OIDC_CLIENT_ID;
+    input.issuer.replace(/\/+$/, "") !== app.env.GATHER_OIDC_ISSUER?.replace(/\/+$/, "") ||
+    input.clientId !== app.env.GATHER_OIDC_CLIENT_ID;
   if (changedClient && !input.clientSecret)
     fail("Supply the client secret when changing the OIDC issuer or client ID.");
   if (new URL(input.ntfyUrl).origin !== new URL(notification.env.NTFY_URL).origin && !input.ntfyAuth)
     fail("Supply new credentials when changing the notification server.");
-  app.env.HOMEPAGE_OIDC_ISSUER = input.issuer.replace(/\/+$/, "");
-  app.env.HOMEPAGE_OIDC_CLIENT_ID = input.clientId;
-  app.env.HOMEPAGE_OIDC_NAME = input.providerName;
+  app.env.GATHER_OIDC_ISSUER = input.issuer.replace(/\/+$/, "");
+  app.env.GATHER_OIDC_CLIENT_ID = input.clientId;
+  app.env.GATHER_OIDC_NAME = input.providerName;
   app.env.GATHER_ADMIN_IDS = input.admins.join(",");
-  if (input.clientSecret) app.env.HOMEPAGE_OIDC_CLIENT_SECRET = input.clientSecret;
+  if (input.clientSecret) app.env.GATHER_OIDC_CLIENT_SECRET = input.clientSecret;
   notification.env.NTFY_URL = input.ntfyUrl.replace(/\/+$/, "");
   if (input.ntfyAuth) notification.env.NTFY_AUTH = input.ntfyAuth;
-  if (!app.env.HOMEPAGE_OIDC_CLIENT_SECRET || !notification.env.NTFY_AUTH) fail("Connection credentials are required.");
+  if (!app.env.GATHER_OIDC_CLIENT_SECRET || !notification.env.NTFY_AUTH) fail("Connection credentials are required.");
   return { app, notification, baseRevision: app.revision };
 }
 export async function checkConnections(records) {
-  const issuer = records.app.env.HOMEPAGE_OIDC_ISSUER;
+  const issuer = records.app.env.GATHER_OIDC_ISSUER;
   let discovery;
   try {
     const r = await fetch(issuer + "/.well-known/openid-configuration", {
@@ -132,7 +132,7 @@ export async function checkConnections(records) {
     // The connection test uses the active non-secret topic preferences.
     let topics = records.notification.env.NTFY_TOPICS;
     const pref = path.join(
-      process.env.HOMEPAGE_CONFIG_DIR || path.join(process.cwd(), "config"),
+      process.env.GATHER_CONFIG_DIR || path.join(process.cwd(), "config"),
       ".gather-runtime/gather-notifications.json",
     );
     if (fs.existsSync(pref)) topics = JSON.parse(fs.readFileSync(pref, "utf8")).topics || topics;

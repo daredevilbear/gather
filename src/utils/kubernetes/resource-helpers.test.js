@@ -36,8 +36,8 @@ vi.mock("utils/config/config", () => ({
 }));
 
 vi.mock("utils/config/kubernetes", () => ({
-  ANNOTATION_BASE: "gethomepage.dev",
-  ANNOTATION_WIDGET_BASE: "gethomepage.dev/widget.",
+  ANNOTATION_BASE: "gather.daredevilbear.dev",
+  ANNOTATION_WIDGET_BASE: "gather.daredevilbear.dev/widget.",
   HTTPROUTE_API_GROUP: "gateway.networking.k8s.io",
   HTTPROUTE_API_VERSION: "v1",
   getKubeConfig,
@@ -58,7 +58,7 @@ describe("utils/kubernetes/resource-helpers", () => {
   });
 
   it("checks discoverability by annotations and instance", () => {
-    const base = "gethomepage.dev";
+    const base = "gather.daredevilbear.dev";
     const resource = { metadata: { annotations: { [`${base}/enabled`]: "true" } } };
 
     expect(isDiscoverable(resource, "x")).toBe(true);
@@ -72,7 +72,7 @@ describe("utils/kubernetes/resource-helpers", () => {
   });
 
   it("constructs a service from an ingress and applies widget annotations + env substitution", async () => {
-    const base = "gethomepage.dev";
+    const base = "gather.daredevilbear.dev";
     const resource = {
       kind: "Ingress",
       metadata: {
@@ -112,7 +112,7 @@ describe("utils/kubernetes/resource-helpers", () => {
   });
 
   it("constructs a href from an HTTPRoute using the gateway listener protocol", async () => {
-    const base = "gethomepage.dev";
+    const base = "gather.daredevilbear.dev";
     const resource = {
       kind: "HTTPRoute",
       metadata: {
@@ -141,7 +141,7 @@ describe("utils/kubernetes/resource-helpers", () => {
     const kc = getKubeConfig();
     const crd = kc.makeApiClient();
 
-    const base = "gethomepage.dev";
+    const base = "gather.daredevilbear.dev";
     const resource = {
       kind: "HTTPRoute",
       metadata: {
@@ -176,7 +176,7 @@ describe("utils/kubernetes/resource-helpers", () => {
       response: "resp",
     });
 
-    const base = "gethomepage.dev";
+    const base = "gather.daredevilbear.dev";
     const resource = {
       kind: "HTTPRoute",
       metadata: {
@@ -208,7 +208,7 @@ describe("utils/kubernetes/resource-helpers", () => {
     const crd = kc.makeApiClient();
     crd.getNamespacedCustomObject.mockRejectedValueOnce(new Error("Required parameter namespace was null"));
 
-    const base = "gethomepage.dev";
+    const base = "gather.daredevilbear.dev";
     const resource = {
       kind: "HTTPRoute",
       metadata: {
@@ -237,7 +237,7 @@ describe("utils/kubernetes/resource-helpers", () => {
   it("logs and recovers when environment substitution yields invalid json", async () => {
     substituteEnvironmentVars.mockImplementationOnce(() => "{bad json");
 
-    const base = "gethomepage.dev";
+    const base = "gather.daredevilbear.dev";
     const resource = {
       kind: "Ingress",
       metadata: {

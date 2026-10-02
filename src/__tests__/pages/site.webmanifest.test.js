@@ -25,7 +25,7 @@ function createMockRes() {
 describe("pages/site.webmanifest", () => {
   it("writes a manifest json response and triggers a settings config check", async () => {
     getSettings.mockReturnValueOnce({
-      title: "My Homepage",
+      title: "My Gather",
       startUrl: "/start",
       color: "slate",
       theme: "dark",
@@ -44,8 +44,8 @@ describe("pages/site.webmanifest", () => {
     expect(res.end).toHaveBeenCalled();
 
     const manifest = JSON.parse(res.write.mock.calls[0][0]);
-    expect(manifest.name).toBe("My Homepage");
-    expect(manifest.short_name).toBe("My Homepage");
+    expect(manifest.name).toBe("My Gather");
+    expect(manifest.short_name).toBe("My Gather");
     expect(manifest.start_url).toBe("/start");
     expect(manifest.icons).toEqual([{ src: "/i.png", sizes: "1x1", type: "image/png" }]);
     expect(manifest.shortcuts).toEqual([{ name: "One", url: "/one" }]);

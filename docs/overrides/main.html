@@ -20,9 +20,6 @@
       <div class="md-sidebar__scrollwrap">
         <div class="md-sidebar__inner">
           {% include "partials/nav.html" %}
-          {% if 'widgets/' not in page.url and 'more/' not in page.url %}
-            <script async type="text/javascript" src="//cdn.carbonads.com/carbon.js?serve=CWYIL2JU&placement=gethomepagedev&format=cover" id="_carbonads_js"></script>
-          {% endif %}
         </div>
       </div>
     </div>
@@ -42,9 +39,6 @@
       <div class="md-sidebar__scrollwrap" style="height: 200px;">
         <div class="md-sidebar__inner">
           {% include "partials/toc.html" %}
-          {% if 'widgets/' in page.url or 'more/' in page.url %}
-            <script async type="text/javascript" src="//cdn.carbonads.com/carbon.js?serve=CWYIL2JU&placement=gethomepagedev&format=cover" id="_carbonads_js"></script>
-          {% endif %}
         </div>
       </div>
     </div>

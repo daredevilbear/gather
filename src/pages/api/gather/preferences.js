@@ -7,7 +7,7 @@ import { preferencesStore } from "utils/gather/preferences-store";
 export const config = { api: { bodyParser: { sizeLimit: "2kb" } } };
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "private, no-store");
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || process.env.HOMEPAGE_AUTH_SECRET });
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || process.env.GATHER_AUTH_SECRET });
   if (typeof token?.sub !== "string" || !token.sub) return res.status(401).json({ error: "Sign in to manage your preferences." });
   if (!["GET", "POST"].includes(req.method)) {
     res.setHeader("Allow", "GET, POST");

@@ -10,7 +10,7 @@ export PGID=${PGID:-0}
 # while also supporting the lscr.io /config directory
 [ ! -d "/app/config" ] && ln -s /config /app/config
 
-export HOMEPAGE_BUILDTIME=$(date +%s)
+export GATHER_BUILDTIME=$(date +%s)
 
 # Try IPv6 first (dual stack when available), but fall back to IPv4 if the bind fails
 export HOSTNAME=${HOSTNAME:-::}

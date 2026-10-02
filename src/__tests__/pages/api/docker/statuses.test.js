@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import createMockRes from "test-utils/create-mock-res";
 
-const { state, DockerCtor, getDockerArguments, containersFromConfig, hasHomepageLabels, getSettings, logger } =
+const { state, DockerCtor, getDockerArguments, containersFromConfig, hasGatherLabels, getSettings, logger } =
   vi.hoisted(() => {
     const state = {
       docker: null,
@@ -22,7 +22,7 @@ const { state, DockerCtor, getDockerArguments, containersFromConfig, hasHomepage
       DockerCtor,
       getDockerArguments: vi.fn(() => state.dockerArgs),
       containersFromConfig: vi.fn(async () => new Set()),
-      hasHomepageLabels: vi.fn(() => false),
+      hasGatherLabels: vi.fn(() => false),
       getSettings: vi.fn(() => ({ instanceName: undefined })),
       logger: { error: vi.fn() },
     };
@@ -38,7 +38,7 @@ vi.mock("utils/config/docker", () => ({
 
 vi.mock("utils/config/service-helpers", () => ({
   containersFromConfig,
-  hasHomepageLabels,
+  hasGatherLabels,
 }));
 
 vi.mock("utils/config/config", () => ({
@@ -66,7 +66,7 @@ describe("pages/api/docker/statuses", () => {
       listTasks: vi.fn(),
     };
     containersFromConfig.mockResolvedValue(new Set());
-    hasHomepageLabels.mockReturnValue(false);
+    hasGatherLabels.mockReturnValue(false);
     getSettings.mockReturnValue({ instanceName: undefined });
   });
 
@@ -126,7 +126,7 @@ describe("pages/api/docker/statuses", () => {
     expect(res.body).toEqual({ statuses: { app: { status: "running" } } });
   });
 
-  it("omits containers that are neither configured nor labelled for homepage", async () => {
+  it("omits containers that are neither configured nor labelled for gather", async () => {
     containersFromConfig.mockResolvedValue(new Set(["glance"]));
     state.containers = [
       { Names: ["/glance"], State: "running", Status: "Up" },
@@ -142,10 +142,10 @@ describe("pages/api/docker/statuses", () => {
     expect(res.body.statuses["secret-db"]).toBeUndefined();
   });
 
-  it("includes containers discovered through homepage labels", async () => {
-    hasHomepageLabels.mockImplementation((labels) => labels?.["homepage.name"] !== undefined);
+  it("includes containers discovered through gather labels", async () => {
+    hasGatherLabels.mockImplementation((labels) => labels?.["gather.name"] !== undefined);
     state.containers = [
-      { Names: ["/labelled"], State: "running", Status: "Up", Labels: { "homepage.name": "App" } },
+      { Names: ["/labelled"], State: "running", Status: "Up", Labels: { "gather.name": "App" } },
       { Names: ["/unlabelled"], State: "running", Status: "Up", Labels: {} },
     ];
 
@@ -200,14 +200,14 @@ describe("pages/api/docker/statuses", () => {
     expect(res.body).toEqual({ statuses: {} });
   });
 
-  it("includes swarm services discovered through homepage labels", async () => {
+  it("includes swarm services discovered through gather labels", async () => {
     state.dockerArgs.swarm = true;
-    hasHomepageLabels.mockImplementation((labels) => labels?.["homepage.name"] !== undefined);
+    hasGatherLabels.mockImplementation((labels) => labels?.["gather.name"] !== undefined);
     state.containers = [];
     state.docker.listServices.mockResolvedValue([
       {
         ID: "sid",
-        Spec: { Name: "api", Labels: { "homepage.name": "Api" }, Mode: { Replicated: { Replicas: "1" } } },
+        Spec: { Name: "api", Labels: { "gather.name": "Api" }, Mode: { Replicated: { Replicas: "1" } } },
       },
     ]);
     state.docker.listTasks.mockResolvedValue([{ ServiceID: "sid", Status: {} }]);

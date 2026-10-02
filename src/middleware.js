@@ -5,10 +5,10 @@ import { isAuthEnabled } from "utils/env";
 import { userAccess } from "utils/gather/users-store";
 
 const authEnabled = isAuthEnabled();
-const authSecret = process.env.NEXTAUTH_SECRET || process.env.HOMEPAGE_AUTH_SECRET;
+const authSecret = process.env.NEXTAUTH_SECRET || process.env.GATHER_AUTH_SECRET;
 
 // Prerendered pages carry `s-maxage`, and the dashboard HTML embeds the service and
-// bookmark inventory. Without this, a CDN or caching reverse proxy in front of Homepage
+// bookmark inventory. Without this, a CDN or caching reverse proxy in front of Gather
 // would store an authenticated response and serve it to anonymous visitors.
 function withPrivateCache(res) {
   if (authEnabled) {
@@ -18,17 +18,17 @@ function withPrivateCache(res) {
 }
 
 export async function middleware(req) {
-  // Check the Host header, if HOMEPAGE_ALLOWED_HOSTS is set
+  // Check the Host header, if GATHER_ALLOWED_HOSTS is set
   const host = req.headers.get("host");
   const port = process.env.PORT || 3000;
   let allowedHosts = [`localhost:${port}`, `127.0.0.1:${port}`, `[::1]:${port}`];
-  const allowAll = process.env.HOMEPAGE_ALLOWED_HOSTS === "*";
-  if (process.env.HOMEPAGE_ALLOWED_HOSTS) {
-    allowedHosts = allowedHosts.concat(process.env.HOMEPAGE_ALLOWED_HOSTS.split(","));
+  const allowAll = process.env.GATHER_ALLOWED_HOSTS === "*";
+  if (process.env.GATHER_ALLOWED_HOSTS) {
+    allowedHosts = allowedHosts.concat(process.env.GATHER_ALLOWED_HOSTS.split(","));
   }
   if (!allowAll && (!host || !allowedHosts.includes(host))) {
     console.error(
-      `Host validation failed for: ${host}. Hint: Set the HOMEPAGE_ALLOWED_HOSTS environment variable to allow requests from this host / port.`,
+      `Host validation failed for: ${host}. Hint: Set the GATHER_ALLOWED_HOSTS environment variable to allow requests from this host / port. See https://gather.daredevilbear.dev/gather/troubleshooting/.`,
     );
     return NextResponse.json({ error: "Host validation failed. See logs for more details." }, { status: 400 });
   }
@@ -36,7 +36,7 @@ export async function middleware(req) {
   const { pathname, search } = new URL(req.url);
   const isPublicAuthPath = pathname.startsWith("/api/healthcheck") || pathname === "/api/config/custom.css";
   if (authEnabled && !isPublicAuthPath) {
-    // The MCP API handler authorizes both bearer tokens and Homepage sessions.
+    // The MCP API handler authorizes both bearer tokens and Gather sessions.
     if (pathname === "/api/mcp") {
       return withPrivateCache(NextResponse.next());
     }

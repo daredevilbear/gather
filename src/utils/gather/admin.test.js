@@ -13,7 +13,7 @@ afterEach(() => {
 });
 describe("editor authorization", () => {
   it("denies anonymous users, viewers and unconfigured installations", async () => {
-    vi.stubEnv("HOMEPAGE_AUTH_ENABLED", "true");
+    vi.stubEnv("GATHER_AUTH_ENABLED", "true");
     vi.stubEnv("GATHER_EDITOR_ENABLED", "true");
     vi.stubEnv("GATHER_ADMIN_IDS", "admin-sub");
     getToken.mockResolvedValue(null);
@@ -25,11 +25,11 @@ describe("editor authorization", () => {
     vi.stubEnv("GATHER_EDITOR_ENABLED", "false");
     expect(await administrator({})).toBe(false);
     vi.stubEnv("GATHER_EDITOR_ENABLED", "true");
-    vi.stubEnv("HOMEPAGE_AUTH_ENABLED", "false");
+    vi.stubEnv("GATHER_AUTH_ENABLED", "false");
     expect(await administrator({})).toBe(false);
   });
   it("requires exact configured origin and custom request header", () => {
-    vi.stubEnv("HOMEPAGE_EXTERNAL_URL", "https://dashboard.example.test");
+    vi.stubEnv("GATHER_EXTERNAL_URL", "https://dashboard.example.test");
     expect(validEditorOrigin({ headers: { origin: "https://dashboard.example.test", "x-gather-editor": "1" } })).toBe(
       true,
     );
@@ -39,7 +39,7 @@ describe("editor authorization", () => {
 });
 
 it("keeps native administrators outside protected system configuration", async () => {
-  vi.stubEnv("HOMEPAGE_AUTH_ENABLED", "true");
+  vi.stubEnv("GATHER_AUTH_ENABLED", "true");
   vi.stubEnv("GATHER_EDITOR_ENABLED", "true");
   vi.stubEnv("GATHER_ADMIN_IDS", "bootstrap");
   getToken.mockResolvedValue({ sub: "member" });
@@ -49,7 +49,7 @@ it("keeps native administrators outside protected system configuration", async (
 });
 
 it("rejects disabled native administrators", async () => {
-  vi.stubEnv("HOMEPAGE_AUTH_ENABLED", "true");
+  vi.stubEnv("GATHER_AUTH_ENABLED", "true");
   vi.stubEnv("GATHER_EDITOR_ENABLED", "true");
   vi.stubEnv("GATHER_ADMIN_IDS", "bootstrap");
   getToken.mockResolvedValue({ sub: "member" });

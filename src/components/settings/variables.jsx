@@ -95,10 +95,10 @@ export default function Variables({ preview = false, onDirtyChange, titleRef }) 
       valueInput.current?.focus({ preventScroll: true });
     }
   }, [editing]);
-  const fullName = name.startsWith("HOMEPAGE_VAR_") ? name : `HOMEPAGE_VAR_${name}`;
+  const fullName = name.startsWith("GATHER_VAR_") ? name : `GATHER_VAR_${name}`;
   const existing = items.find((item) => item.name === fullName);
   const valid =
-    /^HOMEPAGE_VAR_[A-Z0-9_]{1,80}$/.test(fullName) && value.length > 0 && (!existing || existing.kind === kind);
+    /^GATHER_VAR_[A-Z0-9_]{1,80}$/.test(fullName) && value.length > 0 && (!existing || existing.kind === kind);
   return (
     <section>
       <h2 ref={titleRef} tabIndex={-1} className={styles.sectionTitle}>
