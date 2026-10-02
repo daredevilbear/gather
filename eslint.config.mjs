@@ -3,7 +3,9 @@ import prettierConfig from "eslint-config-prettier/flat";
 import { defineConfig, globalIgnores } from "eslint/config";
 
 export default defineConfig([
-  ...nextCoreWebVitals,
+  ...nextCoreWebVitals.map((config) =>
+    config.name === "next" ? { ...config, files: [...config.files, "**/*.cjs"] } : config,
+  ),
   prettierConfig,
   {
     files: ["**/*.{js,mjs,cjs,jsx}"],

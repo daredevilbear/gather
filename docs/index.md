@@ -1,3 +1,5 @@
+> Source snapshot: use the [public Gather documentation](https://gather.daredevilbear.dev/) and [repository installation guide](../INSTALL.md) for the current release.
+
 # Gather
 
 A self-hosted dashboard for services, accounts, personal dashboards,

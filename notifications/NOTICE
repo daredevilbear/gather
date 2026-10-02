@@ -1,0 +1,15 @@
+Gather 1.0.0
+
+Gather is a derivative of Homepage (https://github.com/gethomepage/homepage),
+initially based on Homepage v2.4.0, commit
+6b6926108e35c3902dd23f6bc337162b7289450b.
+
+Homepage copyright and contributor notices, the inherited README.upstream.md,
+and the upstream source history are retained. Gather additions are copyright
+their respective contributors and distributed under the same GNU General
+Public License, version 3. See LICENSE for the full license text.
+
+Source for all three Gather images is available in this repository. Image
+labels identify the source revision; sha-<commit> tags and published release
+tags identify the corresponding source. Third-party dependencies retain their
+own licenses. No Homepage UI editor source was incorporated.

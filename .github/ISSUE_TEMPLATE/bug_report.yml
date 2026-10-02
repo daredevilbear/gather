@@ -1,33 +1,34 @@
-name: 🐛 Bug report
-description: Please only raise an issue if you've been advised to do so in a GitHub discussion. Thanks! 🙏
+name: Bug report
+description: Report a reproducible Gather problem with sanitized details.
 labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        ## ⚠️ Please note
-        The starting point for a bug report should always be a [GitHub discussion](https://github.com/gethomepage/homepage/discussions/new?category=support)
-        Thank you for contributing to homepage! ✊
-  - type: checkboxes
-    id: pre-flight
-    attributes:
-      label: Before submitting, please confirm the following
-      options:
-        - label: I confirm this was discussed, and the maintainers asked that I open an issue.
-          required: true
-        - label: I am aware that if I create this issue without a discussion, it will be closed without a response.
-          required: true
+        Check the Gather troubleshooting guide and search existing issues.
+        Remove credentials, cookies, private hostnames, and user data.
+        Use SECURITY.md for confidential vulnerability reports.
   - type: input
-    id: discussion
+    id: version
     attributes:
-      label: Discussion Link
-      description: |
-        Please link to the GitHub discussion that led to this issue.
+      label: Gather image version and source revision
+      placeholder: "1.0.0 (sha-...)"
     validations:
       required: true
   - type: textarea
-    id: additional
+    id: reproduction
     attributes:
-      label: Additional context
-      description: Optional
-      render: Text
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Sanitized configuration, logs, and environment
+      description: Include installation method, browser/device, and relevant service versions.

@@ -1,7 +1,12 @@
 {
-  "name": "homepage",
-  "version": "2.4.0",
+  "name": "gather",
+  "version": "1.0.0",
   "private": true,
+  "license": "GPL-3.0",
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=22.13.0"
+  },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "dev": "next dev",
