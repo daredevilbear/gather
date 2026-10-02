@@ -101,7 +101,7 @@ upstream notices. The initial baseline is Homepage v2.4.0, independent of Gather
 
 ## Configuration migration
 
-The next Gather build uses Gather names throughout the code and runtime
+Gather 1.0.0 uses Gather names throughout the code and runtime
 configuration. Existing private installations must migrate before upgrading;
 legacy configuration aliases and the old SSO callback are removed.
 
