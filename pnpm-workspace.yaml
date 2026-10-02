@@ -1,8 +1,13 @@
 packages:
   - .
 
+# Patch the minimatch transitive dependency (GHSA-q2hr-2g5m-vwhr,
+# GHSA-qhr7-859c-m2p7, GHSA-6j4f-fj2g-mc7p) without changing legacy v1 users.
+overrides:
+  "brace-expansion@>=4.0.0 <5.0.12": 5.0.12
+
 allowBuilds:
-  '@tailwindcss/oxide': true
+  "@tailwindcss/oxide": true
   core-js: false
   cpu-features: false
   esbuild: false
@@ -13,7 +18,7 @@ allowBuilds:
   unrs-resolver: true
 
 onlyBuiltDependencies:
-  - '@tailwindcss/oxide'
+  - "@tailwindcss/oxide"
   - osx-temperature-sensor
   - protobufjs
   - sharp

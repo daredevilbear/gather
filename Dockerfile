@@ -10,8 +10,8 @@ COPY . .
 
 ARG CI
 ARG BUILDTIME
-ARG VERSION
-ARG REVISION
+ARG VERSION=1.0.0
+ARG REVISION=unknown
 ENV CI=$CI
 
 # Install and build only outside CI
@@ -31,12 +31,18 @@ RUN if [ "$CI" != "true" ]; then \
 # Runtime Stage
 # =========================
 FROM node:22-alpine AS runner
+ARG VERSION=1.0.0
+ARG REVISION=unknown
+ARG BUILDTIME
 LABEL org.opencontainers.image.title="Gather"
 LABEL org.opencontainers.image.description="A self-hosted services landing page, with docker and service integrations."
 LABEL org.opencontainers.image.url="https://github.com/daredevilbear/gather"
-LABEL org.opencontainers.image.documentation='https://github.com/daredevilbear/gather/wiki'
+LABEL org.opencontainers.image.documentation='https://gather.daredevilbear.dev/'
 LABEL org.opencontainers.image.source='https://github.com/daredevilbear/gather'
 LABEL org.opencontainers.image.licenses='GPL-3.0'
+LABEL org.opencontainers.image.version=$VERSION
+LABEL org.opencontainers.image.revision=$REVISION
+LABEL org.opencontainers.image.created=$BUILDTIME
 
 # Setup
 WORKDIR /app
@@ -44,6 +50,7 @@ WORKDIR /app
 # Copy some files from context
 COPY --link --chown=1000:1000 /public ./public/
 COPY --link --chmod=755 docker-entrypoint.sh /usr/local/bin/
+COPY --link LICENSE NOTICE VERSION /usr/share/gather/
 
 # Copy only necessary files from the build stage
 COPY --link --from=builder --chown=1000:1000 /app/.next/standalone/ ./
@@ -51,7 +58,7 @@ COPY --link --from=builder --chown=1000:1000 /app/.next/static/ ./.next/static
 
 RUN apk add --no-cache su-exec iputils-ping shadow
 
-COPY system ./system
+COPY system/bootstrap.cjs system/database.cjs system/vault.cjs ./system/
 
 USER root
 

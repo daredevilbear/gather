@@ -1,72 +1,100 @@
 # Gather
 
-Gather is a self-hosted dashboard that combines service integrations, visual
-configuration, user accounts, personal dashboards, and notifications. It is
-based on [Homepage](https://github.com/gethomepage/homepage), with native Gather
-features built on the inherited dashboard and widget system.
+[![Dashboard image downloads](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fghcr-badge.elias.eu.org%2Fapi%2Fdaredevilbear%2Fgather&query=downloadCount&label=dashboard%20downloads&logo=docker)](https://github.com/daredevilbear/gather/pkgs/container/gather)
+[![Notification image downloads](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fghcr-badge.elias.eu.org%2Fapi%2Fdaredevilbear%2Fgather-notifications&query=downloadCount&label=notifications%20downloads&logo=docker)](https://github.com/daredevilbear/gather/pkgs/container/gather-notifications)
+[![Controller image downloads](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fghcr-badge.elias.eu.org%2Fapi%2Fdaredevilbear%2Fgather-system-controller&query=downloadCount&label=controller%20downloads&logo=docker)](https://github.com/daredevilbear/gather/pkgs/container/gather-system-controller)
 
-**[Read the documentation](docs/gather/index.md)** ·
-[Set up Gather](docs/gather/setup.md) ·
-[Migrate from Homepage](docs/gather/administration.md#homepage-migration) ·
-[Troubleshoot](docs/gather/troubleshooting.md)
+Gather is a self-hosted dashboard with service integrations, visual configuration,
+user accounts, personal dashboards, and notifications. It is based on
+[Homepage](https://github.com/gethomepage/homepage), with native Gather features
+built on the inherited dashboard and widget system.
+
+**[Documentation](https://gather.daredevilbear.dev/gather/)** ·
+[Install](INSTALL.md) · [Release notes](CHANGELOG.md) ·
+[Migrate from Homepage](https://gather.daredevilbear.dev/gather/migration/) ·
+[Troubleshooting](https://gather.daredevilbear.dev/gather/troubleshooting/)
 
 ## What Gather includes
 
-- A dashboard application bar with search, tabs, account controls, and an inbox.
+- An application bar with search, tabs, account controls, and an inbox.
 - Visual editors for appearance, layouts, services, bookmarks, Home widgets,
   custom styles, and configuration backup/restore.
 - Named users and roles, account preferences, and personal dashboards with
   view-only sharing for signed-in Gather users.
-- Managed encrypted integration variables and protected system configuration
-  with supervised authentication rollback.
+- Encrypted integration variables and protected system configuration with
+  supervised authentication rollback.
 - An optional notification companion for account-scoped read/dismiss state,
   Web Push, and installed-app badges.
 - Homepage-compatible integrations plus Gather additions, including vCenter,
-  Bitaxe, NerdAxe, Wazuh, and Velociraptor.
+  Bitcoin Node, Bitaxe, NerdAxe, Wazuh, and Velociraptor.
 
-Gather remains in active development. Validate authentication, recovery, and
-integrations in an isolated instance before adopting an update. Documentation on
-`dev` follows development; use the same branch or commit as your deployed image.
+## Install 1.0
 
-## Documentation
+Gather 1.0.0 uses three independently deployable images, all built from the same
+source revision for `linux/amd64` and `linux/arm64`:
 
-| Task                                                      | Guide                                              |
-| --------------------------------------------------------- | -------------------------------------------------- |
-| Install and configure authentication                      | [Setup](docs/gather/setup.md)                      |
-| Choose images and release channels                        | [Containers](docs/gather/containers.md)            |
-| Edit a shared dashboard                                   | [Settings](docs/gather/settings.md)                |
-| Manage users, personal dashboards, secrets, and migration | [Administration](docs/gather/administration.md)    |
-| Configure inbox and push delivery                         | [Notifications](docs/gather/notifications.md)      |
-| Configure encrypted connections and recovery              | [System settings](docs/gather/system.md)           |
-| Upgrade, back up, and restore                             | [Operations](docs/gather/operations.md)            |
-| Find integration configuration                            | [Widget reference](docs/widgets/services/index.md) |
+| Image                                            | Purpose                                            | Release tag |
+| ------------------------------------------------ | -------------------------------------------------- | ----------- |
+| `ghcr.io/daredevilbear/gather`                   | Dashboard                                          | `1.0.0`     |
+| `ghcr.io/daredevilbear/gather-notifications`     | Optional inbox and Web Push companion              | `1.0.0`     |
+| `ghcr.io/daredevilbear/gather-system-controller` | Optional recovery controller with Docker authority | `1.0.0`     |
 
-## Local UI development
+Follow [INSTALL.md](INSTALL.md) for a complete dashboard example with persistent
+configuration, authentication, and HTTPS proxy requirements. Enable the optional
+components only after reviewing their separate configuration and permissions.
+Use the immutable image digests recorded in the release notes for repeatable
+installs. `latest` follows `main`; `dev` follows development on `dev`.
 
-Use Node.js 22.13 or newer and the repository's CI pnpm version (currently
-11.19.0). From this checkout:
+Download badges show GitHub's cumulative download count for each public GHCR
+package through the [ghcr-badge service](https://github.com/eliasbenb/ghcr-badge).
+They count downloads across tags and architectures, including automated pulls;
+they do not count unique users. Counts can be cached or unavailable, and appear
+only when the packages are publicly readable. No deployment credentials are used.
+
+## Documentation and support
+
+The [Gather website](https://gather.daredevilbear.dev/) is public and provides the
+current documentation. Compare its release baseline with your deployed image.
+Documentation contributions belong in the separate
+[gather-docs repository](https://github.com/daredevilbear/gather-docs).
+The inherited `docs/` tree is a source snapshot; it is not separately maintained.
+
+| Task                                                      | Guide                                                                                  |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Install and configure authentication                      | [Installation](INSTALL.md) and [Setup](https://gather.daredevilbear.dev/gather/setup/) |
+| Choose images and release channels                        | [Containers](https://gather.daredevilbear.dev/gather/containers/)                      |
+| Edit a shared dashboard                                   | [Settings](https://gather.daredevilbear.dev/gather/settings/)                          |
+| Manage users, personal dashboards, secrets, and migration | [Administration](https://gather.daredevilbear.dev/gather/administration/)              |
+| Configure inbox and push delivery                         | [Notifications](https://gather.daredevilbear.dev/gather/notifications/)                |
+| Configure encrypted connections and recovery              | [System settings](https://gather.daredevilbear.dev/gather/system/)                     |
+| Upgrade, back up, and restore                             | [Operations](https://gather.daredevilbear.dev/gather/operations/)                      |
+| Configure integrations                                    | [Widget reference](https://gather.daredevilbear.dev/widgets/services/)                 |
+
+Report bugs and feature requests in [Gather Issues](https://github.com/daredevilbear/gather/issues).
+For confidential reports, see [SECURITY.md](SECURITY.md).
+
+## Development
+
+Use Node.js 22.13 or newer and pnpm 11.19.0:
 
 ```sh
 pnpm install --frozen-lockfile
 pnpm dev:preview
 ```
 
-Open [the settings preview](http://127.0.0.1:3022/preview/settings). It uses
-isolated sample data and refreshes as source changes. See
-[Local interface preview](docs/gather/local-preview.md) for other preview routes
-and their limits. Real OIDC sign-in, service connections, and device push need
-separate integration checks.
+Open [the settings preview](http://127.0.0.1:3022/preview/settings). It uses isolated
+sample data and refreshes as source changes. See
+[Local interface preview](https://gather.daredevilbear.dev/gather/local-preview/)
+for its limits. OIDC sign-in, service connections, and device push need separate
+integration checks. Follow [CONTRIBUTING.md](CONTRIBUTING.md) for CI commands.
 
-Development changes target `dev`; `main` is reserved for releases. Successful
-container builds publish `dev` or `latest`, respectively. Publishing an image
-does not deploy it. See [Container builds](docs/gather/containers.md).
+Development targets `dev`. Releases merge `dev` into `main` and use annotated
+`vMAJOR.MINOR.PATCH` tags. CI publishes containers after validation; it never
+changes deployment infrastructure. See [RELEASING.md](RELEASING.md).
 
 ## License and upstream
 
-Gather retains Homepage's [GPL-3.0 license](LICENSE) and upstream notices.
-The initial source baseline is Homepage v2.4.0. The inherited
-[README](README.upstream.md) and configuration/widget references remain available;
-start with Gather's guides for authentication, editing, accounts, and operations.
-The [development plan](docs/development/integrated-dashboard.md) records the
-integration goals. Deployment credentials and personal configuration belong
-outside this repository.
+Gather retains Homepage's [GPL-3.0 license](LICENSE), contributor history, and
+upstream notices. The initial baseline is Homepage v2.4.0, independent of Gather's
+1.0.0 release version. See [NOTICE](NOTICE) and the preserved
+[upstream README](README.upstream.md). Dependencies retain their own licenses.

@@ -1,5 +1,9 @@
 # Kubernetes Development
 
+This directory preserves Homepage's Kubernetes development examples. It is not
+a supported Gather 1.0 installation manifest. Use [INSTALL.md](../INSTALL.md)
+and the [Gather guides](https://gather.daredevilbear.dev/) for the released app.
+
 These configs and scripts attempt to simplify spinning up a kubernetes cluster
 for development and testing purposes. It leverages [k3d](https://k3d.io) to create
 a [k3s](https://k3s.io) cluster in Docker. Homepage can then be deployed either via

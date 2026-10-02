@@ -30,6 +30,7 @@ describe("pages/api/releases", () => {
 
     await handler(req, res);
 
+    expect(cachedRequest).toHaveBeenCalledWith("https://api.github.com/repos/daredevilbear/gather/releases", 5);
     expect(res.body).toEqual([{ tag_name: "v1" }]);
   });
 
