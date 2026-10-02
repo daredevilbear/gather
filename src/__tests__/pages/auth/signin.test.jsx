@@ -205,6 +205,20 @@ describe("pages/auth/signin", () => {
     consoleError.mockRestore();
   });
 
+  it("shows only the selected Gather provider, keeping compatibility callbacks out of the login buttons", async () => {
+    authOptionsMock.mockReturnValueOnce({
+      providers: [
+        { id: "gather-oidc", name: "Gather OIDC", type: "oauth" },
+        { id: "homepage-oidc", name: "Gather OIDC", type: "oauth", gatherCompatibilityAlias: true },
+      ],
+    });
+    getSettingsMock.mockReturnValueOnce({ theme: "dark" });
+    const { props } = await getServerSideProps({});
+    expect(Object.keys(props.providers)).toEqual(["gather-oidc"]);
+    render(<SignInPage {...props} autoLogin />);
+    expect(signInMock).toHaveBeenCalledWith("gather-oidc", { callbackUrl: "/" });
+  });
+
   it("getServerSideProps passes only id, name and type from each provider", async () => {
     authOptionsMock.mockReturnValueOnce({
       providers: [

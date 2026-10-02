@@ -81,4 +81,9 @@ For OIDC login (overrides password login):
 
 All app pages and `/api` routes except `/api/healthcheck` and `/api/config/custom.css` will require a signed-in session. Static assets remain public.
 
-Configure your OIDC provider with the a callback URI like `https://homepage.example.com/api/auth/callback/homepage-oidc`.
+Configure your OIDC provider with the a callback URI like `https://gather.example.com/api/auth/callback/gather-oidc`.
+
+Gather callback support requires a build containing the OIDC rename and
+`GATHER_OIDC_PROVIDER_ID=gather-oidc`. Older builds and existing deployments without
+this selection use `/api/auth/callback/homepage-oidc`. Register the new callback at
+the identity provider before switching; both routes remain supported by new builds.

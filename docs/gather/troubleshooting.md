@@ -28,7 +28,7 @@ Check the public HTTPS origin, `HOMEPAGE_EXTERNAL_URL`, allowed Host header,
 OIDC issuer, client ID, and client secret. The registered callback must be:
 
 ```text
-https://gather.example.com/api/auth/callback/homepage-oidc
+https://gather.example.com/api/auth/callback/gather-oidc
 ```
 
 Replace the example origin with yours. The reverse proxy must route that path to
@@ -118,3 +118,8 @@ without the original mount can make an instance appear empty.
 Use the [backup inventory and restoration guide](operations.md) to restore the
 complete state. Do not initialize replacement encrypted stores over a missing or
 corrupt store, and do not restore only one of the three system databases.
+
+Gather callback support requires a build containing the OIDC rename and
+`GATHER_OIDC_PROVIDER_ID=gather-oidc`. Older builds and existing deployments without
+this selection use `/api/auth/callback/homepage-oidc`. Register the new callback at
+the identity provider before switching; both routes remain supported by new builds.

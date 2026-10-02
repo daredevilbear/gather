@@ -4,6 +4,7 @@ import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
 import { applyNextAuthEnv, isAuthEnabled } from "utils/env";
+import { GATHER_OIDC_PROVIDER, LEGACY_OIDC_PROVIDER, oidcProviderId } from "utils/gather/oidc";
 import { userAccess, usersStore } from "utils/gather/users-store";
 import createLogger from "utils/logger";
 
@@ -29,7 +30,7 @@ let parsedAuthUrl;
 
 if (authEnabled) {
   if (!process.env.NEXTAUTH_URL) {
-    throw new Error("Homepage auth is enabled but HOMEPAGE_EXTERNAL_URL (or NEXTAUTH_URL) is missing.");
+    throw new Error("Gather auth is enabled but HOMEPAGE_EXTERNAL_URL (or NEXTAUTH_URL) is missing.");
   }
 
   try {
@@ -85,32 +86,33 @@ function logNextAuthError(code, metadata) {
 let providers = [];
 if (authEnabled) {
   if (hasOidcConfig) {
-    providers = [
-      {
-        id: "homepage-oidc",
-        name: process.env.HOMEPAGE_OIDC_NAME || "Homepage OIDC",
-        type: "oauth",
-        idToken: true,
-        checks: ["pkce", "state", "nonce"],
-        issuer: cleanedIssuer,
-        wellKnown: `${cleanedIssuer}/.well-known/openid-configuration`,
-        clientId,
-        clientSecret,
-        authorization: {
-          params: {
-            scope: defaultScope,
-          },
-        },
-        profile(profile) {
-          return {
-            id: profile.sub ?? profile.id ?? profile.user_id ?? profile.uid ?? profile.email,
-            name: profile.name ?? profile.preferred_username ?? profile.nickname ?? profile.email,
-            email: profile.email ?? null,
-            image: profile.picture ?? null,
-          };
+    const selectedId = oidcProviderId();
+    const aliasId = selectedId === GATHER_OIDC_PROVIDER ? LEGACY_OIDC_PROVIDER : GATHER_OIDC_PROVIDER;
+    providers = [selectedId, aliasId].map((id) => ({
+      id,
+      gatherCompatibilityAlias: id !== selectedId,
+      name: process.env.HOMEPAGE_OIDC_NAME || "Gather OIDC",
+      type: "oauth",
+      idToken: true,
+      checks: ["pkce", "state", "nonce"],
+      issuer: cleanedIssuer,
+      wellKnown: `${cleanedIssuer}/.well-known/openid-configuration`,
+      clientId,
+      clientSecret,
+      authorization: {
+        params: {
+          scope: defaultScope,
         },
       },
-    ];
+      profile(profile) {
+        return {
+          id: profile.sub ?? profile.id ?? profile.user_id ?? profile.uid ?? profile.email,
+          name: profile.name ?? profile.preferred_username ?? profile.nickname ?? profile.email,
+          email: profile.email ?? null,
+          image: profile.picture ?? null,
+        };
+      },
+    }));
   } else {
     providers = [
       CredentialsProvider({
@@ -132,7 +134,7 @@ if (authEnabled) {
           }
           return {
             id: "homepage",
-            name: "Homepage",
+            name: "Gather",
           };
         },
       }),

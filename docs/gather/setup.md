@@ -22,6 +22,7 @@ Preserve this directory across container replacement. Configure the external ori
 and authentication in the protected deployment environment:
 
 ```dotenv
+GATHER_OIDC_PROVIDER_ID=gather-oidc
 HOMEPAGE_AUTH_ENABLED=true
 HOMEPAGE_EXTERNAL_URL=https://gather.example.com
 HOMEPAGE_AUTH_SECRET=<a-random-secret-of-at-least-32-characters>
@@ -32,7 +33,7 @@ GATHER_EDITOR_ENABLED=true
 GATHER_ADMIN_IDS=<your-stable-oidc-subject>
 ```
 
-Register `/api/auth/callback/homepage-oidc` at the external origin as the provider callback.
+Register `/api/auth/callback/gather-oidc` at the external origin as the provider callback.
 Use a provider that supplies distinct subjects and verified email claims for named
 users. A shared password is a compatibility option, not a multi-user identity system.
 Keep bootstrap administrator subjects outside dashboard-editable configuration.
@@ -77,3 +78,8 @@ and companion data. Backup & restore in the editor covers configuration files;
 it is not a complete instance backup. Preserve encryption keys separately and
 follow the coordinated offline backup procedure for system databases in
 [Secure system configuration](system.md). Test restoration on an isolated instance.
+
+Gather callback support requires a build containing the OIDC rename and
+`GATHER_OIDC_PROVIDER_ID=gather-oidc`. Older builds and existing deployments without
+this selection use `/api/auth/callback/homepage-oidc`. Register the new callback at
+the identity provider before switching; both routes remain supported by new builds.

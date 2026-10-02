@@ -5,6 +5,7 @@ import path from "node:path";
 import database from "../../../system/database.cjs";
 import vault from "../../../system/vault.cjs";
 
+import { oidcProviderId } from "./oidc";
 import { ConfigError } from "./config-store";
 const fail = (m, status = 400) => {
   throw new ConfigError(m, status);
@@ -45,7 +46,8 @@ export function publicConfig() {
     admins: (app.env.GATHER_ADMIN_IDS || "").split(",").filter(Boolean),
     ntfyUrl: notification.env.NTFY_URL,
     ntfyAuthSet: !!notification.env.NTFY_AUTH,
-    callbackUrl: app.env.HOMEPAGE_EXTERNAL_URL + "/api/auth/callback/homepage-oidc",
+    oidcProviderId: oidcProviderId(),
+    callbackUrl: app.env.HOMEPAGE_EXTERNAL_URL + "/api/auth/callback/" + oidcProviderId(),
   };
 }
 export function candidate(input, subject) {

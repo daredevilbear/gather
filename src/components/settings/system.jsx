@@ -30,7 +30,8 @@ const previewConfig = {
   providerName: "Gather account",
   admins: ["preview-admin"],
   ntfyUrl: "https://ntfy.example.com",
-  callbackUrl: "https://dashboard.example.com/api/auth/callback/homepage-oidc",
+  oidcProviderId: "gather-oidc",
+  callbackUrl: "https://dashboard.example.com/api/auth/callback/gather-oidc",
   clientSecretSet: true,
   ntfyAuthSet: true,
   status: { phase: "idle" },
@@ -184,7 +185,7 @@ export default function SystemSettings({ embedded = false, preview = false, onDi
                   </p>
                   <button
                     onClick={() =>
-                      signIn("homepage-oidc", { callbackUrl: "/settings?section=system" }, { prompt: "login" })
+                      signIn(config.oidcProviderId, { callbackUrl: "/settings?section=system" }, { prompt: "login" })
                     }
                   >
                     Sign in again
