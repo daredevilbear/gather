@@ -68,7 +68,9 @@ Verify the applied API responses rather than treating these files as active rule
 4. Create the annotated release tag on that main commit and push only that tag.
    The tag workflow must pass before publication. Record source SHA, all three
    image digests, supported platforms, revision/version labels, SBOM, and
-   provenance in the draft GitHub release.
+   provenance in the draft GitHub release. Each publication saves verified image
+   metadata as a CI artifact for 30 days. Download and inspect those artifacts
+   before public exposure; keep private review reports outside the repository.
 5. Review the exact source/history and release artifacts before approving public
    exposure. Repository visibility and each GHCR package's visibility are
    separate settings. Enable private vulnerability reporting, branch/tag

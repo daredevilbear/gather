@@ -217,10 +217,25 @@ jobs:
           IMAGE: ghcr.io/${{ steps.registry.outputs.owner }}/${{ matrix.image }}
           VERSION: ${{ steps.release.outputs.build_version }}
         run: |
-          docker buildx imagetools inspect "$IMAGE:sha-$GITHUB_SHA" --format '{{json .Image}}' > /tmp/image-config.json
-          docker buildx imagetools inspect "$IMAGE:sha-$GITHUB_SHA" --format '{{json .Provenance}}' > /tmp/provenance.json
-          docker buildx imagetools inspect "$IMAGE:sha-$GITHUB_SHA" --format '{{json .SBOM}}' > /tmp/sbom.json
-          python3 scripts/ci/verify-image.py /tmp/image-config.json /tmp/provenance.json /tmp/sbom.json
+          mkdir -p release-metadata
+          docker buildx imagetools inspect "$IMAGE:sha-$GITHUB_SHA" --format '{{json .Image}}' > release-metadata/image-config.json
+          docker buildx imagetools inspect "$IMAGE:sha-$GITHUB_SHA" --format '{{json .Provenance}}' > release-metadata/provenance.json
+          docker buildx imagetools inspect "$IMAGE:sha-$GITHUB_SHA" --format '{{json .SBOM}}' > release-metadata/sbom.json
+          docker buildx imagetools inspect "$IMAGE:sha-$GITHUB_SHA" --raw > release-metadata/manifest.json
+          digest="$(docker buildx imagetools inspect "$IMAGE:sha-$GITHUB_SHA" --format '{{.Manifest.Digest}}')"
+          printf '%s@%s\n' "$IMAGE" "$digest" > release-metadata/image.txt
+          python3 scripts/ci/verify-image.py release-metadata/image-config.json release-metadata/provenance.json release-metadata/sbom.json
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            [[ "$(docker buildx imagetools inspect "$IMAGE:$VERSION" --format '{{.Manifest.Digest}}')" == "$digest" ]]
+            [[ "$(docker buildx imagetools inspect "$IMAGE:${VERSION%.*}" --format '{{.Manifest.Digest}}')" == "$digest" ]]
+          fi
+      - name: Save verified image metadata for release review
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-metadata-${{ matrix.image }}
+          path: release-metadata/
+          if-no-files-found: error
+          retention-days: 30
       - name: Record package visibility
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
