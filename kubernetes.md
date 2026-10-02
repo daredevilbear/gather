@@ -8,12 +8,9 @@
 
 ## Deployment
 
-Use the unofficial helm chart: https://github.com/jameswynn/helm-charts/tree/main/charts/homepage
-
-```sh
-helm repo add jameswynn https://jameswynn.github.io/helm-charts
-helm install my-release jameswynn/homepage
-```
+Deploy the Gather image with your Kubernetes manifests. Configure persistence,
+`GATHER_ALLOWED_HOSTS`, authentication, and your HTTPS ingress before exposing it.
+See [Gather Kubernetes documentation](https://gather.daredevilbear.dev/configs/kubernetes/).
 
 ### Configuration
 
@@ -65,21 +62,21 @@ Sample yaml:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: homepage
+  name: gather
   annotations:
-    gethomepage.dev/enabled: "true"
-    gethomepage.dev/description: Dynamically Detected Homepage
-    gethomepage.dev/group: Operations
-    gethomepage.dev/icon: homepage.png
-    gethomepage.dev/name: Homepage
+    gather.daredevilbear.dev/enabled: "true"
+    gather.daredevilbear.dev/description: Dynamically Detected Gather
+    gather.daredevilbear.dev/group: Operations
+    gather.daredevilbear.dev/icon: gather.png
+    gather.daredevilbear.dev/name: Gather
 spec:
   rules:
-    - host: homepage.example.com
+    - host: gather.example.com
       http:
         paths:
           - backend:
               service:
-                name: homepage
+                name: gather
                 port:
                   number: 3000
             path: /

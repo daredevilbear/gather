@@ -6,13 +6,11 @@ import cache from "memory-cache";
 import { loadYaml } from "utils/config/yaml";
 import { managedVariables } from "utils/gather/variables-store";
 
-const cacheKey = "homepageEnvironmentVariables";
-const homepageVarPrefix = "HOMEPAGE_VAR_";
-const homepageFilePrefix = "HOMEPAGE_FILE_";
+const cacheKey = "gatherEnvironmentVariables";
+const gatherVarPrefix = "GATHER_VAR_";
+const gatherFilePrefix = "GATHER_FILE_";
 
-export const CONF_DIR = process.env.HOMEPAGE_CONFIG_DIR
-  ? process.env.HOMEPAGE_CONFIG_DIR
-  : join(process.cwd(), "config");
+export const CONF_DIR = process.env.GATHER_CONFIG_DIR ? process.env.GATHER_CONFIG_DIR : join(process.cwd(), "config");
 
 export default function checkAndCopyConfig(config) {
   // Ensure config directory exists
@@ -56,7 +54,7 @@ function getCachedEnvironmentVars() {
   if (!cachedVars) {
     // initialize cache
     cachedVars = Object.entries(process.env).filter(
-      ([key]) => key.includes(homepageVarPrefix) || key.includes(homepageFilePrefix),
+      ([key]) => key.includes(gatherVarPrefix) || key.includes(gatherFilePrefix),
     );
     cache.put(cacheKey, cachedVars);
   }
@@ -72,9 +70,9 @@ export function substituteEnvironmentVars(str) {
       ...managedVariables(CONF_DIR).filter(([name]) => !Object.hasOwn(process.env, name)),
     ];
     cachedVars.forEach(([key, value]) => {
-      if (key.startsWith(homepageVarPrefix)) {
+      if (key.startsWith(gatherVarPrefix)) {
         result = result.replaceAll(`{{${key}}}`, value);
-      } else if (key.startsWith(homepageFilePrefix)) {
+      } else if (key.startsWith(gatherFilePrefix)) {
         const filename = value;
         const fileContents = readFileSync(filename, "utf8");
         result = result.replaceAll(`{{${key}}}`, fileContents);
@@ -94,7 +92,7 @@ export function getSettings() {
 
   if (initialSettings.layout) {
     // support yaml list but old spec was object so convert to that
-    // see https://github.com/gethomepage/homepage/issues/1546
+
     if (Array.isArray(initialSettings.layout)) {
       const layoutItems = initialSettings.layout;
       initialSettings.layout = {};

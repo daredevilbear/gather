@@ -8,7 +8,7 @@ describe("utils/config/yaml", () => {
   });
 
   it("loads a populated document", () => {
-    expect(loadYaml("title: Homepage\n")).toEqual({ title: "Homepage" });
+    expect(loadYaml("title: Gather\n")).toEqual({ title: "Gather" });
   });
 
   it("preserves v4 merge key behavior", () => {
@@ -26,8 +26,8 @@ describe("utils/config/yaml", () => {
   });
 
   it("preserves v4 handling of non-string keys", () => {
-    // an unsubstituted {{HOMEPAGE_VAR_*}} parses as a flow mapping key
-    expect(loadYaml("- Plex:\n    widget:\n      key: {{HOMEPAGE_VAR_PLEX_KEY}}\n")).toEqual([
+    // an unsubstituted {{GATHER_VAR_*}} parses as a flow mapping key
+    expect(loadYaml("- Plex:\n    widget:\n      key: {{GATHER_VAR_PLEX_KEY}}\n")).toEqual([
       { Plex: { widget: { key: { "[object Object]": null } } } },
     ]);
     expect(loadYaml("- Backups:\n    - 2024-01-01:\n        href: http://x\n")).toEqual([

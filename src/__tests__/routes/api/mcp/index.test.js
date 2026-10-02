@@ -52,7 +52,7 @@ describe("pages/api/mcp", () => {
   });
 
   it("returns 404 while disabled", async () => {
-    delete process.env.HOMEPAGE_MCP_ENABLED;
+    delete process.env.GATHER_MCP_ENABLED;
     const handler = await loadHandler();
     const res = mockResponse();
 
@@ -62,8 +62,8 @@ describe("pages/api/mcp", () => {
   });
 
   it("requires bearer token when configured", async () => {
-    process.env.HOMEPAGE_MCP_ENABLED = "true";
-    process.env.HOMEPAGE_MCP_TOKEN = "mcp-tok-0123456789abcdefghijklmnopqrstuv";
+    process.env.GATHER_MCP_ENABLED = "true";
+    process.env.GATHER_MCP_TOKEN = "mcp-tok-0123456789abcdefghijklmnopqrstuv";
     const handler = await loadHandler();
     const res = mockResponse();
 
@@ -73,8 +73,8 @@ describe("pages/api/mcp", () => {
   });
 
   it("fails closed with 500 when the configured MCP token is too short", async () => {
-    process.env.HOMEPAGE_MCP_ENABLED = "true";
-    process.env.HOMEPAGE_MCP_TOKEN = "change-me";
+    process.env.GATHER_MCP_ENABLED = "true";
+    process.env.GATHER_MCP_TOKEN = "change-me";
     const handler = await loadHandler();
     const res = mockResponse();
 
@@ -93,10 +93,10 @@ describe("pages/api/mcp", () => {
     expect(errorMock).toHaveBeenCalledWith(expect.stringContaining("at least 32 characters"));
   });
 
-  it("rejects requests when neither Homepage auth nor an MCP token is configured", async () => {
-    process.env.HOMEPAGE_MCP_ENABLED = "true";
-    delete process.env.HOMEPAGE_AUTH_ENABLED;
-    delete process.env.HOMEPAGE_MCP_TOKEN;
+  it("rejects requests when neither Gather auth nor an MCP token is configured", async () => {
+    process.env.GATHER_MCP_ENABLED = "true";
+    delete process.env.GATHER_AUTH_ENABLED;
+    delete process.env.GATHER_MCP_TOKEN;
     const handler = await loadHandler();
     const res = mockResponse();
 
@@ -107,8 +107,8 @@ describe("pages/api/mcp", () => {
   });
 
   it("handles JSON-RPC requests when enabled and authorized", async () => {
-    process.env.HOMEPAGE_MCP_ENABLED = "true";
-    process.env.HOMEPAGE_MCP_TOKEN = "mcp-tok-0123456789abcdefghijklmnopqrstuv";
+    process.env.GATHER_MCP_ENABLED = "true";
+    process.env.GATHER_MCP_TOKEN = "mcp-tok-0123456789abcdefghijklmnopqrstuv";
     const handler = await loadHandler();
     const res = mockResponse();
 
@@ -125,13 +125,13 @@ describe("pages/api/mcp", () => {
     expect(res.body.result.tools.length).toBeGreaterThan(0);
   });
 
-  it("allows requests with a NextAuth session when Homepage auth is enabled", async () => {
-    process.env.HOMEPAGE_MCP_ENABLED = "true";
-    process.env.HOMEPAGE_AUTH_ENABLED = "true";
-    process.env.HOMEPAGE_AUTH_PASSWORD = "password";
-    process.env.HOMEPAGE_AUTH_SECRET = "rk3Xk9wQ0mVJt7cZbN2yLpA8sHdF4gRuEwTiOaSvBnM=";
-    process.env.HOMEPAGE_EXTERNAL_URL = "https://homepage.example";
-    getServerSession.mockResolvedValueOnce({ user: { name: "Homepage" } });
+  it("allows requests with a NextAuth session when Gather auth is enabled", async () => {
+    process.env.GATHER_MCP_ENABLED = "true";
+    process.env.GATHER_AUTH_ENABLED = "true";
+    process.env.GATHER_AUTH_PASSWORD = "password";
+    process.env.GATHER_AUTH_SECRET = "rk3Xk9wQ0mVJt7cZbN2yLpA8sHdF4gRuEwTiOaSvBnM=";
+    process.env.GATHER_EXTERNAL_URL = "https://gather.example";
+    getServerSession.mockResolvedValueOnce({ user: { name: "Gather" } });
     const handler = await loadHandler();
     const res = mockResponse();
 
@@ -142,12 +142,12 @@ describe("pages/api/mcp", () => {
     expect(res.body.result.tools.length).toBeGreaterThan(0);
   });
 
-  it("rejects requests without a token or session when Homepage auth is enabled", async () => {
-    process.env.HOMEPAGE_MCP_ENABLED = "true";
-    process.env.HOMEPAGE_AUTH_ENABLED = "true";
-    process.env.HOMEPAGE_AUTH_PASSWORD = "password";
-    process.env.HOMEPAGE_AUTH_SECRET = "rk3Xk9wQ0mVJt7cZbN2yLpA8sHdF4gRuEwTiOaSvBnM=";
-    process.env.HOMEPAGE_EXTERNAL_URL = "https://homepage.example";
+  it("rejects requests without a token or session when Gather auth is enabled", async () => {
+    process.env.GATHER_MCP_ENABLED = "true";
+    process.env.GATHER_AUTH_ENABLED = "true";
+    process.env.GATHER_AUTH_PASSWORD = "password";
+    process.env.GATHER_AUTH_SECRET = "rk3Xk9wQ0mVJt7cZbN2yLpA8sHdF4gRuEwTiOaSvBnM=";
+    process.env.GATHER_EXTERNAL_URL = "https://gather.example";
     getServerSession.mockResolvedValueOnce(null);
     const handler = await loadHandler();
     const res = mockResponse();
@@ -158,13 +158,13 @@ describe("pages/api/mcp", () => {
     expect(res.status).toHaveBeenCalledWith(401);
   });
 
-  it("allows bearer token requests when Homepage auth is enabled", async () => {
-    process.env.HOMEPAGE_MCP_ENABLED = "true";
-    process.env.HOMEPAGE_AUTH_ENABLED = "true";
-    process.env.HOMEPAGE_AUTH_PASSWORD = "password";
-    process.env.HOMEPAGE_AUTH_SECRET = "rk3Xk9wQ0mVJt7cZbN2yLpA8sHdF4gRuEwTiOaSvBnM=";
-    process.env.HOMEPAGE_EXTERNAL_URL = "https://homepage.example";
-    process.env.HOMEPAGE_MCP_TOKEN = "mcp-tok-0123456789abcdefghijklmnopqrstuv";
+  it("allows bearer token requests when Gather auth is enabled", async () => {
+    process.env.GATHER_MCP_ENABLED = "true";
+    process.env.GATHER_AUTH_ENABLED = "true";
+    process.env.GATHER_AUTH_PASSWORD = "password";
+    process.env.GATHER_AUTH_SECRET = "rk3Xk9wQ0mVJt7cZbN2yLpA8sHdF4gRuEwTiOaSvBnM=";
+    process.env.GATHER_EXTERNAL_URL = "https://gather.example";
+    process.env.GATHER_MCP_TOKEN = "mcp-tok-0123456789abcdefghijklmnopqrstuv";
     const handler = await loadHandler();
     const res = mockResponse();
 
@@ -182,8 +182,8 @@ describe("pages/api/mcp", () => {
   });
 
   it("returns 202 for JSON-RPC notifications", async () => {
-    process.env.HOMEPAGE_MCP_ENABLED = "true";
-    process.env.HOMEPAGE_MCP_TOKEN = "mcp-tok-0123456789abcdefghijklmnopqrstuv";
+    process.env.GATHER_MCP_ENABLED = "true";
+    process.env.GATHER_MCP_TOKEN = "mcp-tok-0123456789abcdefghijklmnopqrstuv";
     const handler = await loadHandler();
     const res = mockResponse();
 
@@ -201,8 +201,8 @@ describe("pages/api/mcp", () => {
   });
 
   it("rejects non-POST requests", async () => {
-    process.env.HOMEPAGE_MCP_ENABLED = "true";
-    process.env.HOMEPAGE_MCP_TOKEN = "mcp-tok-0123456789abcdefghijklmnopqrstuv";
+    process.env.GATHER_MCP_ENABLED = "true";
+    process.env.GATHER_MCP_TOKEN = "mcp-tok-0123456789abcdefghijklmnopqrstuv";
     const handler = await loadHandler();
     const res = mockResponse();
 
@@ -216,8 +216,8 @@ describe("pages/api/mcp", () => {
   });
 
   it("answers unauthenticated CORS preflights with 405 rather than 401", async () => {
-    process.env.HOMEPAGE_MCP_ENABLED = "true";
-    process.env.HOMEPAGE_MCP_TOKEN = "mcp-tok-0123456789abcdefghijklmnopqrstuv";
+    process.env.GATHER_MCP_ENABLED = "true";
+    process.env.GATHER_MCP_TOKEN = "mcp-tok-0123456789abcdefghijklmnopqrstuv";
     const handler = await loadHandler();
     const res = mockResponse();
 
@@ -240,7 +240,7 @@ describe("pages/api/mcp", () => {
   });
 
   it("still returns 404 for non-POST requests while disabled", async () => {
-    delete process.env.HOMEPAGE_MCP_ENABLED;
+    delete process.env.GATHER_MCP_ENABLED;
     const handler = await loadHandler();
     const res = mockResponse();
 

@@ -30,5 +30,5 @@ it("opens and focuses a replacement, locks its identity and saves without exposi
   fireEvent.click(screen.getByRole("button", { name: "Save replacement" }));
   expect(await screen.findByRole("button", { name: "Save value" })).toBeDisabled();
   expect(document.body.textContent).not.toContain("replacement-value");
-  expect(screen.getAllByText("HOMEPAGE_VAR_API_TOKEN", { exact: true })).toHaveLength(1);
+  expect(screen.getAllByText("GATHER_VAR_API_TOKEN", { exact: true })).toHaveLength(1);
 });

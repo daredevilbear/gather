@@ -17,7 +17,7 @@ describe("configuration editor store", () => {
     const { store } = await setup();
     const first = await store.document("services.yaml");
     const text =
-      '- Home:\n    - Test:\n        href: https://example.test\n        widget:\n          key: "{{HOMEPAGE_VAR_KEY}}"\n';
+      '- Home:\n    - Test:\n        href: https://example.test\n        widget:\n          key: "{{GATHER_VAR_KEY}}"\n';
     const saved = await store.save("services.yaml", text, first.revision);
     expect((await store.document("services.yaml")).text).toBe(text);
     expect(saved.revision).toBe(hash(text));

@@ -49,7 +49,7 @@ function getFileLogger() {
       winston.format.timestamp(),
       winston.format.printf(messageFormatter),
     ),
-    filename: `${logpath}/logs/homepage.log`,
+    filename: `${logpath}/logs/gather.log`,
     handleExceptions: true,
     handleRejections: true,
   });

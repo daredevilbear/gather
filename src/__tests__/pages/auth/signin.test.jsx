@@ -33,8 +33,8 @@ vi.mock("next-auth/react", () => ({ signIn: signInMock }));
 
 import SignInPage, { getServerSideProps } from "pages/auth/signin";
 
-const OIDC_PROVIDERS = { "homepage-oidc": { id: "homepage-oidc", name: "Homepage OIDC", type: "oauth" } };
-const SETTINGS = { theme: "dark", color: "slate", title: "Homepage" };
+const OIDC_PROVIDERS = { "gather-oidc": { id: "gather-oidc", name: "Gather OIDC", type: "oauth" } };
+const SETTINGS = { theme: "dark", color: "slate", title: "Gather" };
 
 describe("pages/auth/signin", () => {
   beforeEach(() => {
@@ -50,7 +50,7 @@ describe("pages/auth/signin", () => {
         settings={{
           theme: "dark",
           color: "slate",
-          title: "Homepage",
+          title: "Gather",
         }}
       />,
     );
@@ -87,8 +87,8 @@ describe("pages/auth/signin", () => {
 
     render(<SignInPage providers={OIDC_PROVIDERS} settings={SETTINGS} autoLogin />);
 
-    expect(signInMock).toHaveBeenCalledWith("homepage-oidc", { callbackUrl: "/some/page" });
-    expect(screen.getByText(/redirecting to homepage oidc/i)).toBeInTheDocument();
+    expect(signInMock).toHaveBeenCalledWith("gather-oidc", { callbackUrl: "/some/page" });
+    expect(screen.getByText(/redirecting to gather oidc/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /login via/i })).not.toBeInTheDocument();
   });
 
@@ -98,7 +98,7 @@ describe("pages/auth/signin", () => {
     render(<SignInPage providers={OIDC_PROVIDERS} settings={SETTINGS} autoLogin />);
 
     expect(signInMock).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: /login via homepage oidc/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /login via gather oidc/i })).toBeInTheDocument();
   });
 
   it("does not auto-login when it is explicitly disabled in the url", () => {
@@ -107,7 +107,7 @@ describe("pages/auth/signin", () => {
     render(<SignInPage providers={OIDC_PROVIDERS} settings={SETTINGS} autoLogin />);
 
     expect(signInMock).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: /login via homepage oidc/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /login via gather oidc/i })).toBeInTheDocument();
   });
 
   it("redirects once under strict mode, rather than tripping its own loop guard", () => {
@@ -148,7 +148,7 @@ describe("pages/auth/signin", () => {
     getSettingsMock.mockReturnValueOnce({
       theme: "dark",
       color: "slate",
-      title: "Homepage",
+      title: "Gather",
       background: { image: "background.jpg", opacity: 20 },
       backgroundOpacity: 10,
       providers: {
@@ -170,7 +170,7 @@ describe("pages/auth/signin", () => {
         settings: {
           theme: "dark",
           color: "slate",
-          title: "Homepage",
+          title: "Gather",
           background: { image: "background.jpg", opacity: 20 },
           backgroundOpacity: 10,
         },
@@ -183,7 +183,7 @@ describe("pages/auth/signin", () => {
   it("getServerSideProps enables auto-login from the environment", async () => {
     authOptionsMock.mockReturnValueOnce({ providers: [] });
     getSettingsMock.mockReturnValueOnce({ theme: "dark" });
-    vi.stubEnv("HOMEPAGE_OIDC_AUTO_LOGIN", "true");
+    vi.stubEnv("GATHER_OIDC_AUTO_LOGIN", "true");
 
     const res = await getServerSideProps({});
 
@@ -194,7 +194,7 @@ describe("pages/auth/signin", () => {
   it("getServerSideProps falls back to no providers when auth options fail to load", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     authOptionsMock.mockImplementationOnce(() => {
-      throw new Error("Homepage auth is enabled but HOMEPAGE_EXTERNAL_URL (or NEXTAUTH_URL) is missing.");
+      throw new Error("Gather auth is enabled but GATHER_EXTERNAL_URL (or NEXTAUTH_URL) is missing.");
     });
     getSettingsMock.mockReturnValueOnce({ theme: "dark" });
 
@@ -205,11 +205,10 @@ describe("pages/auth/signin", () => {
     consoleError.mockRestore();
   });
 
-  it("shows only the selected Gather provider, keeping compatibility callbacks out of the login buttons", async () => {
+  it("uses the Gather provider for automatic sign-in", async () => {
     authOptionsMock.mockReturnValueOnce({
       providers: [
         { id: "gather-oidc", name: "Gather OIDC", type: "oauth" },
-        { id: "homepage-oidc", name: "Gather OIDC", type: "oauth", gatherCompatibilityAlias: true },
       ],
     });
     getSettingsMock.mockReturnValueOnce({ theme: "dark" });
@@ -223,8 +222,8 @@ describe("pages/auth/signin", () => {
     authOptionsMock.mockReturnValueOnce({
       providers: [
         {
-          id: "homepage-oidc",
-          name: "Homepage OIDC",
+          id: "gather-oidc",
+          name: "Gather OIDC",
           type: "oauth",
           issuer: "https://oidc.example",
           clientId: "canary-client-id",
@@ -247,7 +246,7 @@ describe("pages/auth/signin", () => {
     const res = await getServerSideProps({});
 
     expect(res.props.providers).toEqual({
-      "homepage-oidc": { id: "homepage-oidc", name: "Homepage OIDC", type: "oauth" },
+      "gather-oidc": { id: "gather-oidc", name: "Gather OIDC", type: "oauth" },
       credentials: { id: "credentials", name: "Password", type: "credentials" },
     });
     // These props get serialized into the sign-in page, which is unauthenticated

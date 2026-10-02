@@ -124,7 +124,7 @@ const SECTIONS = [
     description:
       file === "vcenter.yaml"
         ? "Connect vCenter and add VM or ESXi host cards, or an inventory summary, to your dashboard."
-        : "Manage the existing Homepage connection configuration. Referenced credentials and mounted files must be available on the server. Source changes are versioned and backed up.",
+        : "Manage the existing Gather connection configuration. Referenced credentials and mounted files must be available on the server. Source changes are versioned and backed up.",
     icon: file.split(".")[0],
     group: "CONNECTIONS",
     protected: true,
@@ -140,8 +140,8 @@ const SECTIONS = [
   {
     id: "migration",
     file: null,
-    label: "Import from Homepage",
-    description: "Bring an existing Homepage dashboard into Gather.",
+    label: "Import configuration",
+    description: "Import dashboard configuration files into Gather.",
     icon: "import",
     group: "ADMINISTRATION",
   },

@@ -33,7 +33,7 @@ wheels = [
 ]
 
 [[package]]
-name = "homepage-docs"
+name = "gather-docs"
 version = "1.0.0"
 source = { virtual = "." }
 dependencies = [

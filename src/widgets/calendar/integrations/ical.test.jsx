@@ -107,7 +107,7 @@ describe("widgets/calendar/integrations/ical", () => {
         data: [
           "BEGIN:VCALENDAR",
           "VERSION:2.0",
-          "PRODID:-//Homepage Test//iCal Multi-Day Event//EN",
+          "PRODID:-//Gather Test//iCal Multi-Day Event//EN",
           "BEGIN:VEVENT",
           "UID:multi-day-all-day@example.test",
           "DTSTAMP:20260716T000000Z",

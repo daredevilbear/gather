@@ -93,11 +93,11 @@ export async function containersFromConfig(server) {
   return new Set(matching.map((ref) => ref.container));
 }
 
-// homepage.foo -> foo, homepage.instance.<this instance>.foo -> foo, another instance -> null
-export function homepageLabelValue(label, instanceName) {
-  if (!label.startsWith("homepage.")) return null;
+// gather.foo -> foo, gather.instance.<this instance>.foo -> foo, another instance -> null
+export function gatherLabelValue(label, instanceName) {
+  if (!label.startsWith("gather.")) return null;
 
-  const value = label.replace("homepage.", "");
+  const value = label.replace("gather.", "");
   if (!value.startsWith("instance.")) return value;
   if (instanceName && value.startsWith(`instance.${instanceName}.`)) {
     return value.replace(`instance.${instanceName}.`, "");
@@ -106,8 +106,8 @@ export function homepageLabelValue(label, instanceName) {
   return null;
 }
 
-export function hasHomepageLabels(labels, instanceName) {
-  return Object.keys(labels ?? {}).some((label) => homepageLabelValue(label, instanceName) !== null);
+export function hasGatherLabels(labels, instanceName) {
+  return Object.keys(labels ?? {}).some((label) => gatherLabelValue(label, instanceName) !== null);
 }
 
 export async function servicesFromDocker() {
@@ -146,7 +146,7 @@ export async function servicesFromDocker() {
           const containerName = isSwarm ? shvl.get(container, "Spec.Name") : container.Names[0];
 
           Object.keys(containerLabels ?? {}).forEach((label) => {
-            const value = homepageLabelValue(label, instanceName);
+            const value = gatherLabelValue(label, instanceName);
             if (value === null) return;
 
             if (!constructedService) {
@@ -166,7 +166,7 @@ export async function servicesFromDocker() {
 
           if (constructedService && (!constructedService.name || !constructedService.group)) {
             logger.error(
-              `Error constructing service using homepage labels for container '${containerName.replace(
+              `Error constructing service using gather labels for container '${containerName.replace(
                 /^\//,
                 "",
               )}'. Ensure required labels are present.`,

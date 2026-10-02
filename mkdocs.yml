@@ -241,7 +241,7 @@ nav:
       - more/translations.md
       - more/coverage.md
       - more/sponsors.md
-      - more/homepage-move.md
+      - more/gather-move.md
 
 theme:
   name: material
@@ -287,14 +287,8 @@ extra_css:
 
 extra:
   social:
-    - icon: fontawesome/brands/discord
-      link: https://discord.gg/k4ruYNrudu
     - icon: fontawesome/brands/github
-      link: https://github.com/gethomepage/homepage
-    - icon: simple/opencollective
-      link: https://opencollective.com/homepage
-    - icon: simple/patreon
-      link: https://www.patreon.com/gethomepage
+      link: https://github.com/daredevilbear/gather
 
 markdown_extensions:
   - pymdownx.highlight:

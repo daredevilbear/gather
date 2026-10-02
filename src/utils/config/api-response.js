@@ -163,7 +163,7 @@ export async function servicesResponse() {
   try {
     discoveredDockerServices = cleanServiceGroups(await servicesFromDocker());
     if (discoveredDockerServices?.length === 0) {
-      console.debug("No containers were found with homepage labels.");
+      console.debug("No containers were found with gather labels.");
     }
   } catch (e) {
     console.error("Failed to discover services, please check docker.yaml for errors or remove example entries.");

@@ -90,7 +90,7 @@ describe("settings editor", () => {
           {
             Home: [
               {
-                Example: { href: "https://example.test", widget: { type: "customapi", key: "{{HOMEPAGE_VAR_TOKEN}}" } },
+                Example: { href: "https://example.test", widget: { type: "customapi", key: "{{GATHER_VAR_TOKEN}}" } },
               },
             ],
           },
@@ -100,7 +100,7 @@ describe("settings editor", () => {
     );
     fireEvent.click(screen.getByText("Example"));
     fireEvent.change(screen.getByLabelText("Service name"), { target: { value: "Renamed" } });
-    expect(change.mock.calls[0][0][0].Home[0].Renamed.widget.key).toBe("{{HOMEPAGE_VAR_TOKEN}}");
+    expect(change.mock.calls[0][0][0].Home[0].Renamed.widget.key).toBe("{{GATHER_VAR_TOKEN}}");
   });
 });
 
@@ -244,8 +244,8 @@ it("opens the native user, variables and migration screens from navigation", asy
   expect(await screen.findByText("Recovery administrator — protected by server setup.")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Secrets & variables", exact: true }));
   expect(await screen.findByLabelText("Secret value")).toHaveAttribute("type", "password");
-  fireEvent.click(screen.getByRole("button", { name: "Import from Homepage", exact: true }));
-  expect(await screen.findByLabelText("Homepage configuration file")).toHaveAttribute("type", "file");
+  fireEvent.click(screen.getByRole("button", { name: "Import configuration", exact: true }));
+  expect(await screen.findByLabelText("Dashboard configuration file")).toHaveAttribute("type", "file");
 });
 
 it("shows compact service metadata and lets groups collapse without losing entries", () => {

@@ -2,7 +2,7 @@ import Docker from "dockerode";
 
 import { getSettings } from "utils/config/config";
 import getDockerArguments from "utils/config/docker";
-import { containersFromConfig, hasHomepageLabels } from "utils/config/service-helpers";
+import { containersFromConfig, hasGatherLabels } from "utils/config/service-helpers";
 
 const HEALTH_STATES = ["healthy", "unhealthy", "starting"];
 
@@ -50,7 +50,7 @@ export async function getDockerStatuses(server) {
     // keyed by id for every container so swarm tasks can resolve their local container
     byId[container.Id] = info;
 
-    const labelled = hasHomepageLabels(container.Labels, instanceName);
+    const labelled = hasGatherLabels(container.Labels, instanceName);
     container.Names.forEach((name) => {
       const containerName = name.replace(/^\//, "");
       if (labelled || configured.has(containerName)) statuses[containerName] = info;
@@ -75,7 +75,7 @@ export async function getDockerStatuses(server) {
   services.forEach((service) => {
     const name = service.Spec?.Name;
     if (!name || statuses[name]) return;
-    if (!configured.has(name) && !hasHomepageLabels(service.Spec?.Labels, instanceName)) return;
+    if (!configured.has(name) && !hasGatherLabels(service.Spec?.Labels, instanceName)) return;
 
     const serviceTasks = tasksByService[service.ID] ?? [];
 

@@ -98,3 +98,55 @@ Gather retains Homepage's [GPL-3.0 license](LICENSE), contributor history, and
 upstream notices. The initial baseline is Homepage v2.4.0, independent of Gather's
 1.0.0 release version. See [NOTICE](NOTICE) and the preserved
 [upstream README](README.upstream.md). Dependencies retain their own licenses.
+
+## Configuration migration
+
+The next Gather build uses Gather names throughout the code and runtime
+configuration. Existing private installations must migrate before upgrading;
+legacy configuration aliases and the old SSO callback are removed.
+
+1. Stop the dashboard, notifications and controller. Back up configuration,
+   databases, notification data and encryption keys using the offline procedure
+   in [Operations](https://gather.daredevilbear.dev/gather/operations/).
+2. From the new source checkout, preview the environment-prefix migration with
+   Node.js 22.13 or newer. Use your actual configuration and `.env` paths:
+
+   ```sh
+   node scripts/migrate-config-prefix.cjs --from-prefix HOMEPAGE_ \
+     --config-dir /path/to/config --env-file /path/to/.env
+   ```
+
+   If encrypted variables or system settings exist, add
+   `--app-key-file /path/to/gather-app-key`; for system settings also add
+   `--system-dir /path/to/system-data`. The helper migrates YAML placeholders,
+   `.env` keys, encrypted variables, personal dashboard placeholders and both
+   active and rollback app vault records. It re-encrypts variables with their
+   new names, preserves values and access identities, and rejects collisions.
+   Preview changes no files. To apply, repeat with `--apply` and
+   `--backup-dir /path/to/new-private-backup` outside the migrated directories.
+   Keep the backup and original keys. If applying fails, restore every file
+   listed in its `manifest.json`, removing current SQLite `-wal`/`-shm` files
+   and restoring their saved copies if present,
+   before restarting any component. Never run the helper against live writers.
+3. Update your Compose environment keys from `HOMEPAGE_*` to `GATHER_*` too;
+   renaming `.env` keys alone does not change keys declared inside Compose.
+   Rename `homepage.*` discovery labels to `gather.*`, and
+   `gethomepage.dev/*` Kubernetes annotations to `gather.daredevilbear.dev/*`.
+   Update external placeholders to `GATHER_VAR_*` / `GATHER_FILE_*`, MCP resource
+   URIs to `gather://config/`, the documentation tool to `gather_docs`, and custom
+   token headers to `x-gather-mcp-token`.
+4. Register `/api/auth/callback/gather-oidc` at the identity provider and set
+   `GATHER_OIDC_PROVIDER_ID=gather-oidc`. Remove any old callback selection.
+   Start a fresh sign-in flow after the upgrade. OIDC subjects remain unchanged.
+   For an existing shared-password account, set
+   `GATHER_PASSWORD_USER_ID=homepage` and retain its existing `GATHER_ADMIN_IDS`
+   value to preserve access and its personal dashboard. New installations use
+   the `gather` identity. This value is operator configuration, not a built-in
+   legacy alias.
+5. Start the upgraded components together, refresh installed apps to update the
+   notification worker, and verify administrator/viewer access, service
+   discovery, variables and notifications. Custom notification senders must use
+   `GATHER_OPEN_NOTIFICATION`; the old Bearnet event is removed.
+
+Help links in the application and MCP now use
+[Gather documentation](https://gather.daredevilbear.dev/).

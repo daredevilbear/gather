@@ -25,15 +25,15 @@ vi.mock("utils/config/config", () => ({
 import handler from "pages/api/hash";
 
 describe("pages/api/hash", () => {
-  const originalBuildTime = process.env.HOMEPAGE_BUILDTIME;
+  const originalBuildTime = process.env.GATHER_BUILDTIME;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.HOMEPAGE_BUILDTIME = originalBuildTime;
+    process.env.GATHER_BUILDTIME = originalBuildTime;
   });
 
   it("returns a combined sha256 hash of known config files and build time", async () => {
-    process.env.HOMEPAGE_BUILDTIME = "build-1";
+    process.env.GATHER_BUILDTIME = "build-1";
 
     // Return deterministic contents based on file name.
     readFileSync.mockImplementation((filePath) => {

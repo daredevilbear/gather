@@ -1,5 +1,5 @@
 {
-  "name": "homepage",
+  "name": "gather",
   "build": {
     "dockerfile": "Dockerfile",
     "args": {

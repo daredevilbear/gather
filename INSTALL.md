@@ -1,8 +1,8 @@
 # Install Gather 1.0
 
 Use Docker Engine with the Docker Compose plugin on `linux/amd64` or
-`linux/arm64`. Gather keeps Homepage-compatible `HOMEPAGE_*` environment names.
-The dashboard image includes Gather; a separate Homepage container is unnecessary.
+`linux/arm64`. Runtime configuration uses `GATHER_*` environment names.
+Existing installations must follow the [configuration migration](README.md#configuration-migration) before upgrading to this build.
 
 ## Dashboard with authentication
 
@@ -14,13 +14,13 @@ chmod 600 .env
 mkdir -p config
 # Linux bind mounts must be writable by the image's unprivileged UID/GID.
 sudo chown 1001:1001 config
-openssl rand -base64 32  # use this as HOMEPAGE_AUTH_SECRET
-openssl rand -base64 32  # use a different value as HOMEPAGE_AUTH_PASSWORD
+openssl rand -base64 32  # use this as GATHER_AUTH_SECRET
+openssl rand -base64 32  # use a different value as GATHER_AUTH_PASSWORD
 ```
 
 Edit `.env` with the two generated secrets, your external HTTPS origin and exact
-hostname. The sample uses password authentication with the shared `homepage`
-identity; `GATHER_ADMIN_IDS=homepage` grants that identity administrator access.
+hostname. The sample uses password authentication with the shared `gather`
+identity; `GATHER_ADMIN_IDS=gather` grants that identity administrator access.
 For distinct users, use OIDC as described below.
 
 ```sh
@@ -44,8 +44,8 @@ release review, use a GitHub account with package access or build from source.
 
 ## OIDC and multiple users
 
-Set `HOMEPAGE_OIDC_ISSUER`, `HOMEPAGE_OIDC_CLIENT_ID`, and
-`HOMEPAGE_OIDC_CLIENT_SECRET` in `.env`, keep the session secret, clear the password,
+Set `GATHER_OIDC_ISSUER`, `GATHER_OIDC_CLIENT_ID`, and
+`GATHER_OIDC_CLIENT_SECRET` in `.env`, keep the session secret, clear the password,
 and set `GATHER_ADMIN_IDS` to your administrator's stable provider subject. OIDC
 configuration selects SSO instead of password login. With a build supporting the Gather
 callback, set `GATHER_OIDC_PROVIDER_ID=gather-oidc` and register:
@@ -54,16 +54,12 @@ callback, set `GATHER_OIDC_PROVIDER_ID=gather-oidc` and register:
 https://gather.example.com/api/auth/callback/gather-oidc
 ```
 
-Replace the sample hostname with yours. This callback selection is available in the
-`dev` channel after the Gather OIDC rename. Older builds use
-`/api/auth/callback/homepage-oidc`. Existing deployments with no provider selection
-keep that legacy callback. Upgrade to a supporting build, add the Gather callback
-at your identity provider, then set `GATHER_OIDC_PROVIDER_ID=gather-oidc` and restart.
-Both routes remain supported, including authorization flows already in progress.
-The callback selection is an operator-owned container environment setting, including
-when encrypted system storage is enabled. The example Compose forwards it from `.env`.
+Replace the sample hostname with yours. Gather uses this callback by default;
+`GATHER_OIDC_PROVIDER_ID`, if set, must be `gather-oidc`. Register the callback at
+your identity provider before upgrading, then start a fresh sign-in flow. The
+example Compose forwards the callback selection from `.env`.
 
- Use verified email claims and distinct
+Use verified email claims and distinct
 subjects. Users & access manages Gather roles and personal dashboards; it does
 not create identity-provider accounts. Validate administrator and viewer access
 before adopting the instance. See [Setup](https://gather.daredevilbear.dev/gather/setup/).

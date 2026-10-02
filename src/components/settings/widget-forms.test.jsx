@@ -34,7 +34,7 @@ it("edits Calendar sources without losing unknown source or nested properties", 
     type: "calendar",
     extra: { retain: true },
     integrations: [
-      { type: "ical", name: "Family", url: "{{HOMEPAGE_VAR_CALENDAR}}", params: { custom: 42 } },
+      { type: "ical", name: "Family", url: "{{GATHER_VAR_CALENDAR}}", params: { custom: 42 } },
       { type: "future", custom: { keep: true } },
     ],
   };
@@ -89,7 +89,7 @@ it("validates calendar names, feed URLs, time zones and integer limits", () => {
   expect(url).toBeInvalid();
   fireEvent.change(url, { target: { value: "file:///secret" } });
   expect(url).toBeInvalid();
-  fireEvent.change(url, { target: { value: "{{HOMEPAGE_VAR_CALENDAR}}" } });
+  fireEvent.change(url, { target: { value: "{{GATHER_VAR_CALENDAR}}" } });
   expect(url).toBeValid();
   edit(/Timezone/, "Not/AZone");
   expect(screen.getByLabelText(/Timezone/)).toBeInvalid();
@@ -102,7 +102,7 @@ it("validates calendar names, feed URLs, time zones and integer limits", () => {
 });
 
 it("uses Wazuh credentials and preserves placeholders and unknown fields", () => {
-  render(<Integration initial={{ type: "wazuh", password: "{{HOMEPAGE_VAR_PASS}}", custom: 8 }} />);
+  render(<Integration initial={{ type: "wazuh", password: "{{GATHER_VAR_PASS}}", custom: 8 }} />);
   expect(screen.getByLabelText(/Password/)).toHaveAttribute("type", "password");
   expect(screen.getByLabelText(/Server URL/)).toBeInvalid();
   edit(/Server URL/, "ftp://wrong.test");
@@ -112,7 +112,7 @@ it("uses Wazuh credentials and preserves placeholders and unknown fields", () =>
   fireEvent.click(screen.getByLabelText("Active", { exact: true }));
   expect(result()).toEqual({
     type: "wazuh",
-    password: "{{HOMEPAGE_VAR_PASS}}",
+    password: "{{GATHER_VAR_PASS}}",
     custom: 8,
     url: "https://wazuh.example.test:55000",
     username: "reader",
@@ -145,13 +145,13 @@ describe("saved configuration and boundaries", () => {
       {
         type: "calendar",
         custom: [1, 2],
-        integrations: [{ type: "ical", name: "Events", url: "{{HOMEPAGE_VAR_FEED}}", params: { custom: true } }],
+        integrations: [{ type: "ical", name: "Events", url: "{{GATHER_VAR_FEED}}", params: { custom: true } }],
       },
       {
         type: "wazuh",
         url: "https://wazuh.example.test:55000",
         username: "reader",
-        password: "{{HOMEPAGE_VAR_PASS}}",
+        password: "{{GATHER_VAR_PASS}}",
         future: true,
       },
       { type: "velociraptor", apiConfig: "/app/config/api.yaml", orgId: "O.test", future: true },
@@ -181,7 +181,7 @@ describe("saved configuration and boundaries", () => {
     edit("Search widgets", "WeatherAPI");
     fireEvent.click(screen.getByRole("button", { name: /^WeatherAPI/ }));
     edit("Latitude", "0");
-    edit(/WeatherAPI key/, "{{HOMEPAGE_VAR_WEATHER}}");
+    edit(/WeatherAPI key/, "{{GATHER_VAR_WEATHER}}");
     request.mockClear();
     fireEvent.click(screen.getByRole("button", { name: "Save & apply" }));
     expect(request).not.toHaveBeenCalled();

@@ -8,8 +8,8 @@ describe("instrumentation", () => {
     process.env = { ...originalEnv };
     delete process.env.NEXTAUTH_SECRET;
     delete process.env.NEXTAUTH_URL;
-    delete process.env.HOMEPAGE_AUTH_SECRET;
-    delete process.env.HOMEPAGE_EXTERNAL_URL;
+    delete process.env.GATHER_AUTH_SECRET;
+    delete process.env.GATHER_EXTERNAL_URL;
     process.env.NEXT_RUNTIME = "nodejs";
   });
 
@@ -17,20 +17,20 @@ describe("instrumentation", () => {
     process.env = originalEnv;
   });
 
-  it("maps HOMEPAGE_* auth envs to their NextAuth equivalents", async () => {
-    process.env.HOMEPAGE_AUTH_SECRET = "secret";
-    process.env.HOMEPAGE_EXTERNAL_URL = "https://homepage.example";
+  it("maps GATHER_* auth envs to their NextAuth equivalents", async () => {
+    process.env.GATHER_AUTH_SECRET = "secret";
+    process.env.GATHER_EXTERNAL_URL = "https://gather.example";
     const { register } = await import("./instrumentation");
 
     register();
 
     expect(process.env.NEXTAUTH_SECRET).toBe("secret");
-    expect(process.env.NEXTAUTH_URL).toBe("https://homepage.example");
+    expect(process.env.NEXTAUTH_URL).toBe("https://gather.example");
   });
 
   it("does not override explicitly configured NextAuth envs", async () => {
-    process.env.HOMEPAGE_AUTH_SECRET = "secret";
-    process.env.HOMEPAGE_EXTERNAL_URL = "https://homepage.example";
+    process.env.GATHER_AUTH_SECRET = "secret";
+    process.env.GATHER_EXTERNAL_URL = "https://gather.example";
     process.env.NEXTAUTH_SECRET = "explicit-secret";
     process.env.NEXTAUTH_URL = "https://explicit.example";
     const { register } = await import("./instrumentation");
@@ -43,7 +43,7 @@ describe("instrumentation", () => {
 
   it("is a no-op outside the node runtime", async () => {
     process.env.NEXT_RUNTIME = "edge";
-    process.env.HOMEPAGE_EXTERNAL_URL = "https://homepage.example";
+    process.env.GATHER_EXTERNAL_URL = "https://gather.example";
     const { register } = await import("./instrumentation");
 
     register();

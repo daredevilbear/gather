@@ -175,32 +175,32 @@ describe("utils/config/service-helpers", () => {
     expect(await mod.containersFromConfig("local")).toEqual(new Set());
   });
 
-  it("homepageLabelValue strips the prefix and honors instance scoping", async () => {
+  it("gatherLabelValue strips the prefix and honors instance scoping", async () => {
     const mod = await import("./service-helpers");
 
-    expect(mod.homepageLabelValue("com.docker.compose.project", "foo")).toBeNull();
-    expect(mod.homepageLabelValue("homepage.name", undefined)).toBe("name");
-    expect(mod.homepageLabelValue("homepage.instance.foo.name", "foo")).toBe("name");
-    expect(mod.homepageLabelValue("homepage.instance.bar.name", "foo")).toBeNull();
-    expect(mod.homepageLabelValue("homepage.instance.bar.name", undefined)).toBeNull();
+    expect(mod.gatherLabelValue("com.docker.compose.project", "foo")).toBeNull();
+    expect(mod.gatherLabelValue("gather.name", undefined)).toBe("name");
+    expect(mod.gatherLabelValue("gather.instance.foo.name", "foo")).toBe("name");
+    expect(mod.gatherLabelValue("gather.instance.bar.name", "foo")).toBeNull();
+    expect(mod.gatherLabelValue("gather.instance.bar.name", undefined)).toBeNull();
   });
 
-  it("hasHomepageLabels reports whether a container opts in for this instance", async () => {
+  it("hasGatherLabels reports whether a container opts in for this instance", async () => {
     const mod = await import("./service-helpers");
 
-    expect(mod.hasHomepageLabels(undefined, "foo")).toBe(false);
-    expect(mod.hasHomepageLabels({}, "foo")).toBe(false);
-    expect(mod.hasHomepageLabels({ "com.docker.compose.project": "x" }, "foo")).toBe(false);
-    expect(mod.hasHomepageLabels({ "homepage.name": "X" }, undefined)).toBe(true);
-    expect(mod.hasHomepageLabels({ "homepage.instance.foo.name": "X" }, "foo")).toBe(true);
-    expect(mod.hasHomepageLabels({ "homepage.instance.bar.name": "X" }, "foo")).toBe(false);
+    expect(mod.hasGatherLabels(undefined, "foo")).toBe(false);
+    expect(mod.hasGatherLabels({}, "foo")).toBe(false);
+    expect(mod.hasGatherLabels({ "com.docker.compose.project": "x" }, "foo")).toBe(false);
+    expect(mod.hasGatherLabels({ "gather.name": "X" }, undefined)).toBe(true);
+    expect(mod.hasGatherLabels({ "gather.instance.foo.name": "X" }, "foo")).toBe(true);
+    expect(mod.hasGatherLabels({ "gather.instance.bar.name": "X" }, "foo")).toBe(false);
   });
 
   it("servicesFromDocker skips containers without labels instead of failing the whole server", async () => {
     state.dockerYaml = { "docker-local": {} };
     state.dockerContainersByServer["docker-local"] = [
       { Names: ["/nolabels"] },
-      { Names: ["/labelled"], Labels: { "homepage.group": "G", "homepage.name": "Svc" } },
+      { Names: ["/labelled"], Labels: { "gather.group": "G", "gather.name": "Svc" } },
     ];
 
     const mod = await import("./service-helpers");
@@ -563,8 +563,8 @@ describe("utils/config/service-helpers", () => {
       {
         Names: ["/c1"],
         Labels: {
-          "homepage.group": "G",
-          "homepage.name": "S",
+          "gather.group": "G",
+          "gather.name": "S",
         },
       },
     ];
@@ -621,7 +621,7 @@ describe("utils/config/service-helpers", () => {
     expect(await mod.default("G", "S", "1")).toEqual({ id: "w1" });
   });
 
-  it("servicesFromDocker maps homepage labels to groups, filters instance-scoped labels, and parses widget version", async () => {
+  it("servicesFromDocker maps gather labels to groups, filters instance-scoped labels, and parses widget version", async () => {
     config.getSettings.mockReturnValue({ instanceName: "foo" });
 
     state.dockerYaml = {
@@ -633,19 +633,19 @@ describe("utils/config/service-helpers", () => {
       {
         Names: ["/c1"],
         Labels: {
-          "homepage.group": "G",
-          "homepage.name": "Svc",
-          "homepage.href": "http://svc",
-          "homepage.widget.version": "3",
-          "homepage.instance.foo.description": "Desc",
-          "homepage.instance.bar.description": "Ignore",
+          "gather.group": "G",
+          "gather.name": "Svc",
+          "gather.href": "http://svc",
+          "gather.widget.version": "3",
+          "gather.instance.foo.description": "Desc",
+          "gather.instance.bar.description": "Ignore",
         },
       },
       // Missing required labels -> should be skipped with an error.
       {
         Names: ["/bad"],
         Labels: {
-          "homepage.group": "G",
+          "gather.group": "G",
         },
       },
     ];
@@ -656,9 +656,9 @@ describe("utils/config/service-helpers", () => {
         Spec: {
           Name: "swarm1",
           Labels: {
-            "homepage.group": "G2",
-            "homepage.name": "SwarmSvc",
-            "homepage.widgets[0].version": "2",
+            "gather.group": "G2",
+            "gather.name": "SwarmSvc",
+            "gather.widgets[0].version": "2",
           },
         },
       },
@@ -708,7 +708,7 @@ describe("utils/config/service-helpers", () => {
       throw new Error("boom");
     });
 
-    state.dockerContainers = [{ Names: ["/c1"], Labels: { "homepage.group": "G", "homepage.name": "Svc" } }];
+    state.dockerContainers = [{ Names: ["/c1"], Labels: { "gather.group": "G", "gather.name": "Svc" } }];
 
     const mod = await import("./service-helpers");
     const discoveredGroups = await mod.servicesFromDocker();

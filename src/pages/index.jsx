@@ -442,7 +442,7 @@ function Home({ initialSettings }) {
           name="description"
           content={
             initialSettings.description ||
-            "A highly customizable homepage (or startpage / application dashboard) with Docker and service API integrations."
+            "Gather brings services, bookmarks, and live system information into one customizable dashboard."
           }
         />
         {settings.disableIndexing && <meta name="robots" content="noindex, nofollow" />}

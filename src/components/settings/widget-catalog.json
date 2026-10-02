@@ -237,7 +237,7 @@
       }
     ],
     "doc": "nerdaxe",
-    "docUrl": "https://github.com/daredevilbear/gather/blob/dev/docs/widgets/services/nerdaxe.md"
+    "docUrl": "https://gather.daredevilbear.dev/widgets/services/nerdaxe/"
   },
   {
     "id": "bitaxe",
@@ -249,7 +249,7 @@
       }
     ],
     "doc": "bitaxe",
-    "docUrl": "https://github.com/daredevilbear/gather/blob/dev/docs/widgets/services/bitaxe.md"
+    "docUrl": "https://gather.daredevilbear.dev/widgets/services/bitaxe/"
   },
   {
     "id": "bitcoinnode",
@@ -269,7 +269,7 @@
       }
     ],
     "doc": "bitcoinnode",
-    "docUrl": "https://github.com/daredevilbear/gather/blob/dev/docs/widgets/services/bitcoinnode.md"
+    "docUrl": "https://gather.daredevilbear.dev/widgets/services/bitcoinnode/"
   },
   {
     "id": "booklore",
@@ -3041,7 +3041,7 @@
         "key": "password",
         "kind": "password",
         "required": true,
-        "help": "API user password or an unresolved {{HOMEPAGE_VAR_WAZUH_PASSWORD}} reference. Gather renews the token automatically."
+        "help": "API user password or an unresolved {{GATHER_VAR_WAZUH_PASSWORD}} reference. Gather renews the token automatically."
       },
       {
         "key": "fields",

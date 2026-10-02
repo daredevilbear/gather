@@ -1,4 +1,4 @@
-// Preserve Homepage layout tabs while allowing empty tabs and explicit ordering.
+// Preserve dashboard layout tabs while allowing empty tabs and explicit ordering.
 export function dashboardTabs(settings = {}) {
   const configured = Array.isArray(settings.gather?.tabs) ? settings.gather.tabs : [];
   const assigned = Object.values(settings.layout || {}).map((group) => group?.tab);
