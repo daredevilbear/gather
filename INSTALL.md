@@ -6,10 +6,9 @@ Existing installations must follow the [configuration migration](README.md#confi
 
 ## Dashboard with authentication
 
-Use the source revision matching your selected image. During private review,
-the Gather naming cleanup uses `dev`; the older private `v1.0.0` candidate
-predates these environment names. Pin the new release version or digest once
-it is prepared. From the repository root:
+Use the `v1.0.0` source checkout with the `1.0.0` images, or pin the immutable
+digests recorded in the release notes. The example selects `1.0.0` by default.
+From the repository root:
 
 ```sh
 cp .env.example .env
@@ -42,16 +41,16 @@ certificates, or your proxy infrastructure.
 Open your external URL and sign in. Use Dashboard settings to configure the
 shared dashboard. Configuration and account databases persist in `config/`.
 The example does not mount a Docker socket or enable the privileged controller.
-Anonymous local pulls work after the release packages are public; during private
-release review, use a GitHub account with package access or build from source.
+The public release images can be pulled anonymously; no GitHub credentials are
+needed for installation.
 
 ## OIDC and multiple users
 
 Set `GATHER_OIDC_ISSUER`, `GATHER_OIDC_CLIENT_ID`, and
 `GATHER_OIDC_CLIENT_SECRET` in `.env`, keep the session secret, clear the password,
 and set `GATHER_ADMIN_IDS` to your administrator's stable provider subject. OIDC
-configuration selects SSO instead of password login. With a build supporting the Gather
-callback, set `GATHER_OIDC_PROVIDER_ID=gather-oidc` and register:
+configuration selects SSO instead of password login. Set
+`GATHER_OIDC_PROVIDER_ID=gather-oidc` and register:
 
 ```text
 https://gather.example.com/api/auth/callback/gather-oidc
@@ -70,7 +69,7 @@ before adopting the instance. See [Setup](https://gather.daredevilbear.dev/gathe
 ## Optional components
 
 The dashboard runs without either companion. To enable the inbox and Web Push,
-use `ghcr.io/daredevilbear/gather-notifications:dev` and follow
+use `ghcr.io/daredevilbear/gather-notifications:1.0.0` and follow
 [Notifications](https://gather.daredevilbear.dev/gather/notifications/) for ntfy,
 authenticated same-origin `/gather-notifications/` routing, session lookup,
 origin validation, and a writable `/data` volume for its unprivileged UID 1001.
@@ -85,7 +84,7 @@ key at `/run/secrets/gather-app-key` and follow
 For encrypted system settings and supervised authentication rollback, follow
 [System settings](https://gather.daredevilbear.dev/gather/system/), including
 separate keys, `/system-data` persistence, and the optional controller's authority.
-Use `ghcr.io/daredevilbear/gather-system-controller:dev`; review
+Use `ghcr.io/daredevilbear/gather-system-controller:1.0.0`; review
 [the controller example](system/compose-controller.example.yaml) before mounting
 a Docker socket. These components require operator configuration and are not
 started by the dashboard example.

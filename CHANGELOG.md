@@ -1,18 +1,15 @@
 # Gather release notes
 
-## Unreleased
-
-- Use Gather names in source, environment configuration, discovery labels,
-  Kubernetes annotations, integration client identifiers, MCP tools and help links.
-- Use one `gather-oidc` callback and a configurable shared-password account subject.
-- Provide an offline, preview-first prefix migration with protected backups and
-  authenticated re-encryption of managed variables and app vault records.
-
 ## 1.0.0
 
 Gather's first public release builds on Homepage v2.4.0. Gather's version is
 independent of the inherited Homepage release series.
 
+- Gather names in source, environment configuration, discovery labels,
+  Kubernetes annotations, integration client identifiers, MCP tools and help links.
+- One `gather-oidc` callback and a configurable shared-password account subject.
+- Offline, preview-first prefix migration with protected backups and
+  authenticated re-encryption of managed variables and app vault records.
 - Native navigation, account controls, notification inbox, and installed-app branding.
 - Guided editors for services, bookmarks, Home widgets, appearance, layouts,
   custom styles, configuration import/export, and versioned saves.
