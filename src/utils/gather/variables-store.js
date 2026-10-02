@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-export const VARIABLE_NAME = /^HOMEPAGE_VAR_[A-Z0-9_]{1,80}$/;
+export const VARIABLE_NAME = /^GATHER_VAR_[A-Z0-9_]{1,80}$/;
 const keyPath = () => process.env.GATHER_APP_KEY_FILE || "/run/secrets/gather-app-key";
 export function variablesAvailable() {
   return fs.existsSync(keyPath());

@@ -28,7 +28,7 @@ export default async function handler(req, res) {
   });
 
   // set to date by docker entrypoint, will force revalidation between restarts/recreates
-  const buildTime = process.env.HOMEPAGE_BUILDTIME?.length ? process.env.HOMEPAGE_BUILDTIME : "";
+  const buildTime = process.env.GATHER_BUILDTIME?.length ? process.env.GATHER_BUILDTIME : "";
 
   const combinedHash = hash(hashes.join("") + buildTime);
 

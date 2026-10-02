@@ -29,7 +29,7 @@ let dir;
 beforeEach(() => {
   vi.clearAllMocks();
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "gather-workspace-api-"));
-  vi.stubEnv("HOMEPAGE_CONFIG_DIR", dir);
+  vi.stubEnv("GATHER_CONFIG_DIR", dir);
   getToken.mockResolvedValue({ sub: "alice" });
   userAccess.mockReturnValue({ enabled: true, role: "editor" });
   validEditorOrigin.mockReturnValue(true);

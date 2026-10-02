@@ -490,7 +490,7 @@ export function IntegrationPicker({ value, onChange }) {
               <>
                 {" "}
                 <a
-                  href={item.docUrl || `https://gethomepage.dev/widgets/services/${item.doc}/`}
+                  href={item.docUrl || `https://gather.daredevilbear.dev/widgets/services/${item.doc}/`}
                   target="_blank"
                   rel="noreferrer"
                 >

@@ -4,25 +4,25 @@ import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
 import { applyNextAuthEnv, isAuthEnabled } from "utils/env";
-import { GATHER_OIDC_PROVIDER, LEGACY_OIDC_PROVIDER, oidcProviderId } from "utils/gather/oidc";
+import { oidcProviderId } from "utils/gather/oidc";
 import { userAccess, usersStore } from "utils/gather/users-store";
 import createLogger from "utils/logger";
 
 const MIN_AUTH_SECRET_LENGTH = 32;
 
 const authEnabled = isAuthEnabled();
-const issuer = process.env.HOMEPAGE_OIDC_ISSUER;
-const clientId = process.env.HOMEPAGE_OIDC_CLIENT_ID;
-const clientSecret = process.env.HOMEPAGE_OIDC_CLIENT_SECRET;
-const homepageAuthPassword = process.env.HOMEPAGE_AUTH_PASSWORD;
-const homepageAuthPasswordDigest = homepageAuthPassword
-  ? createHash("sha256").update(homepageAuthPassword, "utf8").digest()
+const issuer = process.env.GATHER_OIDC_ISSUER;
+const clientId = process.env.GATHER_OIDC_CLIENT_ID;
+const clientSecret = process.env.GATHER_OIDC_CLIENT_SECRET;
+const gatherAuthPassword = process.env.GATHER_AUTH_PASSWORD;
+const gatherAuthPasswordDigest = gatherAuthPassword
+  ? createHash("sha256").update(gatherAuthPassword, "utf8").digest()
   : null;
 
 // Also done in instrumentation.js
 applyNextAuthEnv();
 
-const defaultScope = process.env.HOMEPAGE_OIDC_SCOPE || "openid email profile";
+const defaultScope = process.env.GATHER_OIDC_SCOPE || "openid email profile";
 const cleanedIssuer = issuer ? issuer.replace(/\/+$/, "") : issuer;
 const hasOidcConfig = Boolean(issuer && clientId && clientSecret);
 const hasAnyOidcConfig = Boolean(issuer || clientId || clientSecret);
@@ -30,13 +30,13 @@ let parsedAuthUrl;
 
 if (authEnabled) {
   if (!process.env.NEXTAUTH_URL) {
-    throw new Error("Gather auth is enabled but HOMEPAGE_EXTERNAL_URL (or NEXTAUTH_URL) is missing.");
+    throw new Error("Gather auth is enabled but GATHER_EXTERNAL_URL (or NEXTAUTH_URL) is missing.");
   }
 
   try {
     parsedAuthUrl = new URL(process.env.NEXTAUTH_URL);
   } catch {
-    throw new Error("HOMEPAGE_EXTERNAL_URL (or NEXTAUTH_URL) must be an absolute HTTP(S) URL.");
+    throw new Error("GATHER_EXTERNAL_URL (or NEXTAUTH_URL) must be an absolute HTTP(S) URL.");
   }
 
   if (
@@ -47,7 +47,7 @@ if (authEnabled) {
     parsedAuthUrl.hash
   ) {
     throw new Error(
-      "HOMEPAGE_EXTERNAL_URL (or NEXTAUTH_URL) must be an absolute HTTP(S) URL without credentials, query, or fragment.",
+      "GATHER_EXTERNAL_URL (or NEXTAUTH_URL) must be an absolute HTTP(S) URL without credentials, query, or fragment.",
     );
   }
 
@@ -57,13 +57,13 @@ if (authEnabled) {
     }
   } else if (hasAnyOidcConfig) {
     throw new Error("OIDC auth is enabled but required settings are missing.");
-  } else if (!homepageAuthPassword || !process.env.NEXTAUTH_SECRET) {
+  } else if (!gatherAuthPassword || !process.env.NEXTAUTH_SECRET) {
     throw new Error("Password auth is enabled but required settings are missing.");
   }
 
   if (process.env.NEXTAUTH_SECRET.length < MIN_AUTH_SECRET_LENGTH) {
     throw new Error(
-      `HOMEPAGE_AUTH_SECRET (or NEXTAUTH_SECRET) must be at least ${MIN_AUTH_SECRET_LENGTH} characters. Generate one with: openssl rand -base64 32`,
+      `GATHER_AUTH_SECRET (or NEXTAUTH_SECRET) must be at least ${MIN_AUTH_SECRET_LENGTH} characters. Generate one with: openssl rand -base64 32`,
     );
   }
 }
@@ -86,33 +86,32 @@ function logNextAuthError(code, metadata) {
 let providers = [];
 if (authEnabled) {
   if (hasOidcConfig) {
-    const selectedId = oidcProviderId();
-    const aliasId = selectedId === GATHER_OIDC_PROVIDER ? LEGACY_OIDC_PROVIDER : GATHER_OIDC_PROVIDER;
-    providers = [selectedId, aliasId].map((id) => ({
-      id,
-      gatherCompatibilityAlias: id !== selectedId,
-      name: process.env.HOMEPAGE_OIDC_NAME || "Gather OIDC",
-      type: "oauth",
-      idToken: true,
-      checks: ["pkce", "state", "nonce"],
-      issuer: cleanedIssuer,
-      wellKnown: `${cleanedIssuer}/.well-known/openid-configuration`,
-      clientId,
-      clientSecret,
-      authorization: {
-        params: {
-          scope: defaultScope,
+    providers = [
+      {
+        id: oidcProviderId(),
+        name: process.env.GATHER_OIDC_NAME || "Gather OIDC",
+        type: "oauth",
+        idToken: true,
+        checks: ["pkce", "state", "nonce"],
+        issuer: cleanedIssuer,
+        wellKnown: `${cleanedIssuer}/.well-known/openid-configuration`,
+        clientId,
+        clientSecret,
+        authorization: {
+          params: {
+            scope: defaultScope,
+          },
+        },
+        profile(profile) {
+          return {
+            id: profile.sub ?? profile.id ?? profile.user_id ?? profile.uid ?? profile.email,
+            name: profile.name ?? profile.preferred_username ?? profile.nickname ?? profile.email,
+            email: profile.email ?? null,
+            image: profile.picture ?? null,
+          };
         },
       },
-      profile(profile) {
-        return {
-          id: profile.sub ?? profile.id ?? profile.user_id ?? profile.uid ?? profile.email,
-          name: profile.name ?? profile.preferred_username ?? profile.nickname ?? profile.email,
-          email: profile.email ?? null,
-          image: profile.picture ?? null,
-        };
-      },
-    }));
+    ];
   } else {
     providers = [
       CredentialsProvider({
@@ -122,18 +121,18 @@ if (authEnabled) {
         },
         async authorize(credentials) {
           const provided = credentials?.password;
-          if (!homepageAuthPasswordDigest || typeof provided !== "string") {
+          if (!gatherAuthPasswordDigest || typeof provided !== "string") {
             logFailedPasswordSignIn();
             return null;
           }
           const providedDigest = createHash("sha256").update(provided, "utf8").digest();
-          const isMatch = timingSafeEqual(providedDigest, homepageAuthPasswordDigest);
+          const isMatch = timingSafeEqual(providedDigest, gatherAuthPasswordDigest);
           if (!isMatch) {
             logFailedPasswordSignIn();
             return null;
           }
           return {
-            id: "homepage",
+            id: process.env.GATHER_PASSWORD_USER_ID || "gather",
             name: "Gather",
           };
         },

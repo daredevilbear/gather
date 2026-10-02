@@ -9,7 +9,7 @@ import { loadYaml } from "utils/config/yaml";
 
 const PROTOCOL_VERSION = "2025-11-25";
 const SERVER_INFO = {
-  name: "homepage",
+  name: "gather",
   version: "1.0.0",
 };
 
@@ -30,15 +30,15 @@ const CONFIG_FILES = [
 const YAML_CONFIG_FILES = CONFIG_FILES.filter((file) => file.endsWith(".yaml"));
 
 const DOC_LINKS = {
-  "settings.yaml": "https://gethomepage.dev/configs/settings/",
-  "services.yaml": "https://gethomepage.dev/configs/services/",
-  "bookmarks.yaml": "https://gethomepage.dev/configs/bookmarks/",
-  "widgets.yaml": "https://gethomepage.dev/configs/info-widgets/",
-  "docker.yaml": "https://gethomepage.dev/configs/docker/",
-  "kubernetes.yaml": "https://gethomepage.dev/configs/kubernetes/",
-  "proxmox.yaml": "https://gethomepage.dev/configs/proxmox/",
-  "custom.css": "https://gethomepage.dev/configs/custom-css-js/",
-  "custom.js": "https://gethomepage.dev/configs/custom-css-js/",
+  "settings.yaml": "https://gather.daredevilbear.dev/configs/settings/",
+  "services.yaml": "https://gather.daredevilbear.dev/configs/services/",
+  "bookmarks.yaml": "https://gather.daredevilbear.dev/configs/bookmarks/",
+  "widgets.yaml": "https://gather.daredevilbear.dev/configs/info-widgets/",
+  "docker.yaml": "https://gather.daredevilbear.dev/configs/docker/",
+  "kubernetes.yaml": "https://gather.daredevilbear.dev/configs/kubernetes/",
+  "proxmox.yaml": "https://gather.daredevilbear.dev/configs/proxmox/",
+  "custom.css": "https://gather.daredevilbear.dev/configs/custom-css-js/",
+  "custom.js": "https://gather.daredevilbear.dev/configs/custom-css-js/",
 };
 
 const FILE_DESCRIPTIONS = {
@@ -49,20 +49,20 @@ const FILE_DESCRIPTIONS = {
   "docker.yaml": "Docker socket, TLS, and discovery settings for Docker-based automatic service discovery.",
   "kubernetes.yaml": "Kubernetes cluster and ingress discovery settings.",
   "proxmox.yaml": "Proxmox cluster settings used by Proxmox status features.",
-  "custom.css": "Optional custom stylesheet loaded by Homepage.",
-  "custom.js": "Optional custom JavaScript loaded by Homepage.",
+  "custom.css": "Optional custom stylesheet loaded by Gather.",
+  "custom.js": "Optional custom JavaScript loaded by Gather.",
 };
 
 function enabled() {
-  return process.env.HOMEPAGE_MCP_ENABLED === "true";
+  return process.env.GATHER_MCP_ENABLED === "true";
 }
 
 function writeEnabled() {
-  return process.env.HOMEPAGE_MCP_ALLOW_WRITE === "true";
+  return process.env.GATHER_MCP_ALLOW_WRITE === "true";
 }
 
 function requiredToken() {
-  return process.env.HOMEPAGE_MCP_TOKEN;
+  return process.env.GATHER_MCP_TOKEN;
 }
 
 function tokenMatches(provided, expectedDigest) {
@@ -119,16 +119,16 @@ function readConfig(file) {
 }
 
 const PLACEHOLDER_PATTERN = /(["']?)\{\{([^{}]*)\}\}\1/g;
-const HOMEPAGE_KEY_PATTERN = /HOMEPAGE_(?:VAR|FILE)_/;
-const PLACEHOLDER_TOKEN_PATTERN = /__HOMEPAGE_MCP_PLACEHOLDER_(\d+)__/g;
+const GATHER_KEY_PATTERN = /GATHER_(?:VAR|FILE)_/;
+const PLACEHOLDER_TOKEN_PATTERN = /__GATHER_MCP_PLACEHOLDER_(\d+)__/g;
 
-// mask {{HOMEPAGE_*}} placeholders so they survive a parse/dump round-trip
+// mask {{GATHER_*}} placeholders so they survive a parse/dump round-trip
 function parseYamlConfig(file) {
   const placeholders = [];
   const masked = readConfig(file).replace(PLACEHOLDER_PATTERN, (match, quote, key) => {
-    if (!HOMEPAGE_KEY_PATTERN.test(key)) return match;
+    if (!GATHER_KEY_PATTERN.test(key)) return match;
     placeholders.push(match);
-    return `__HOMEPAGE_MCP_PLACEHOLDER_${placeholders.length - 1}__`;
+    return `__GATHER_MCP_PLACEHOLDER_${placeholders.length - 1}__`;
   });
   return { data: loadYaml(masked) ?? [], placeholders };
 }
@@ -170,7 +170,7 @@ function ensureWriteEnabled() {
   if (!writeEnabled()) {
     return {
       isError: true,
-      ...textContent("Writing is disabled. Set HOMEPAGE_MCP_ALLOW_WRITE=true to enable MCP config edits."),
+      ...textContent("Writing is disabled. Set GATHER_MCP_ALLOW_WRITE=true to enable MCP config edits."),
     };
   }
   return null;
@@ -280,7 +280,7 @@ function listConfigFiles() {
 
 function configResource(file) {
   return {
-    uri: `homepage://config/${file}`,
+    uri: `gather://config/${file}`,
     name: file,
     description: FILE_DESCRIPTIONS[file],
     mimeType: file.endsWith(".yaml") ? "application/yaml" : "text/plain",
@@ -288,9 +288,9 @@ function configResource(file) {
 }
 
 function parseConfigResourceUri(uri) {
-  const prefix = "homepage://config/";
+  const prefix = "gather://config/";
   if (!uri?.startsWith(prefix)) {
-    throw new Error("Unsupported resource URI. Use homepage://config/<filename>.");
+    throw new Error("Unsupported resource URI. Use gather://config/<filename>.");
   }
   const file = uri.slice(prefix.length);
   assertKnownConfigFile(file);
@@ -302,7 +302,7 @@ function toolDefinitions() {
     {
       name: "list_config_files",
       description:
-        "List Homepage config files this server understands, whether they currently exist, and where their docs live.",
+        "List Gather config files this server understands, whether they currently exist, and where their docs live.",
       inputSchema: {
         type: "object",
         properties: {},
@@ -311,7 +311,7 @@ function toolDefinitions() {
     {
       name: "read_config_file",
       description:
-        "Read one supported Homepage config file from HOMEPAGE_CONFIG_DIR. Missing files return empty content.",
+        "Read one supported Gather config file from GATHER_CONFIG_DIR. Missing files return empty content.",
       inputSchema: {
         type: "object",
         properties: {
@@ -323,7 +323,7 @@ function toolDefinitions() {
     {
       name: "validate_config_file",
       description:
-        "Validate YAML syntax for a supported Homepage config file or supplied content and return line/column details for YAML errors.",
+        "Validate YAML syntax for a supported Gather config file or supplied content and return line/column details for YAML errors.",
       inputSchema: {
         type: "object",
         properties: {
@@ -336,7 +336,7 @@ function toolDefinitions() {
     {
       name: "write_config_file",
       description:
-        "Replace a supported Homepage config file. Disabled unless HOMEPAGE_MCP_ALLOW_WRITE=true. YAML files are validated before writing.",
+        "Replace a supported Gather config file. Disabled unless GATHER_MCP_ALLOW_WRITE=true. YAML files are validated before writing.",
       inputSchema: {
         type: "object",
         properties: {
@@ -349,16 +349,16 @@ function toolDefinitions() {
     {
       name: "add_service",
       description:
-        "Append a service to a group in services.yaml, creating the group if needed. Disabled unless HOMEPAGE_MCP_ALLOW_WRITE=true.",
+        "Append a service to a group in services.yaml, creating the group if needed. Disabled unless GATHER_MCP_ALLOW_WRITE=true.",
       inputSchema: {
         type: "object",
         properties: {
-          group: { type: "string", description: "Existing or new Homepage service group name." },
+          group: { type: "string", description: "Existing or new Gather service group name." },
           name: { type: "string", description: "Service display name." },
           service: {
             type: "object",
             description:
-              "Homepage service properties such as href, icon, description, server, container, widget, or widgets.",
+              "Gather service properties such as href, icon, description, server, container, widget, or widgets.",
             additionalProperties: true,
           },
         },
@@ -367,13 +367,13 @@ function toolDefinitions() {
     },
     {
       name: "add_info_widget",
-      description: "Append an information widget to widgets.yaml. Disabled unless HOMEPAGE_MCP_ALLOW_WRITE=true.",
+      description: "Append an information widget to widgets.yaml. Disabled unless GATHER_MCP_ALLOW_WRITE=true.",
       inputSchema: {
         type: "object",
         properties: {
           type: {
             type: "string",
-            description: "Homepage info widget type, for example resources, search, datetime, or openmeteo.",
+            description: "Gather info widget type, for example resources, search, datetime, or openmeteo.",
           },
           options: {
             type: "object",
@@ -385,8 +385,8 @@ function toolDefinitions() {
       },
     },
     {
-      name: "homepage_docs",
-      description: "Return focused Homepage documentation links for config files and troubleshooting.",
+      name: "gather_docs",
+      description: "Return focused Gather documentation links for config files and troubleshooting.",
       inputSchema: {
         type: "object",
         properties: {
@@ -438,12 +438,12 @@ function callTool(name, args = {}) {
       return addService(args);
     case "add_info_widget":
       return addInfoWidget(args);
-    case "homepage_docs": {
+    case "gather_docs": {
       const topic = args.topic || "overview";
       const links = {
-        overview: "https://gethomepage.dev/configs/",
-        troubleshooting: "https://gethomepage.dev/troubleshooting/",
-        widgets: "https://gethomepage.dev/widgets/",
+        overview: "https://gather.daredevilbear.dev/configs/",
+        troubleshooting: "https://gather.daredevilbear.dev/troubleshooting/",
+        widgets: "https://gather.daredevilbear.dev/widgets/",
         ...DOC_LINKS,
       };
       return textContent(JSON.stringify({ topic, url: links[topic] || links.overview }, null, 2));
@@ -461,7 +461,7 @@ export function mcpTokenConfigError() {
   if (!enabled()) return null;
   const token = requiredToken();
   if (token && token.length < MIN_TOKEN_LENGTH) {
-    return `HOMEPAGE_MCP_TOKEN must be at least ${MIN_TOKEN_LENGTH} characters. Generate one with: openssl rand -base64 32`;
+    return `GATHER_MCP_TOKEN must be at least ${MIN_TOKEN_LENGTH} characters. Generate one with: openssl rand -base64 32`;
   }
   return null;
 }
@@ -473,7 +473,7 @@ export function mcpTokenAuthorized(req) {
   const authHeader = req.headers.authorization;
   const bearerToken = typeof authHeader === "string" && authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
   const expectedDigest = createHash("sha256").update(token, "utf8").digest();
-  return tokenMatches(bearerToken, expectedDigest) || tokenMatches(req.headers["x-homepage-mcp-token"], expectedDigest);
+  return tokenMatches(bearerToken, expectedDigest) || tokenMatches(req.headers["x-gather-mcp-token"], expectedDigest);
 }
 
 export function handleMcpRequest(message) {
@@ -496,7 +496,7 @@ export function handleMcpRequest(message) {
           },
           serverInfo: SERVER_INFO,
           instructions:
-            "Homepage MCP helps inspect and validate Homepage YAML configuration. File writes are disabled unless HOMEPAGE_MCP_ALLOW_WRITE=true.",
+            "Gather MCP helps inspect and validate Gather YAML configuration. File writes are disabled unless GATHER_MCP_ALLOW_WRITE=true.",
         });
       case "tools/list":
         return jsonRpcResult(message.id, { tools: toolDefinitions() });

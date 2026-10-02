@@ -132,7 +132,7 @@ definitions:
 
   # Page title with site name
   - &page_title_with_site_name >-
-    {%- if not page.is_homepage -%}
+    {%- if page.url -%}
       {{ page.meta.get("title", page.title) }} - {{ config.site_name }}
     {%- else -%}
       {{ page.meta.get("title", page.title) }}

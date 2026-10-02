@@ -43,6 +43,14 @@ describe("guided settings pickers", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "Server URL" }), { target: { value: "http://miner.local" } });
     expect(change).toHaveBeenLastCalledWith({ type: "bitaxe", url: "http://miner.local" });
   });
+  it.each(["jellyfin", "nerdaxe", "bitaxe", "bitcoinnode"])("links %s setup help to Gather documentation", (type) => {
+    render(<IntegrationPicker value={{ type }} onChange={vi.fn()} />);
+    expect(screen.getByRole("link", { name: "Setup guide ↗" })).toHaveAttribute(
+      "href",
+      `https://gather.daredevilbear.dev/widgets/services/${type}/`,
+    );
+  });
+
   it("replaces a widget only after confirmation and removes old credentials", () => {
     const change = vi.fn();
     render(
@@ -68,7 +76,7 @@ describe("guided settings pickers", () => {
     const value = {
       type: "homeassistant",
       url: "https://old.test",
-      key: "{{HOMEPAGE_VAR_TOKEN}}",
+      key: "{{GATHER_VAR_TOKEN}}",
       custom: [{ state: "sensor.power" }],
     };
     render(<IntegrationPicker value={value} onChange={change} />);

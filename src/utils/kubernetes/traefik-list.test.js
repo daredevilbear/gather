@@ -31,7 +31,7 @@ vi.mock("@kubernetes/client-node", () => ({
 }));
 
 vi.mock("utils/config/kubernetes", () => ({
-  ANNOTATION_BASE: "gethomepage.dev",
+  ANNOTATION_BASE: "gather.daredevilbear.dev",
   checkCRD,
   getKubeConfig,
   getKubernetes,
@@ -65,20 +65,20 @@ describe("utils/kubernetes/traefik-list", () => {
     expect(result).toEqual([]);
   });
 
-  it("filters and merges ingressroutes with homepage href annotations", async () => {
+  it("filters and merges ingressroutes with gather href annotations", async () => {
     state.containoItems = [
-      { metadata: { annotations: { "gethomepage.dev/href": "http://a" } } },
+      { metadata: { annotations: { "gather.daredevilbear.dev/href": "http://a" } } },
       { metadata: { annotations: {} } },
     ];
-    state.ioItems = [{ metadata: { annotations: { "gethomepage.dev/href": "http://b" } } }];
+    state.ioItems = [{ metadata: { annotations: { "gather.daredevilbear.dev/href": "http://b" } } }];
     vi.resetModules();
     const listTraefikIngress = (await import("./traefik-list")).default;
 
     const result = await listTraefikIngress();
 
     expect(result).toHaveLength(2);
-    expect(result[0].metadata.annotations["gethomepage.dev/href"]).toBe("http://a");
-    expect(result[1].metadata.annotations["gethomepage.dev/href"]).toBe("http://b");
+    expect(result[0].metadata.annotations["gather.daredevilbear.dev/href"]).toBe("http://a");
+    expect(result[1].metadata.annotations["gather.daredevilbear.dev/href"]).toBe("http://b");
     expect(checkCRD).toHaveBeenCalled();
   });
 

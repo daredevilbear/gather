@@ -100,7 +100,7 @@ export default function Inbox({
     function handoff(event) {
       if (
         event.origin !== location.origin ||
-        !["GATHER_OPEN_NOTIFICATION", "BEARNET_OPEN_NOTIFICATION"].includes(event.data?.type) ||
+        event.data?.type !== "GATHER_OPEN_NOTIFICATION" ||
         !validId(event.data.messageId)
       )
         return;

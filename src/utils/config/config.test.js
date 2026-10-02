@@ -11,41 +11,41 @@ describe("utils/config/config", () => {
   beforeEach(() => {
     vi.resetModules();
     process.env = { ...originalEnv };
-    cache.del("homepageEnvironmentVariables");
+    cache.del("gatherEnvironmentVariables");
   });
 
   afterEach(() => {
     process.env = originalEnv;
-    cache.del("homepageEnvironmentVariables");
+    cache.del("gatherEnvironmentVariables");
   });
 
-  it("substituteEnvironmentVars replaces HOMEPAGE_VAR_* placeholders", async () => {
-    process.env.HOMEPAGE_VAR_FOO = "bar";
+  it("substituteEnvironmentVars replaces GATHER_VAR_* placeholders", async () => {
+    process.env.GATHER_VAR_FOO = "bar";
 
     const mod = await import("./config");
-    expect(mod.substituteEnvironmentVars("x {{HOMEPAGE_VAR_FOO}} y")).toBe("x bar y");
+    expect(mod.substituteEnvironmentVars("x {{GATHER_VAR_FOO}} y")).toBe("x bar y");
   });
 
-  it("substituteEnvironmentVars replaces HOMEPAGE_FILE_* placeholders with file contents", async () => {
-    const dir = mkdtempSync(path.join(tmpdir(), "homepage-config-test-"));
+  it("substituteEnvironmentVars replaces GATHER_FILE_* placeholders with file contents", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "gather-config-test-"));
     const secretPath = path.join(dir, "secret.txt");
     writeFileSync(secretPath, "secret", "utf8");
 
-    process.env.HOMEPAGE_FILE_SECRET = secretPath;
+    process.env.GATHER_FILE_SECRET = secretPath;
 
     const mod = await import("./config");
-    expect(mod.substituteEnvironmentVars("token={{HOMEPAGE_FILE_SECRET}}")).toBe("token=secret");
+    expect(mod.substituteEnvironmentVars("token={{GATHER_FILE_SECRET}}")).toBe("token=secret");
   });
 
-  it("getSettings reads from HOMEPAGE_CONFIG_DIR and converts layout list to an object", async () => {
-    const dir = mkdtempSync(path.join(tmpdir(), "homepage-settings-test-"));
-    process.env.HOMEPAGE_CONFIG_DIR = dir;
-    process.env.HOMEPAGE_VAR_TITLE = "MyTitle";
+  it("getSettings reads from GATHER_CONFIG_DIR and converts layout list to an object", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "gather-settings-test-"));
+    process.env.GATHER_CONFIG_DIR = dir;
+    process.env.GATHER_VAR_TITLE = "MyTitle";
 
     // Create a minimal settings.yaml; checkAndCopyConfig will see it exists and won't copy skeleton.
     writeFileSync(
       path.join(dir, "settings.yaml"),
-      ['title: "{{HOMEPAGE_VAR_TITLE}}"', "layout:", "  - GroupA:", "      style: row"].join("\n"),
+      ['title: "{{GATHER_VAR_TITLE}}"', "layout:", "  - GroupA:", "      style: row"].join("\n"),
       "utf8",
     );
 

@@ -3,7 +3,7 @@ if(process.env.GATHER_SYSTEM_DIR){
   try {
     const record=require('./vault.cjs').read('app');
     for(const [key,value] of Object.entries(record.env)){
-      if(!/^(HOMEPAGE_|NEXTAUTH_|GATHER_)[A-Z0-9_]+$/.test(key) || typeof value!=='string') throw Error('Invalid configuration');
+      if(!/^(GATHER_|NEXTAUTH_)[A-Z0-9_]+$/.test(key) || typeof value!=='string') throw Error('Invalid configuration');
       process.env[key]=value;
     }
     process.env.GATHER_SYSTEM_REVISION=record.revision;

@@ -25,7 +25,7 @@ describe("pages/api/auth/[...nextauth]", () => {
     nextAuthMock.mockClear();
     warnMock.mockClear();
     process.env = { ...originalEnv };
-    delete process.env.HOMEPAGE_EXTERNAL_URL;
+    delete process.env.GATHER_EXTERNAL_URL;
     delete process.env.NEXTAUTH_SECRET;
     delete process.env.NEXTAUTH_URL;
     delete process.env.GATHER_OIDC_PROVIDER_ID;
@@ -71,7 +71,7 @@ describe("pages/api/auth/[...nextauth]", () => {
     expect(mod.authOptions).not.toHaveProperty("debug");
   });
 
-  it("routes sanitized NextAuth logs through the Homepage logger", async () => {
+  it("routes sanitized NextAuth logs through the Gather logger", async () => {
     const mod = await import("pages/api/auth/[...nextauth]");
     const sensitiveMetadata = {
       error: Object.assign(new Error("State cookie was missing."), { access_token: "sensitive-access-token" }),
@@ -97,7 +97,7 @@ describe("pages/api/auth/[...nextauth]", () => {
 
     await mod.authOptions.events.signIn({
       account: {
-        provider: "homepage-oidc",
+        provider: "gather-oidc",
         access_token: "sensitive-access-token",
         id_token: "sensitive-id-token",
       },
@@ -105,49 +105,49 @@ describe("pages/api/auth/[...nextauth]", () => {
     });
     await mod.authOptions.events.signOut({ token: { sub: "sensitive-user-id" } });
 
-    expect(debugMock).toHaveBeenNthCalledWith(1, "Sign in via provider '%s'", "homepage-oidc");
+    expect(debugMock).toHaveBeenNthCalledWith(1, "Sign in via provider '%s'", "gather-oidc");
     expect(debugMock).toHaveBeenNthCalledWith(2, "Sign out");
     expect(JSON.stringify(debugMock.mock.calls)).not.toContain("sensitive");
   });
 
-  it("maps HOMEPAGE_AUTH_SECRET and HOMEPAGE_EXTERNAL_URL to NextAuth envs", async () => {
-    process.env.HOMEPAGE_AUTH_SECRET = "secret";
-    process.env.HOMEPAGE_EXTERNAL_URL = "https://homepage.example";
+  it("maps GATHER_AUTH_SECRET and GATHER_EXTERNAL_URL to NextAuth envs", async () => {
+    process.env.GATHER_AUTH_SECRET = "secret";
+    process.env.GATHER_EXTERNAL_URL = "https://gather.example";
 
     const mod = await import("pages/api/auth/[...nextauth]");
 
     expect(process.env.NEXTAUTH_SECRET).toBe("secret");
-    expect(process.env.NEXTAUTH_URL).toBe("https://homepage.example");
+    expect(process.env.NEXTAUTH_URL).toBe("https://gather.example");
     expect(mod.authOptions.secret).toBe("secret");
   });
 
   it("throws when auth is enabled without an external URL", async () => {
-    process.env.HOMEPAGE_AUTH_ENABLED = "true";
-    process.env.HOMEPAGE_AUTH_PASSWORD = "secret";
-    process.env.HOMEPAGE_AUTH_SECRET = "rk3Xk9wQ0mVJt7cZbN2yLpA8sHdF4gRuEwTiOaSvBnM=";
+    process.env.GATHER_AUTH_ENABLED = "true";
+    process.env.GATHER_AUTH_PASSWORD = "secret";
+    process.env.GATHER_AUTH_SECRET = "rk3Xk9wQ0mVJt7cZbN2yLpA8sHdF4gRuEwTiOaSvBnM=";
 
-    await expect(import("pages/api/auth/[...nextauth]")).rejects.toThrow(/HOMEPAGE_EXTERNAL_URL.*is missing/i);
+    await expect(import("pages/api/auth/[...nextauth]")).rejects.toThrow(/GATHER_EXTERNAL_URL.*is missing/i);
   });
 
   it.each([
-    "homepage.example",
-    "ftp://homepage.example",
-    "https://user:password@homepage.example",
-    "https://homepage.example/?unexpected=true",
-    "https://homepage.example/#unexpected",
+    "gather.example",
+    "ftp://gather.example",
+    "https://user:password@gather.example",
+    "https://gather.example/?unexpected=true",
+    "https://gather.example/#unexpected",
   ])("rejects invalid external URL %s", async (externalUrl) => {
-    process.env.HOMEPAGE_AUTH_ENABLED = "true";
-    process.env.HOMEPAGE_AUTH_PASSWORD = "secret";
-    process.env.HOMEPAGE_AUTH_SECRET = "rk3Xk9wQ0mVJt7cZbN2yLpA8sHdF4gRuEwTiOaSvBnM=";
-    process.env.HOMEPAGE_EXTERNAL_URL = externalUrl;
+    process.env.GATHER_AUTH_ENABLED = "true";
+    process.env.GATHER_AUTH_PASSWORD = "secret";
+    process.env.GATHER_AUTH_SECRET = "rk3Xk9wQ0mVJt7cZbN2yLpA8sHdF4gRuEwTiOaSvBnM=";
+    process.env.GATHER_EXTERNAL_URL = externalUrl;
 
     await expect(import("pages/api/auth/[...nextauth]")).rejects.toThrow(/absolute HTTP\(S\) URL/i);
   });
 
   it("throws when auth is enabled but no provider settings are present", async () => {
-    process.env.HOMEPAGE_AUTH_ENABLED = "true";
-    process.env.HOMEPAGE_AUTH_SECRET = "rk3Xk9wQ0mVJt7cZbN2yLpA8sHdF4gRuEwTiOaSvBnM=";
-    process.env.HOMEPAGE_EXTERNAL_URL = "https://homepage.example";
+    process.env.GATHER_AUTH_ENABLED = "true";
+    process.env.GATHER_AUTH_SECRET = "rk3Xk9wQ0mVJt7cZbN2yLpA8sHdF4gRuEwTiOaSvBnM=";
+    process.env.GATHER_EXTERNAL_URL = "https://gather.example";
 
     await expect(import("pages/api/auth/[...nextauth]")).rejects.toThrow(
       /Password auth is enabled but required settings are missing/i,
@@ -155,19 +155,19 @@ describe("pages/api/auth/[...nextauth]", () => {
   });
 
   it.each(["short", "a".repeat(31)])("throws when the auth secret is too weak (%j)", async (secret) => {
-    process.env.HOMEPAGE_AUTH_ENABLED = "true";
-    process.env.HOMEPAGE_AUTH_PASSWORD = "secret";
-    process.env.HOMEPAGE_AUTH_SECRET = secret;
-    process.env.HOMEPAGE_EXTERNAL_URL = "https://homepage.example";
+    process.env.GATHER_AUTH_ENABLED = "true";
+    process.env.GATHER_AUTH_PASSWORD = "secret";
+    process.env.GATHER_AUTH_SECRET = secret;
+    process.env.GATHER_EXTERNAL_URL = "https://gather.example";
 
     await expect(import("pages/api/auth/[...nextauth]")).rejects.toThrow(/at least 32 characters/i);
   });
 
   it("accepts an auth secret at exactly the minimum length", async () => {
-    process.env.HOMEPAGE_AUTH_ENABLED = "true";
-    process.env.HOMEPAGE_AUTH_PASSWORD = "secret";
-    process.env.HOMEPAGE_AUTH_SECRET = "a".repeat(32);
-    process.env.HOMEPAGE_EXTERNAL_URL = "https://homepage.example";
+    process.env.GATHER_AUTH_ENABLED = "true";
+    process.env.GATHER_AUTH_PASSWORD = "secret";
+    process.env.GATHER_AUTH_SECRET = "a".repeat(32);
+    process.env.GATHER_EXTERNAL_URL = "https://gather.example";
 
     const mod = await import("pages/api/auth/[...nextauth]");
 
@@ -175,7 +175,7 @@ describe("pages/api/auth/[...nextauth]", () => {
   });
 
   it("does not enforce the secret length when auth is disabled", async () => {
-    process.env.HOMEPAGE_AUTH_SECRET = "short";
+    process.env.GATHER_AUTH_SECRET = "short";
 
     const mod = await import("pages/api/auth/[...nextauth]");
 
@@ -183,10 +183,10 @@ describe("pages/api/auth/[...nextauth]", () => {
   });
 
   it("builds a password provider when auth is enabled without OIDC config", async () => {
-    process.env.HOMEPAGE_AUTH_ENABLED = "true";
-    process.env.HOMEPAGE_AUTH_PASSWORD = "secret";
-    process.env.HOMEPAGE_AUTH_SECRET = "rk3Xk9wQ0mVJt7cZbN2yLpA8sHdF4gRuEwTiOaSvBnM=";
-    process.env.HOMEPAGE_EXTERNAL_URL = "https://homepage.example";
+    process.env.GATHER_AUTH_ENABLED = "true";
+    process.env.GATHER_AUTH_PASSWORD = "secret";
+    process.env.GATHER_AUTH_SECRET = "rk3Xk9wQ0mVJt7cZbN2yLpA8sHdF4gRuEwTiOaSvBnM=";
+    process.env.GATHER_EXTERNAL_URL = "https://gather.example";
 
     const mod = await import("pages/api/auth/[...nextauth]");
     const [provider] = mod.authOptions.providers;
@@ -197,7 +197,7 @@ describe("pages/api/auth/[...nextauth]", () => {
     expect(typeof provider.authorize).toBe("function");
     expect(mod.authOptions.useSecureCookies).toBe(true);
     await expect(provider.options.authorize({ password: "secret" })).resolves.toEqual({
-      id: "homepage",
+      id: "gather",
       name: "Gather",
     });
     await expect(provider.options.authorize({ password: "wrong" })).resolves.toBeNull();
@@ -205,10 +205,10 @@ describe("pages/api/auth/[...nextauth]", () => {
   });
 
   it("logs failed password sign-in attempts without recording client-supplied data", async () => {
-    process.env.HOMEPAGE_AUTH_ENABLED = "true";
-    process.env.HOMEPAGE_AUTH_PASSWORD = "secret";
-    process.env.HOMEPAGE_AUTH_SECRET = "rk3Xk9wQ0mVJt7cZbN2yLpA8sHdF4gRuEwTiOaSvBnM=";
-    process.env.HOMEPAGE_EXTERNAL_URL = "https://homepage.example";
+    process.env.GATHER_AUTH_ENABLED = "true";
+    process.env.GATHER_AUTH_PASSWORD = "secret";
+    process.env.GATHER_AUTH_SECRET = "rk3Xk9wQ0mVJt7cZbN2yLpA8sHdF4gRuEwTiOaSvBnM=";
+    process.env.GATHER_EXTERNAL_URL = "https://gather.example";
 
     const mod = await import("pages/api/auth/[...nextauth]");
     const [provider] = mod.authOptions.providers;
@@ -227,26 +227,26 @@ describe("pages/api/auth/[...nextauth]", () => {
   });
 
   it("compares multibyte passwords without throwing on unequal byte lengths", async () => {
-    process.env.HOMEPAGE_AUTH_ENABLED = "true";
-    process.env.HOMEPAGE_AUTH_PASSWORD = "é";
-    process.env.HOMEPAGE_AUTH_SECRET = "rk3Xk9wQ0mVJt7cZbN2yLpA8sHdF4gRuEwTiOaSvBnM=";
-    process.env.HOMEPAGE_EXTERNAL_URL = "https://homepage.example";
+    process.env.GATHER_AUTH_ENABLED = "true";
+    process.env.GATHER_AUTH_PASSWORD = "é";
+    process.env.GATHER_AUTH_SECRET = "rk3Xk9wQ0mVJt7cZbN2yLpA8sHdF4gRuEwTiOaSvBnM=";
+    process.env.GATHER_EXTERNAL_URL = "https://gather.example";
 
     const mod = await import("pages/api/auth/[...nextauth]");
     const [provider] = mod.authOptions.providers;
 
     await expect(provider.options.authorize({ password: "a" })).resolves.toBeNull();
     await expect(provider.options.authorize({ password: "é" })).resolves.toEqual({
-      id: "homepage",
+      id: "gather",
       name: "Gather",
     });
   });
 
   it("supports trusted HTTP deployments without Secure cookies", async () => {
-    process.env.HOMEPAGE_AUTH_ENABLED = "true";
-    process.env.HOMEPAGE_AUTH_PASSWORD = "secret";
-    process.env.HOMEPAGE_AUTH_SECRET = "rk3Xk9wQ0mVJt7cZbN2yLpA8sHdF4gRuEwTiOaSvBnM=";
-    process.env.HOMEPAGE_EXTERNAL_URL = "http://192.168.1.20:3000";
+    process.env.GATHER_AUTH_ENABLED = "true";
+    process.env.GATHER_AUTH_PASSWORD = "secret";
+    process.env.GATHER_AUTH_SECRET = "rk3Xk9wQ0mVJt7cZbN2yLpA8sHdF4gRuEwTiOaSvBnM=";
+    process.env.GATHER_EXTERNAL_URL = "http://192.168.1.20:3000";
 
     const mod = await import("pages/api/auth/[...nextauth]");
 
@@ -255,10 +255,10 @@ describe("pages/api/auth/[...nextauth]", () => {
   });
 
   it("accepts an explicitly configured NEXTAUTH_URL", async () => {
-    process.env.HOMEPAGE_AUTH_ENABLED = "true";
-    process.env.HOMEPAGE_AUTH_PASSWORD = "secret";
-    process.env.HOMEPAGE_AUTH_SECRET = "rk3Xk9wQ0mVJt7cZbN2yLpA8sHdF4gRuEwTiOaSvBnM=";
-    process.env.NEXTAUTH_URL = "https://homepage.example";
+    process.env.GATHER_AUTH_ENABLED = "true";
+    process.env.GATHER_AUTH_PASSWORD = "secret";
+    process.env.GATHER_AUTH_SECRET = "rk3Xk9wQ0mVJt7cZbN2yLpA8sHdF4gRuEwTiOaSvBnM=";
+    process.env.NEXTAUTH_URL = "https://gather.example";
 
     const mod = await import("pages/api/auth/[...nextauth]");
 
@@ -266,20 +266,20 @@ describe("pages/api/auth/[...nextauth]", () => {
   });
 
   it("builds an OIDC provider when enabled and maps profile fields", async () => {
-    process.env.HOMEPAGE_AUTH_ENABLED = "true";
-    process.env.HOMEPAGE_OIDC_ISSUER = "https://issuer.example/";
-    process.env.HOMEPAGE_OIDC_CLIENT_ID = "client-id";
-    process.env.HOMEPAGE_OIDC_CLIENT_SECRET = "client-secret";
-    process.env.HOMEPAGE_AUTH_SECRET = "rk3Xk9wQ0mVJt7cZbN2yLpA8sHdF4gRuEwTiOaSvBnM=";
-    process.env.HOMEPAGE_EXTERNAL_URL = "https://homepage.example";
-    process.env.HOMEPAGE_OIDC_NAME = "My OIDC";
-    process.env.HOMEPAGE_OIDC_SCOPE = "openid email";
+    process.env.GATHER_AUTH_ENABLED = "true";
+    process.env.GATHER_OIDC_ISSUER = "https://issuer.example/";
+    process.env.GATHER_OIDC_CLIENT_ID = "client-id";
+    process.env.GATHER_OIDC_CLIENT_SECRET = "client-secret";
+    process.env.GATHER_AUTH_SECRET = "rk3Xk9wQ0mVJt7cZbN2yLpA8sHdF4gRuEwTiOaSvBnM=";
+    process.env.GATHER_EXTERNAL_URL = "https://gather.example";
+    process.env.GATHER_OIDC_NAME = "My OIDC";
+    process.env.GATHER_OIDC_SCOPE = "openid email";
 
     const mod = await import("pages/api/auth/[...nextauth]");
     const [provider] = mod.authOptions.providers;
 
     expect(provider).toMatchObject({
-      id: "homepage-oidc",
+      id: "gather-oidc",
       name: "My OIDC",
       type: "oauth",
       idToken: true,
@@ -318,50 +318,55 @@ describe("pages/api/auth/[...nextauth]", () => {
     });
   });
 
-  it.each(["gather-oidc", "homepage-oidc"])(
-    "supports the selected %s callback and its compatibility route",
-    async (id) => {
-      Object.assign(process.env, {
-        HOMEPAGE_AUTH_ENABLED: "true",
-        HOMEPAGE_AUTH_SECRET: "test-session-secret-that-is-at-least-32-characters",
-        HOMEPAGE_EXTERNAL_URL: "https://gather.example.test",
-        HOMEPAGE_OIDC_ISSUER: "https://identity.example.test",
-        HOMEPAGE_OIDC_CLIENT_ID: "gather",
-        HOMEPAGE_OIDC_CLIENT_SECRET: "test-client-secret",
-        GATHER_OIDC_PROVIDER_ID: id,
-      });
-      const { authOptions } = await import("pages/api/auth/[...nextauth]");
-      expect(authOptions.providers.map((p) => p.id)).toEqual([
-        id,
-        id === "gather-oidc" ? "homepage-oidc" : "gather-oidc",
-      ]);
-      expect(authOptions.providers[0].gatherCompatibilityAlias).toBe(false);
-      expect(authOptions.providers[1].gatherCompatibilityAlias).toBe(true);
-      for (const provider of authOptions.providers) {
-        expect(provider.name).toBe("Gather OIDC");
-        expect(provider.checks).toEqual(["pkce", "state", "nonce"]);
-      }
-    },
-  );
+  it.each([undefined, "gather-oidc"])("registers one Gather callback with selection %s", async (id) => {
+    Object.assign(process.env, {
+      GATHER_AUTH_ENABLED: "true",
+      GATHER_AUTH_SECRET: "test-session-secret-that-is-at-least-32-characters",
+      GATHER_EXTERNAL_URL: "https://gather.example.test",
+      GATHER_OIDC_ISSUER: "https://identity.example.test",
+      GATHER_OIDC_CLIENT_ID: "gather",
+      GATHER_OIDC_CLIENT_SECRET: "test-client-secret",
+    });
+    if (id) process.env.GATHER_OIDC_PROVIDER_ID = id;
+    const { authOptions } = await import("pages/api/auth/[...nextauth]");
+    expect(authOptions.providers.map((p) => p.id)).toEqual(["gather-oidc"]);
+    expect(authOptions.providers[0].name).toBe("Gather OIDC");
+    expect(authOptions.providers[0].checks).toEqual(["pkce", "state", "nonce"]);
+  });
 
   it("rejects an unsupported callback selection", async () => {
     Object.assign(process.env, {
-      HOMEPAGE_AUTH_ENABLED: "true",
-      HOMEPAGE_AUTH_SECRET: "test-session-secret-that-is-at-least-32-characters",
-      HOMEPAGE_EXTERNAL_URL: "https://gather.example.test",
-      HOMEPAGE_OIDC_ISSUER: "https://identity.example.test",
-      HOMEPAGE_OIDC_CLIENT_ID: "gather",
-      HOMEPAGE_OIDC_CLIENT_SECRET: "test-client-secret",
+      GATHER_AUTH_ENABLED: "true",
+      GATHER_AUTH_SECRET: "test-session-secret-that-is-at-least-32-characters",
+      GATHER_EXTERNAL_URL: "https://gather.example.test",
+      GATHER_OIDC_ISSUER: "https://identity.example.test",
+      GATHER_OIDC_CLIENT_ID: "gather",
+      GATHER_OIDC_CLIENT_SECRET: "test-client-secret",
       GATHER_OIDC_PROVIDER_ID: "unexpected-provider",
     });
     await expect(import("pages/api/auth/[...nextauth]")).rejects.toThrow("GATHER_OIDC_PROVIDER_ID");
   });
 
+  it("preserves an explicitly configured shared-password identity", async () => {
+    Object.assign(process.env, {
+      GATHER_AUTH_ENABLED: "true",
+      GATHER_AUTH_PASSWORD: "disposable-password",
+      GATHER_AUTH_SECRET: "session-secret-that-is-at-least-32-characters",
+      GATHER_EXTERNAL_URL: "https://gather.example.test",
+      GATHER_PASSWORD_USER_ID: "existing-account",
+    });
+    const { authOptions } = await import("pages/api/auth/[...nextauth]");
+    expect(await authOptions.providers[0].options.authorize({ password: "disposable-password" })).toEqual({
+      id: "existing-account",
+      name: "Gather",
+    });
+  });
+
   it("throws when only partial OIDC settings are provided", async () => {
-    process.env.HOMEPAGE_AUTH_ENABLED = "true";
-    process.env.HOMEPAGE_OIDC_ISSUER = "https://issuer.example";
-    process.env.HOMEPAGE_AUTH_SECRET = "rk3Xk9wQ0mVJt7cZbN2yLpA8sHdF4gRuEwTiOaSvBnM=";
-    process.env.HOMEPAGE_EXTERNAL_URL = "https://homepage.example";
+    process.env.GATHER_AUTH_ENABLED = "true";
+    process.env.GATHER_OIDC_ISSUER = "https://issuer.example";
+    process.env.GATHER_AUTH_SECRET = "rk3Xk9wQ0mVJt7cZbN2yLpA8sHdF4gRuEwTiOaSvBnM=";
+    process.env.GATHER_EXTERNAL_URL = "https://gather.example";
 
     await expect(import("pages/api/auth/[...nextauth]")).rejects.toThrow(
       /OIDC auth is enabled but required settings are missing/i,

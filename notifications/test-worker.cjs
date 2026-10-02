@@ -58,5 +58,5 @@ vm.runInNewContext(fs.readFileSync(process.argv[2] || 'notifications/sw.js','utf
  events.notificationclick({notification:{close(){},data:{messageId:'compact'}},waitUntil});await work;
  assert.equal(opened.at(-1),'https://dashboard.example.test/?notification=compact&notifications=open');
  assert.equal(events.fetch,undefined);
- console.log('Worker displays pushes, handles malformed payloads, opens only Homepage, and does not intercept page requests.');
+ console.log('Worker displays pushes, handles malformed payloads, opens only Gather, and does not intercept page requests.');
 })().catch(e=>{console.error(e);process.exit(1)});

@@ -12,13 +12,13 @@ let dir, key, notifyKey;
 const original = {
   revision: "initial",
   env: {
-    HOMEPAGE_EXTERNAL_URL: "https://gather.example.test",
-    HOMEPAGE_OIDC_ISSUER: "https://id.example.test/realm",
-    HOMEPAGE_OIDC_CLIENT_ID: "gather",
-    HOMEPAGE_OIDC_CLIENT_SECRET: "super-secret",
-    HOMEPAGE_OIDC_NAME: "SSO",
+    GATHER_EXTERNAL_URL: "https://gather.example.test",
+    GATHER_OIDC_ISSUER: "https://id.example.test/realm",
+    GATHER_OIDC_CLIENT_ID: "gather",
+    GATHER_OIDC_CLIENT_SECRET: "super-secret",
+    GATHER_OIDC_NAME: "SSO",
     GATHER_ADMIN_IDS: "admin",
-    HOMEPAGE_AUTH_SECRET: "session-secret",
+    GATHER_AUTH_SECRET: "session-secret",
   },
 };
 const notifications = {
@@ -67,8 +67,8 @@ afterEach(() => {
 describe("encrypted system configuration", () => {
   it("reports the running callback selection for encrypted and environment-based deployments", () => {
     expect(publicConfig()).toMatchObject({
-      oidcProviderId: "homepage-oidc",
-      callbackUrl: "https://gather.example.test/api/auth/callback/homepage-oidc",
+      oidcProviderId: "gather-oidc",
+      callbackUrl: "https://gather.example.test/api/auth/callback/gather-oidc",
     });
     vi.stubEnv("GATHER_OIDC_PROVIDER_ID", "gather-oidc");
     expect(publicConfig()).toMatchObject({
@@ -92,7 +92,7 @@ describe("encrypted system configuration", () => {
     expect(visible).not.toContain("private-token");
     expect(visible).not.toContain("session-secret");
     const next = candidate(input, "admin");
-    expect(next.app.env.HOMEPAGE_OIDC_CLIENT_SECRET).toBe("super-secret");
+    expect(next.app.env.GATHER_OIDC_CLIENT_SECRET).toBe("super-secret");
     expect(next.notification.env.NTFY_AUTH).toBe("Bearer private-token");
   });
   it("rejects lockouts, stale revisions and credential reuse across destinations", () => {
@@ -160,7 +160,7 @@ it("checks ntfy using a supported numeric since cursor", async () => {
     .mockResolvedValueOnce({ ok: true })
     .mockResolvedValueOnce({ ok: true, body: { cancel: vi.fn() } });
   vi.stubGlobal("fetch", fetcher);
-  vi.stubEnv("HOMEPAGE_CONFIG_DIR", dir);
+  vi.stubEnv("GATHER_CONFIG_DIR", dir);
   await checkConnections(candidate(input, "admin"));
   expect(fetcher.mock.calls[2][0]).toMatch(/poll=1&since=\d+$/);
 });

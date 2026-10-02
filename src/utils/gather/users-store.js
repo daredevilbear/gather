@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-export const usersDirectory = () => process.env.HOMEPAGE_CONFIG_DIR || path.join(process.cwd(), "config");
+export const usersDirectory = () => process.env.GATHER_CONFIG_DIR || path.join(process.cwd(), "config");
 export const bootstrapAdmin = (subject) =>
   Boolean(
     subject &&

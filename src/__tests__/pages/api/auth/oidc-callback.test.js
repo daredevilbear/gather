@@ -49,11 +49,10 @@ const json = (res, value) => {
 // Real NextAuth handlers and a local OIDC issuer exercise code exchange, redirect
 // URI matching, PKCE, state, nonce, signed ID tokens and the resulting session.
 // Only account persistence is mocked; no live IdP or deployed credentials are used.
-describe("Gather and legacy OIDC callbacks", () => {
+describe("Gather OIDC callback", () => {
   it.each([
     ["gather-oidc", "gather-oidc"],
-    ["gather-oidc", "homepage-oidc"],
-    [undefined, "homepage-oidc"],
+    [undefined, "gather-oidc"],
   ])("completes SSO with selection %s through callback %s", async (selection, providerId) => {
     const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
     const jwk = { ...publicKey.export({ format: "jwk" }), kid: "test-key", alg: "RS256", use: "sig" };
@@ -150,14 +149,14 @@ describe("Gather and legacy OIDC callbacks", () => {
       await authHandler(req, res);
     });
     for (const [key, value] of Object.entries({
-      HOMEPAGE_AUTH_ENABLED: "true",
-      HOMEPAGE_AUTH_SECRET: "disposable-session-secret-at-least-32-characters",
-      HOMEPAGE_EXTERNAL_URL: appOrigin,
+      GATHER_AUTH_ENABLED: "true",
+      GATHER_AUTH_SECRET: "disposable-session-secret-at-least-32-characters",
+      GATHER_EXTERNAL_URL: appOrigin,
       NEXTAUTH_URL: appOrigin,
       NEXTAUTH_SECRET: "disposable-session-secret-at-least-32-characters",
-      HOMEPAGE_OIDC_ISSUER: issuer,
-      HOMEPAGE_OIDC_CLIENT_ID: "test-client",
-      HOMEPAGE_OIDC_CLIENT_SECRET: "test-client-secret",
+      GATHER_OIDC_ISSUER: issuer,
+      GATHER_OIDC_CLIENT_ID: "test-client",
+      GATHER_OIDC_CLIENT_SECRET: "test-client-secret",
       GATHER_OIDC_PROVIDER_ID: selection,
     }))
       vi.stubEnv(key, value);

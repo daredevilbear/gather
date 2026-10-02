@@ -7,7 +7,7 @@ import { BiShieldQuarter } from "react-icons/bi";
 import { getSettings } from "utils/config/config";
 
 const PUBLIC_SIGN_IN_SETTINGS = ["theme", "color", "title", "background", "backgroundOpacity"];
-const AUTO_LOGIN_KEY = "homepage-autologin-attempt";
+const AUTO_LOGIN_KEY = "gather-autologin-attempt";
 const AUTO_LOGIN_RETRY_MS = 10000;
 
 export default function SignIn({ providers, settings, autoLogin }) {
@@ -243,23 +243,19 @@ export async function getServerSideProps(context) {
   try {
     // Dynamic so a bad config throws in here rather than at page load
     const { authOptions } = await import("pages/api/auth/[...nextauth]");
-    providers = Object.fromEntries(
-      authOptions.providers
-        .filter((provider) => !provider.gatherCompatibilityAlias)
-        .map(({ id, name, type }) => [id, { id, name, type }]),
-    );
+    providers = Object.fromEntries(authOptions.providers.map(({ id, name, type }) => [id, { id, name, type }]));
   } catch (e) {
     console.error("Unable to load auth providers: %s", e.message);
   }
 
-  const homepageSettings = getSettings();
+  const gatherSettings = getSettings();
   const settings = Object.fromEntries(
-    PUBLIC_SIGN_IN_SETTINGS.filter((key) => Object.prototype.hasOwnProperty.call(homepageSettings, key)).map((key) => [
+    PUBLIC_SIGN_IN_SETTINGS.filter((key) => Object.prototype.hasOwnProperty.call(gatherSettings, key)).map((key) => [
       key,
-      homepageSettings[key],
+      gatherSettings[key],
     ]),
   );
   return {
-    props: { providers, settings, autoLogin: process.env.HOMEPAGE_OIDC_AUTO_LOGIN === "true" },
+    props: { providers, settings, autoLogin: process.env.GATHER_OIDC_AUTO_LOGIN === "true" },
   };
 }

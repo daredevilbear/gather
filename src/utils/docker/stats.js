@@ -2,7 +2,7 @@ import Docker from "dockerode";
 
 import { getSettings } from "utils/config/config";
 import getDockerArguments from "utils/config/docker";
-import { containersFromConfig, hasHomepageLabels } from "utils/config/service-helpers";
+import { containersFromConfig, hasGatherLabels } from "utils/config/service-helpers";
 import { calculateCPUPercent, calculateThroughput, calculateUsedMemory } from "utils/docker/stats-helpers";
 
 // mem and network are omitted when docker does not report them, so the widget can skip those blocks
@@ -49,7 +49,7 @@ export async function getDockerStats(server) {
     localIds.add(container.Id);
     if (container.State !== "running") return;
 
-    const labelled = hasHomepageLabels(container.Labels, instanceName);
+    const labelled = hasGatherLabels(container.Labels, instanceName);
     container.Names.forEach((name) => {
       const containerName = name.replace(/^\//, "");
       if (labelled || configured.has(containerName)) targets[containerName] = container.Id;
@@ -70,7 +70,7 @@ export async function getDockerStats(server) {
     services.forEach((service) => {
       const name = service.Spec?.Name;
       if (!name || targets[name]) return;
-      if (!configured.has(name) && !hasHomepageLabels(service.Spec?.Labels, instanceName)) return;
+      if (!configured.has(name) && !hasGatherLabels(service.Spec?.Labels, instanceName)) return;
 
       // stats are only available for containers running on this node
       const serviceTasks = tasksByService[service.ID] ?? [];

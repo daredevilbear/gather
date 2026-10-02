@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     if (req.method === "GET") return res.json(publicConfig());
     if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed." });
     if (!validEditorOrigin(req)) return res.status(403).json({ error: "Invalid origin." });
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || process.env.HOMEPAGE_AUTH_SECRET });
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET || process.env.GATHER_AUTH_SECRET });
     if (req.body?.action === "confirm") return res.json(confirm(token));
     if (!["test", "apply"].includes(req.body?.action)) throw new ConfigError("Unsupported operation.");
     const records = candidate(req.body.config, token.sub);

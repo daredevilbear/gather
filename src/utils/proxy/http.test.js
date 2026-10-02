@@ -147,7 +147,7 @@ describe("utils/proxy/http cachedRequest", () => {
   });
 });
 
-describe("utils/proxy/http homepageDNSLookupFn", () => {
+describe("utils/proxy/http gatherDNSLookupFn", () => {
   const getLookupFn = async () => {
     const httpMod = await import("./http");
     await httpMod.httpProxy("http://example.com");
@@ -314,7 +314,7 @@ describe("utils/proxy/http httpProxy", () => {
     state.lastAgentOptions = null;
     state.lastRequestParams = null;
     state.lastWrittenBody = null;
-    process.env.HOMEPAGE_PROXY_DISABLE_IPV6 = "";
+    process.env.GATHER_PROXY_DISABLE_IPV6 = "";
     vi.resetModules();
   });
 
@@ -397,8 +397,8 @@ describe("utils/proxy/http httpProxy", () => {
     vi.unmock("node:zlib");
   });
 
-  it("applies strict IPv4 agent options when HOMEPAGE_PROXY_DISABLE_IPV6 is true", async () => {
-    process.env.HOMEPAGE_PROXY_DISABLE_IPV6 = "true";
+  it("applies strict IPv4 agent options when GATHER_PROXY_DISABLE_IPV6 is true", async () => {
+    process.env.GATHER_PROXY_DISABLE_IPV6 = "true";
     const httpMod = await import("./http");
 
     await httpMod.httpProxy("http://example.com");
