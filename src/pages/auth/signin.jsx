@@ -15,7 +15,7 @@ export default function SignIn({ providers, settings, autoLogin }) {
   const [password, setPassword] = useState("");
   const theme = settings?.theme || "dark";
   const color = settings?.color || "slate";
-  const title = settings?.title || "Homepage";
+  const title = settings?.title || "Gather";
   const callbackUrl = useMemo(() => {
     const value = router.query?.callbackUrl;
     return typeof value === "string" ? value : "/";
@@ -243,7 +243,11 @@ export async function getServerSideProps(context) {
   try {
     // Dynamic so a bad config throws in here rather than at page load
     const { authOptions } = await import("pages/api/auth/[...nextauth]");
-    providers = Object.fromEntries(authOptions.providers.map(({ id, name, type }) => [id, { id, name, type }]));
+    providers = Object.fromEntries(
+      authOptions.providers
+        .filter((provider) => !provider.gatherCompatibilityAlias)
+        .map(({ id, name, type }) => [id, { id, name, type }]),
+    );
   } catch (e) {
     console.error("Unable to load auth providers: %s", e.message);
   }
