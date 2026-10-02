@@ -6,7 +6,10 @@ Existing installations must follow the [configuration migration](README.md#confi
 
 ## Dashboard with authentication
 
-Download the `v1.0.0` source or clone that tag. From the repository root:
+Use the source revision matching your selected image. During private review,
+the Gather naming cleanup uses `dev`; the older private `v1.0.0` candidate
+predates these environment names. Pin the new release version or digest once
+it is prepared. From the repository root:
 
 ```sh
 cp .env.example .env
@@ -67,7 +70,7 @@ before adopting the instance. See [Setup](https://gather.daredevilbear.dev/gathe
 ## Optional components
 
 The dashboard runs without either companion. To enable the inbox and Web Push,
-use `ghcr.io/daredevilbear/gather-notifications:1.0.0` and follow
+use `ghcr.io/daredevilbear/gather-notifications:dev` and follow
 [Notifications](https://gather.daredevilbear.dev/gather/notifications/) for ntfy,
 authenticated same-origin `/gather-notifications/` routing, session lookup,
 origin validation, and a writable `/data` volume for its unprivileged UID 1001.
@@ -82,7 +85,7 @@ key at `/run/secrets/gather-app-key` and follow
 For encrypted system settings and supervised authentication rollback, follow
 [System settings](https://gather.daredevilbear.dev/gather/system/), including
 separate keys, `/system-data` persistence, and the optional controller's authority.
-Use `ghcr.io/daredevilbear/gather-system-controller:1.0.0`; review
+Use `ghcr.io/daredevilbear/gather-system-controller:dev`; review
 [the controller example](system/compose-controller.example.yaml) before mounting
 a Docker socket. These components require operator configuration and are not
 started by the dashboard example.
@@ -100,8 +103,8 @@ configuration export does not include every database or encryption key. Test
 restoration in an isolated instance before upgrading. Roll back the image and
 its matching state backup together when a state migration requires it.
 
-For a local source build, run `docker build -t gather:1.0.0 .` from the release
-checkout and set the example's image to `gather:1.0.0`. Build optional companions
-with `docker build -t gather-notifications:1.0.0 notifications` and
-`docker build -t gather-system-controller:1.0.0 system`. Source development uses
+For a local source build, run `docker build -t gather:review .` from the release
+checkout and set the example's image to `gather:review`. Build optional companions
+with `docker build -t gather-notifications:dev notifications` and
+`docker build -t gather-system-controller:dev system`. Source development uses
 Node.js 22.13 or newer and pnpm 11.19.0; see [CONTRIBUTING.md](CONTRIBUTING.md).

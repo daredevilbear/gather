@@ -147,7 +147,7 @@ legacy configuration aliases and the old SSO callback are removed.
 5. Start the upgraded components together, refresh installed apps to update the
    notification worker, and verify administrator/viewer access, service
    discovery, variables and notifications. Custom notification senders must use
-   `GATHER_OPEN_NOTIFICATION`; the old Bearnet event is removed.
+   `GATHER_OPEN_NOTIFICATION`; the previous event name is removed.
 
 Help links in the application and MCP now use
 [Gather documentation](https://gather.daredevilbear.dev/).
