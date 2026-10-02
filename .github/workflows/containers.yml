@@ -40,7 +40,9 @@ jobs:
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
       - name: Verify release versions and license notices
-        run: python3 scripts/ci/check-release.py
+        run: |
+          python3 scripts/ci/check-release.py
+          python3 -m unittest discover -s scripts/ci -p 'test_*.py'
       - name: Run complete application suite
         run: pnpm exec vitest run --pool forks --maxWorkers=4
       - name: Test recovery transactions and push worker
