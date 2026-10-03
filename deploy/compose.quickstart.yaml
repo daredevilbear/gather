@@ -1,0 +1,220 @@
+# Encrypted single-file installation. Requires an image with the versioned initializer.
+# Pin compatible images from the release evidence; never substitute an older app image.
+name: ${GATHER_PROJECT:-gather-encrypted}
+services:
+  gather:
+    image: ${GATHER_IMAGE:?Set the released app image digest containing initialize-quickstart.cjs}
+    container_name: ${GATHER_PROJECT:-gather-encrypted}-dashboard
+    restart: unless-stopped
+    user: 1001:1001
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      GATHER_SYSTEM_DIR: /system-data
+      GATHER_OIDC_PROVIDER_ID: ${GATHER_OIDC_PROVIDER_ID:-gather-oidc}
+      GATHER_APP_KEY_FILE: /run/secrets/gather-app-key
+      GATHER_NOTIFICATION_KEY_FILE: /run/secrets/gather-notification-key
+    volumes:
+      - ./config:/app/config
+      - ./system-data:/system-data
+      - ./keys/app.key:/run/secrets/gather-app-key:ro
+      - ./keys/notification.key:/run/secrets/gather-notification-key:ro
+  notifications:
+    image: ghcr.io/daredevilbear/gather-notifications@sha256:a38b93fd11bacb5f0037dd244fc50381fabc7922dd9f427ac3ba46ae9a1143f7
+    container_name: ${GATHER_PROJECT:-gather-encrypted}-notifications
+    restart: unless-stopped
+    user: 1001:1001
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      GATHER_NOTIFICATION_VAULT: /vault/settings.sqlite
+      GATHER_NOTIFICATION_KEY_FILE: /run/secrets/gather-notification-key
+      GATHER_NOTIFICATION_CONFIG: /config/.gather-runtime/gather-notifications.json
+    volumes:
+      - ./system-data/notification:/vault:ro
+      - ./keys/notification.key:/run/secrets/gather-notification-key:ro
+      - ./notification-data:/data
+      - ./config:/config:ro
+    depends_on:
+      gather:
+        condition: service_healthy
+      ntfy:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - from urllib.request import urlopen; urlopen('http://127.0.0.1:8080/gather-notifications/health', timeout=5)
+      interval: 10s
+      timeout: 6s
+      retries: 12
+      start_period: 30s
+  system-controller:
+    image: ghcr.io/daredevilbear/gather-system-controller@sha256:162dd362dc6eb77e3de768fd0504279cc76e1b150e2fbf1d137c7f74f0f68655
+    container_name: ${GATHER_PROJECT:-gather-encrypted}-controller
+    restart: unless-stopped
+    user: 1001:1001
+    group_add:
+      - ${DOCKER_SOCKET_GID:?Detect the engine socket group inside a container}
+    network_mode: none
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    command:
+      - --root
+      - /system-data
+      - --app
+      - ${GATHER_PROJECT:-gather-encrypted}-dashboard
+      - --notification
+      - ${GATHER_PROJECT:-gather-encrypted}-notifications
+      - --gateway
+      - ${GATHER_PROJECT:-gather-encrypted}-gateway
+    volumes:
+      - ./system-data:/system-data
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      gather:
+        condition: service_healthy
+      notifications:
+        condition: service_healthy
+      gateway:
+        condition: service_started
+    read_only: true
+  gateway:
+    image: caddy:2-alpine@sha256:6aeddd44c3078b0f9a35206472a11420648a79c184603ef95957d0a20044cb2b
+    container_name: ${GATHER_PROJECT:-gather-encrypted}-gateway
+    restart: unless-stopped
+    environment:
+      GATHER_DOMAIN: ${GATHER_DOMAIN:?Set your Gather HTTPS hostname}
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      gather:
+        condition: service_healthy
+      notifications:
+        condition: service_healthy
+    configs:
+      - source: gateway
+        target: /etc/caddy/Caddyfile
+  ntfy:
+    image: binwiederhier/ntfy:v2.28.0@sha256:6ef4b819f722fccdc036af611c4774cfdc2de821ab74fdd48bbf4c9d6f8973da
+    restart: unless-stopped
+    command: serve
+    environment:
+      NTFY_LISTEN_HTTP: :8080
+      NTFY_AUTH_FILE: /var/lib/ntfy/auth.db
+      NTFY_AUTH_DEFAULT_ACCESS: deny-all
+      NTFY_CACHE_FILE: /var/lib/ntfy/cache.db
+      NTFY_CACHE_DURATION: 720h
+    volumes:
+      - ./ntfy-data:/var/lib/ntfy
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - -q
+        - -O
+        - /dev/null
+        - http://127.0.0.1:8080/v1/health
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+  initialize:
+    image: ${GATHER_IMAGE:?Set the released app image digest containing initialize-quickstart.cjs}
+    profiles:
+      - setup
+    user: '0:0'
+    network_mode: none
+    entrypoint:
+      - node
+      - /app/system/initialize-quickstart.cjs
+    environment:
+      GATHER_DOMAIN: ${GATHER_DOMAIN:?Set your Gather HTTPS hostname}
+      GATHER_OIDC_ISSUER: ${GATHER_OIDC_ISSUER:?Set the HTTPS OIDC issuer}
+      GATHER_OIDC_CLIENT_ID: ${GATHER_OIDC_CLIENT_ID:?Set the OIDC client ID}
+      GATHER_OIDC_CLIENT_SECRET: ${GATHER_OIDC_CLIENT_SECRET:?Set the OIDC client secret}
+      GATHER_ADMIN_IDS: ${GATHER_ADMIN_IDS:?Set your OIDC subject, not your email}
+      GATHER_EXTERNAL_URL: ${GATHER_EXTERNAL_URL:-https://${GATHER_DOMAIN}}
+    volumes:
+      - ./:/setup
+  ntfy-initialize:
+    image: binwiederhier/ntfy:v2.28.0@sha256:6ef4b819f722fccdc036af611c4774cfdc2de821ab74fdd48bbf4c9d6f8973da
+    profiles:
+      - setup
+    network_mode: none
+    entrypoint:
+      - sh
+      - /setup/ntfy-initialize.sh
+    environment:
+      NTFY_AUTH_FILE: /var/lib/ntfy/auth.db
+      NTFY_AUTH_DEFAULT_ACCESS: deny-all
+    volumes:
+      - ./ntfy-data:/var/lib/ntfy
+      - ./private:/run/secrets:ro
+    configs:
+      - source: broker-initialize
+        target: /setup/ntfy-initialize.sh
+  publish-test:
+    image: ${GATHER_IMAGE:?Set the released app image digest containing initialize-quickstart.cjs}
+    profiles:
+      - setup
+    user: '0:0'
+    entrypoint:
+      - node
+      - /app/system/initialize-quickstart.cjs
+      - publish-test
+    volumes:
+      - ./private/ntfy-publisher-password:/run/secrets/ntfy-publisher-password:ro
+volumes:
+  caddy-data: null
+  caddy-config: null
+configs:
+  gateway:
+    content: |
+      https://{$$GATHER_DOMAIN} {
+        handle /gather-notifications/* {
+          reverse_proxy notifications:8080
+        }
+        handle {
+          reverse_proxy gather:3000
+        }
+      }
+  broker-initialize:
+    content: |
+      #!/bin/sh
+      set -eu
+      # ntfy creates its auth schema on the first server start, before CLI provisioning.
+      # This helper has network_mode: none; only its own loopback listener is available.
+      ntfy serve --listen-http 127.0.0.1:8080 > /tmp/ntfy-initialize.log 2>&1 &
+      server_pid=$$!
+      trap 'kill "$$server_pid" 2>/dev/null || true; wait "$$server_pid" 2>/dev/null || true' EXIT INT TERM
+      attempt=0
+      until wget -q -O /dev/null http://127.0.0.1:8080/v1/health; do
+        attempt=$$((attempt + 1))
+        if [ "$$attempt" -ge 30 ] || ! kill -0 "$$server_pid" 2>/dev/null; then
+          echo 'ntfy initialization failed; check the writable auth database directory.' >&2
+          exit 1
+        fi
+        sleep 1
+      done
+      # --ignore-exists makes retrying setup safe without resetting existing credentials.
+      NTFY_PASSWORD="$$(cat /run/secrets/ntfy-reader-password)" ntfy user add --ignore-exists gather-reader
+      ntfy access gather-reader gather ro
+      NTFY_PASSWORD="$$(cat /run/secrets/ntfy-publisher-password)" ntfy user add --ignore-exists gather-publisher
+      ntfy access gather-publisher gather wo
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: ${GATHER_SUBNET:?Set an unused Docker subnet that does not overlap LAN or VPN}

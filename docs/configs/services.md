@@ -122,9 +122,9 @@ If you define services via Docker labels or Kubernetes annotations, use the same
 
 #### Field Visibility
 
-Each widget can optionally provide a list of which fields should be visible via the `fields` widget property. If no fields are specified, then all fields will be displayed. The `fields` property must be a valid YAML array of strings. As an example, here is the entry for Sonarr showing only a couple of fields.
+Each widget can optionally provide a list of which fields should be visible via the `fields` widget property. When omitted, the widget uses its own default fields and display mode. The `fields` property must be a valid YAML array of strings. As an example, here is the entry for Sonarr showing only a couple of fields.
 
-**In all cases a widget will work and display all fields without specifying the `fields` property.**
+Supported fields, optional metric blocks and version requirements remain integration-specific. Omitting `fields` does not enable otherwise disabled metrics. Check the integration reference for its defaults.
 
 ```yaml
 - Sonarr:

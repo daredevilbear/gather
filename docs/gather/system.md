@@ -28,8 +28,12 @@ Companion configuration sets `GATHER_NOTIFICATION_VAULT=/vault/settings.sqlite` 
 `GATHER_NOTIFICATION_KEY_FILE=/run/secrets/gather-notification-key`.
 These environment values are file paths, not credentials. The bootstrap decrypts
 credentials into process memory before starting the application. They are not
-Docker environment metadata or `.env` files. The existing environment-based
-configuration remains a compatibility fallback when no vault is configured.
+Docker environment metadata or `.env` files. The app bootstrap selects encrypted storage when `GATHER_SYSTEM_DIR` is truthy.
+An unset or empty value skips its vault read. Omitting a Compose entry does not
+remove a nonempty image default; inspect the exact image before assuming omission
+selects a different mode. This observation does not establish the companion's
+fallback contract, authentication requirements or recovery support. The encrypted
+quickstart requires both vaults and keys and does not select environment fallback.
 
 Keep key files outside the data/backup directory, restrict permissions, and mount
 them read-only. Docker/Swarm/Kubernetes secrets or an external secret manager can

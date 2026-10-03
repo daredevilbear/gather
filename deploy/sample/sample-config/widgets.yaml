@@ -1,0 +1,21 @@
+- greeting:
+    text: Welcome to the Gather lab
+    personalize: true
+    text_size: xl
+- datetime:
+    text_size: xl
+    format:
+      dateStyle: medium
+      timeStyle: short
+      timeZone: America/Los_Angeles
+- resources:
+    label: Gather container
+    cpu: true
+    memory: true
+    uptime: true
+    cputemp: false
+- search:
+    provider: custom
+    url: https://localhost:8443/mock/search?q=
+    target: _self
+    showSearchSuggestions: false
