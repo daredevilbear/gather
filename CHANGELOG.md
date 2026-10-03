@@ -1,5 +1,28 @@
 # Gather release notes
 
+## 1.0.2
+
+- Separate local usernames/passwords when OIDC is absent, with administrator,
+  editor and viewer roles and a protected first-use administrator.
+- Account creation, password resets and disabling in Users & access; self-service
+  password changes in My preferences. Individually salted scrypt hashes,
+  temporary lockouts, and credential versions that invalidate old sessions.
+- Complete OIDC configuration takes precedence; partial configuration fails closed.
+  Existing explicit shared-password installations retain their shared identity.
+- System settings use the same authentication-mode rules as login. Regression
+  tests cover storage persistence, permissions and local-to-OIDC migration/rollback.
+
+Existing OIDC installations are not reinitialized. Local and OIDC identities remain
+separate even when emails match; roles and personal dashboards are not transferred.
+Back up the user database with configuration, system records and keys. All three
+images use 1.0.2; immutable image identities are recorded in the GitHub release.
+
+## 1.0.1
+
+The encrypted Compose quickstart uses an explicit image-owned initializer, writes
+canonical Gather configuration, and preserves complete state on retry while
+refusing partial state. One Compose file replaces the old setup ZIP.
+
 ## 1.0.0
 
 Gather's first public release builds on Homepage v2.4.0. Gather's version is

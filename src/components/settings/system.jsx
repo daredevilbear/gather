@@ -185,7 +185,11 @@ export default function SystemSettings({ embedded = false, preview = false, onDi
                   </p>
                   <button
                     onClick={() =>
-                      signIn(config.oidcProviderId, { callbackUrl: "/settings?section=system" }, { prompt: "login" })
+                      signIn(
+                        config.localLogin ? undefined : config.oidcProviderId,
+                        { callbackUrl: "/settings?section=system" },
+                        { prompt: "login" },
+                      )
                     }
                   >
                     Sign in again
@@ -201,39 +205,49 @@ export default function SystemSettings({ embedded = false, preview = false, onDi
               className={styles.form}
               disabled={busy || ["applying", "awaiting_confirmation", "rolling_back"].includes(config.status.phase)}
             >
-              <section className={styles.card}>
-                <h2>Single sign-on (OIDC)</h2>
-                <label>
-                  Issuer URL
-                  <input type="url" required value={draft.issuer} onChange={(e) => set("issuer", e.target.value)} />
-                </label>
-                <label>
-                  Client ID
-                  <input required value={draft.clientId} onChange={(e) => set("clientId", e.target.value)} />
-                </label>
-                <label>
-                  Client secret
-                  <input
-                    autoComplete="new-password"
-                    type="password"
-                    value={draft.clientSecret}
-                    placeholder={config.clientSecretSet ? "Configured — leave blank to keep" : "Not configured"}
-                    onChange={(e) => set("clientSecret", e.target.value)}
-                  />
-                </label>
-                <label>
-                  Sign-in button name
-                  <input value={draft.providerName} onChange={(e) => set("providerName", e.target.value)} />
-                </label>
-                <label>
-                  Callback URL
-                  <input readOnly value={config.callbackUrl} />
-                </label>
-                <p>
-                  The callback and dashboard address are fixed by the deployment. Register this exact callback with your
-                  identity provider.
-                </p>
-              </section>
+              {config.localLogin ? (
+                <section className={styles.card}>
+                  <h2>Local accounts</h2>
+                  <p>
+                    People sign in with their own Gather username and password. Create accounts and reset passwords in
+                    Users & access. Change your own password in My preferences.
+                  </p>
+                </section>
+              ) : (
+                <section className={styles.card}>
+                  <h2>Single sign-on (OIDC)</h2>
+                  <label>
+                    Issuer URL
+                    <input type="url" required value={draft.issuer} onChange={(e) => set("issuer", e.target.value)} />
+                  </label>
+                  <label>
+                    Client ID
+                    <input required value={draft.clientId} onChange={(e) => set("clientId", e.target.value)} />
+                  </label>
+                  <label>
+                    Client secret
+                    <input
+                      autoComplete="new-password"
+                      type="password"
+                      value={draft.clientSecret}
+                      placeholder={config.clientSecretSet ? "Configured — leave blank to keep" : "Not configured"}
+                      onChange={(e) => set("clientSecret", e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Sign-in button name
+                    <input value={draft.providerName} onChange={(e) => set("providerName", e.target.value)} />
+                  </label>
+                  <label>
+                    Callback URL
+                    <input readOnly value={config.callbackUrl} />
+                  </label>
+                  <p>
+                    The callback and dashboard address are fixed by the deployment. Register this exact callback with
+                    your identity provider.
+                  </p>
+                </section>
+              )}
               <section className={styles.card}>
                 <h2>Notification connection</h2>
                 <label>
@@ -271,8 +285,10 @@ export default function SystemSettings({ embedded = false, preview = false, onDi
                   />
                 </label>
                 <p>
-                  Use stable OIDC subject IDs, not names or email addresses. Your current administrator identity must
-                  remain authorized.
+                  {config.localLogin
+                    ? "Keep the local recovery administrator subject configured during setup."
+                    : "Use stable OIDC subject IDs, not names or email addresses."}{" "}
+                  Your current administrator identity must remain authorized.
                 </p>
               </details>
               <div className={styles.toolbar}>
@@ -291,7 +307,7 @@ export default function SystemSettings({ embedded = false, preview = false, onDi
               <section role="alert" className={styles.notice}>
                 <h2>Apply system configuration?</h2>
                 <p>
-                  Sign-in provider: {draft.issuer}
+                  Sign-in provider: {config.localLogin ? "Local accounts" : draft.issuer}
                   <br />
                   Notification server: {draft.ntfyUrl}
                   <br />

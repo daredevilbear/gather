@@ -1,10 +1,10 @@
 import { getToken } from "next-auth/jwt";
 import handler from "pages/api/gather/layout-catalog";
 import { getSettings } from "utils/config/config";
-import { userAccess } from "utils/gather/users-store";
+import { sessionAccess } from "utils/gather/users-store";
 import { beforeEach, expect, it, vi } from "vitest";
 vi.mock("next-auth/jwt", () => ({ getToken: vi.fn() }));
-vi.mock("utils/gather/users-store", () => ({ userAccess: vi.fn() }));
+vi.mock("utils/gather/users-store", () => ({ sessionAccess: vi.fn() }));
 vi.mock("utils/config/config", () => ({ getSettings: vi.fn() }));
 vi.mock("utils/config/api-response", () => ({
   servicesResponse: async () => [{ name: "Home", services: [{ name: "Media", widget: { key: "not returned" } }] }],
@@ -19,7 +19,7 @@ const response = () => {
 beforeEach(() => {
   vi.clearAllMocks();
   getToken.mockResolvedValue({ sub: "alice" });
-  userAccess.mockReturnValue({ enabled: true });
+  sessionAccess.mockReturnValue({ enabled: true });
   getSettings.mockReturnValue({});
 });
 it("returns names and presentation choices only", async () => {
@@ -34,7 +34,7 @@ it("requires a signed-in enabled user", async () => {
   await handler({ method: "GET" }, res);
   expect(res.status).toHaveBeenCalledWith(401);
   getToken.mockResolvedValue({ sub: "disabled" });
-  userAccess.mockReturnValue({ enabled: false });
+  sessionAccess.mockReturnValue({ enabled: false });
   res = response();
   await handler({ method: "GET" }, res);
   expect(res.status).toHaveBeenCalledWith(403);

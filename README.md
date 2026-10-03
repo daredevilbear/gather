@@ -51,6 +51,11 @@ They count downloads across tags and architectures, including automated pulls;
 they do not count unique users. Counts can be cached or unavailable, and appear
 only when the packages are publicly readable. No deployment credentials are used.
 
+Gather 1.0.2 adds separate local accounts when OIDC is absent. The encrypted
+quickstart creates the first administrator; manage users in Users & access and
+change your own password in My preferences. See [installation](INSTALL.md) and
+[release notes](CHANGELOG.md).
+
 ## Documentation and support
 
 The [Gather website](https://gather.daredevilbear.dev/) is public and provides the

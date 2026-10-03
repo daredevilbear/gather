@@ -3,6 +3,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
+import localAccounts from "../../../system/local-accounts.cjs";
+
+export const localAccountsEnabled = localAccounts.localAccountsEnabled;
 export const usersDirectory = () => process.env.GATHER_CONFIG_DIR || path.join(process.cwd(), "config");
 export const bootstrapAdmin = (subject) =>
   Boolean(
@@ -25,6 +28,23 @@ export function userAccess(subject, directory = usersDirectory()) {
     db.close();
   }
 }
+export function sessionAccess(token, directory = usersDirectory()) {
+  const access = userAccess(token?.sub, directory);
+  const isLocal = Number.isSafeInteger(token?.localCredentialVersion);
+  if (!isLocal) return localAccountsEnabled() ? { ...access, enabled: false } : access;
+  if (!localAccountsEnabled() || !Number.isSafeInteger(token?.localCredentialVersion))
+    return { ...access, enabled: false };
+  const file = path.join(directory, ".gather-users.sqlite");
+  if (!fs.existsSync(file)) return { ...access, enabled: false };
+  const db = new DatabaseSync(file, { readOnly: true, allowExtension: false });
+  try {
+    db.exec("PRAGMA trusted_schema=OFF; PRAGMA busy_timeout=5000;");
+    const credential = db.prepare("SELECT version FROM local_credentials WHERE subject=?").get(token.sub);
+    return { ...access, enabled: access.enabled && credential?.version === token.localCredentialVersion };
+  } finally {
+    db.close();
+  }
+}
 export function usersStore(directory = usersDirectory()) {
   fs.mkdirSync(directory, { recursive: true });
   const file = path.join(directory, ".gather-users.sqlite");
@@ -33,12 +53,7 @@ export function usersStore(directory = usersDirectory()) {
   const db = new DatabaseSync(file, { allowExtension: false });
   fs.chmodSync(file, 0o600);
   db.exec("PRAGMA trusted_schema=OFF; PRAGMA busy_timeout=5000;");
-  db.exec(`CREATE TABLE IF NOT EXISTS users (
-    id TEXT PRIMARY KEY, subject TEXT UNIQUE, name TEXT NOT NULL, email TEXT NOT NULL,
-    role TEXT NOT NULL, enabled INTEGER NOT NULL DEFAULT 1, last_seen TEXT);
-    CREATE TABLE IF NOT EXISTS activity (
-    id INTEGER PRIMARY KEY, actor TEXT NOT NULL, action TEXT NOT NULL, target TEXT NOT NULL, happened TEXT NOT NULL);
-    CREATE TABLE IF NOT EXISTS dashboards (owner TEXT PRIMARY KEY, body TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 1);`);
+  db.exec(localAccounts.SCHEMA);
   const log = (actor, action, target) => {
     db.prepare("INSERT INTO activity(actor,action,target,happened) VALUES (?,?,?,?)").run(
       actor,
@@ -60,6 +75,7 @@ export function usersStore(directory = usersDirectory()) {
     }
   }
   const publicUser = (row) => ({
+    username: db.prepare("SELECT username FROM local_credentials WHERE subject=?").get(row.subject)?.username || null,
     id: row.id,
     name: row.name,
     email: row.email,
@@ -70,6 +86,51 @@ export function usersStore(directory = usersDirectory()) {
     lastSeen: row.last_seen,
   });
   return {
+    authenticate(username, password) {
+      return localAccounts.authenticate(db, username, password, file);
+    },
+    addLocal(input, actor) {
+      if (
+        typeof input.name !== "string" ||
+        !input.name.trim() ||
+        input.name.length > 120 ||
+        typeof input.email !== "string" ||
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email) ||
+        input.email.length > 254 ||
+        !["viewer", "editor", "admin"].includes(input.role)
+      )
+        throw Error("Enter a name, email and valid role.");
+      return transaction(() => {
+        const email = input.email.trim().toLowerCase();
+        if (db.prepare("SELECT id FROM users WHERE email=?").get(email))
+          throw Error("A user with this email already exists.");
+        localAccounts.createAccount(db, { ...input, name: input.name.trim(), email });
+        log(actor, "Created local user", input.name.trim());
+      });
+    },
+    resetPassword(id, password, actorSubject, actorName) {
+      const row = db.prepare("SELECT * FROM users WHERE id=?").get(id);
+      if (!row) throw Error("User not found.");
+      if (bootstrapAdmin(row.subject))
+        throw Error("Use My preferences to change the protected administrator’s password.");
+      if (row.subject === actorSubject) throw Error("Use My preferences to change your own password.");
+      transaction(() => {
+        localAccounts.resetPassword(db, row.subject, password);
+        log(actorName, "Reset local password", row.name);
+      });
+    },
+    async changePassword(subject, currentPassword, password) {
+      localAccounts.validPassword(password);
+      const row = db.prepare("SELECT username FROM local_credentials WHERE subject=?").get(subject);
+      const user = row && (await localAccounts.authenticate(db, row.username, currentPassword, file));
+      if (!user) throw Error("Current password is incorrect or sign-in is temporarily locked. Try again in a minute.");
+      transaction(() => {
+        const version = db.prepare("SELECT version FROM local_credentials WHERE subject=?").get(subject)?.version;
+        if (version !== user.localCredentialVersion) throw Error("Password changed. Sign in again.");
+        localAccounts.resetPassword(db, subject, password);
+        log(user.name, "Changed local password", user.name);
+      });
+    },
     identify({ sub, name, email, emailVerified = false }, signIn = false) {
       if (typeof sub !== "string" || !sub) throw Error("Missing identity");
       const displayName =
@@ -96,9 +157,10 @@ export function usersStore(directory = usersDirectory()) {
           );
           row = db.prepare("SELECT * FROM users WHERE id=?").get(id);
         }
+        const local = db.prepare("SELECT subject FROM local_credentials WHERE subject=?").get(sub);
         db.prepare("UPDATE users SET name=?,email=?,last_seen=? WHERE id=?").run(
-          displayName,
-          address,
+          local ? row.name : displayName,
+          local ? row.email : address,
           new Date().toISOString(),
           row.id,
         );

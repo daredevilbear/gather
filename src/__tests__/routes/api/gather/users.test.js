@@ -5,7 +5,7 @@ import { usersStore } from "utils/gather/users-store";
 import { beforeEach, expect, it, vi } from "vitest";
 vi.mock("next-auth/jwt", () => ({ getToken: vi.fn() }));
 vi.mock("utils/gather/admin", () => ({ administrator: vi.fn(), validEditorOrigin: vi.fn() }));
-vi.mock("utils/gather/users-store", () => ({ usersStore: vi.fn() }));
+vi.mock("utils/gather/users-store", () => ({ usersStore: vi.fn(), localAccountsEnabled: () => false }));
 const store = {
   identify: vi.fn(() => ({ name: "Admin" })),
   list: vi.fn(() => []),

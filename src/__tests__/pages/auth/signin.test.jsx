@@ -207,9 +207,7 @@ describe("pages/auth/signin", () => {
 
   it("uses the Gather provider for automatic sign-in", async () => {
     authOptionsMock.mockReturnValueOnce({
-      providers: [
-        { id: "gather-oidc", name: "Gather OIDC", type: "oauth" },
-      ],
+      providers: [{ id: "gather-oidc", name: "Gather OIDC", type: "oauth" }],
     });
     getSettingsMock.mockReturnValueOnce({ theme: "dark" });
     const { props } = await getServerSideProps({});
@@ -251,5 +249,25 @@ describe("pages/auth/signin", () => {
     });
     // These props get serialized into the sign-in page, which is unauthenticated
     expect(JSON.stringify(res.props)).not.toMatch(/canary-client-secret|canary-client-id|oidc\.example/);
+  });
+});
+
+it("submits the local username and password without OIDC auto-login", async () => {
+  const { fireEvent } = await import("@testing-library/react");
+  render(
+    <SignInPage
+      providers={{ local: { id: "local", name: "Local accounts", type: "credentials" } }}
+      settings={SETTINGS}
+      autoLogin
+    />,
+  );
+  fireEvent.change(screen.getByLabelText("Username"), { target: { value: "alice" } });
+  fireEvent.change(screen.getByLabelText("Password"), { target: { value: "Alice-long-password" } });
+  fireEvent.click(screen.getByRole("button", { name: /Sign in →/ }));
+  expect(signInMock).toHaveBeenCalledWith("local", {
+    redirect: true,
+    callbackUrl: "/",
+    username: "alice",
+    password: "Alice-long-password",
   });
 });

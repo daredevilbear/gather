@@ -203,3 +203,65 @@ it("rejects a mixed-revision snapshot during concurrent activation", () => {
   db.close();
   expect(() => candidate(input, "admin")).toThrow(/changed/);
 });
+
+it("supports local-account system changes without OIDC discovery or secret disclosure", async () => {
+  const localRecord = {
+    ...original,
+    env: {
+      GATHER_EXTERNAL_URL: original.env.GATHER_EXTERNAL_URL,
+      GATHER_LOCAL_ACCOUNTS_ENABLED: "true",
+      GATHER_ADMIN_IDS: "local:admin",
+      GATHER_AUTH_SECRET: "session-secret",
+    },
+  };
+  const db = database.open(path.join(dir, "app/settings.sqlite"), false);
+  db.prepare("UPDATE records SET envelope=? WHERE slot='active'").run(
+    JSON.stringify(vault.seal(localRecord, key, "app")),
+  );
+  db.close();
+  expect(publicConfig()).toMatchObject({ localLogin: true, issuer: "", clientSecretSet: false });
+  expect(JSON.stringify(publicConfig())).not.toContain("session-secret");
+  const localInput = { ...input, issuer: "", clientId: "", admins: ["local:admin"] };
+  const next = candidate(localInput, "local:admin");
+  const fetcher = vi
+    .fn()
+    .mockResolvedValueOnce({ ok: true })
+    .mockResolvedValueOnce({ ok: true, body: { cancel: vi.fn() } });
+  vi.stubGlobal("fetch", fetcher);
+  vi.stubEnv("GATHER_CONFIG_DIR", dir);
+  expect(await checkConnections(next)).toContain("Local accounts");
+  expect(fetcher).toHaveBeenCalledTimes(2);
+  expect(fetcher.mock.calls[0][0]).toBe(input.ntfyUrl + "/v1/health");
+  expect(() => candidate({ ...localInput, admins: ["another"] }, "local:admin")).toThrow("current administrator");
+  expect(() => candidate({ ...localInput, issuer: input.issuer }, "local:admin")).toThrow("local accounts");
+});
+it("uses OIDC system settings and discovery after an operator adds OIDC to a local installation", async () => {
+  const migrated = {
+    ...original,
+    env: { ...original.env, GATHER_LOCAL_ACCOUNTS_ENABLED: "true" },
+  };
+  const db = database.open(path.join(dir, "app/settings.sqlite"), false);
+  db.prepare("UPDATE records SET envelope=? WHERE slot='active'").run(JSON.stringify(vault.seal(migrated, key, "app")));
+  db.close();
+  expect(publicConfig()).toMatchObject({ localLogin: false, issuer: input.issuer, clientSecretSet: true });
+  const next = candidate(input, "admin");
+  const fetcher = vi
+    .fn()
+    .mockResolvedValueOnce({
+      ok: true,
+      text: async () =>
+        JSON.stringify({
+          issuer: input.issuer,
+          authorization_endpoint: input.issuer + "/authorize",
+          token_endpoint: input.issuer + "/token",
+          jwks_uri: input.issuer + "/jwks",
+        }),
+    })
+    .mockResolvedValueOnce({ ok: true })
+    .mockResolvedValueOnce({ ok: true, body: { cancel: vi.fn() } });
+  vi.stubGlobal("fetch", fetcher);
+  vi.stubEnv("GATHER_CONFIG_DIR", dir);
+  expect(await checkConnections(next)).toContain("OIDC");
+  expect(fetcher).toHaveBeenCalledTimes(3);
+  expect(fetcher.mock.calls[0][0]).toBe(input.issuer + "/.well-known/openid-configuration");
+});

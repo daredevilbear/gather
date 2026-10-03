@@ -1,15 +1,15 @@
 import { createHash, generateKeyPairSync, randomUUID, sign } from "node:crypto";
+import fs from "node:fs";
 import http from "node:http";
+import os from "node:os";
+import path from "node:path";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("utils/gather/users-store", () => ({
-  userAccess: () => ({ enabled: true, role: "admin" }),
-  usersStore: () => ({ identify() {}, close() {} }),
-}));
 vi.mock("utils/logger", () => ({ default: () => ({ debug() {}, warn() {}, error() {} }) }));
 
 const servers = [];
+const directories = [];
 afterEach(async () => {
   vi.unstubAllEnvs();
   await Promise.all(
@@ -21,6 +21,7 @@ afterEach(async () => {
         }),
     ),
   );
+  for (const dir of directories.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
 });
 async function listen(handler) {
   const server = http.createServer((req, res) =>
@@ -48,12 +49,15 @@ const json = (res, value) => {
 
 // Real NextAuth handlers and a local OIDC issuer exercise code exchange, redirect
 // URI matching, PKCE, state, nonce, signed ID tokens and the resulting session.
-// Only account persistence is mocked; no live IdP or deployed credentials are used.
+// Account persistence uses a real disposable SQLite database. No live IdP or
+// deployed credentials are used; each case starts locally, then enables OIDC.
 describe("Gather OIDC callback", () => {
   it.each([
     ["gather-oidc", "gather-oidc"],
     [undefined, "gather-oidc"],
-  ])("completes SSO with selection %s through callback %s", async (selection, providerId) => {
+  ])("switches local accounts to SSO with selection %s through callback %s", async (selection, providerId) => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "gather-oidc-transition-"));
+    directories.push(dir);
     const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
     const jwk = { ...publicKey.export({ format: "jwk" }), kid: "test-key", alg: "RS256", use: "sig" };
     const codes = new Map();
@@ -154,31 +158,103 @@ describe("Gather OIDC callback", () => {
       GATHER_EXTERNAL_URL: appOrigin,
       NEXTAUTH_URL: appOrigin,
       NEXTAUTH_SECRET: "disposable-session-secret-at-least-32-characters",
-      GATHER_OIDC_ISSUER: issuer,
-      GATHER_OIDC_CLIENT_ID: "test-client",
-      GATHER_OIDC_CLIENT_SECRET: "test-client-secret",
+      GATHER_CONFIG_DIR: dir,
+      GATHER_AUTH_PASSWORD: "",
+      GATHER_LOCAL_ACCOUNTS_ENABLED: "true",
+      GATHER_OIDC_ISSUER: "",
+      GATHER_OIDC_CLIENT_ID: "",
+      GATHER_OIDC_CLIENT_SECRET: "",
       GATHER_OIDC_PROVIDER_ID: selection,
     }))
       vi.stubEnv(key, value);
     vi.resetModules();
+    const { usersStore } = await import("utils/gather/users-store");
+    const store = usersStore();
+    let localIdentity, localUser;
+    try {
+      store.addLocal(
+        {
+          name: "Local administrator",
+          email: "admin@example.test",
+          username: "admin",
+          password: "Disposable-local-password",
+          role: "admin",
+        },
+        "Setup",
+      );
+      localIdentity = (await store.authenticate("admin", "Disposable-local-password")).id;
+      localUser = store.list()[0];
+    } finally {
+      store.close();
+    }
+    vi.stubEnv("GATHER_ADMIN_IDS", localIdentity);
     authHandler = (await import("pages/api/auth/[...nextauth]")).default;
     const cookies = new Map();
-    async function request(url, options = {}) {
+    async function request(url, options = {}, jar = cookies) {
       const response = await fetch(url, {
         ...options,
         redirect: "manual",
         headers: {
           ...options.headers,
-          Cookie: [...cookies].map(([key, value]) => key + "=" + value).join("; "),
+          Cookie: [...jar].map(([key, value]) => key + "=" + value).join("; "),
         },
       });
       for (const value of response.headers.getSetCookie()) {
         const pair = value.split(";", 1)[0],
           index = pair.indexOf("=");
-        cookies.set(pair.slice(0, index), pair.slice(index + 1));
+        jar.set(pair.slice(0, index), pair.slice(index + 1));
       }
       return response;
     }
+    const localCookies = new Map();
+    const localCsrf = await (await request(appOrigin + "/api/auth/csrf", {}, localCookies)).json();
+    await request(
+      appOrigin + "/api/auth/callback/local",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          username: "admin",
+          password: "Disposable-local-password",
+          csrfToken: localCsrf.csrfToken,
+          callbackUrl: appOrigin + "/",
+          json: "true",
+        }).toString(),
+      },
+      localCookies,
+    );
+    expect((await (await request(appOrigin + "/api/auth/session", {}, localCookies)).json()).user).toMatchObject({
+      role: "admin",
+      gatherIdentity: localIdentity,
+    });
+    // A partial configuration must fail closed before the operator completes it.
+    vi.stubEnv("GATHER_OIDC_ISSUER", issuer);
+    vi.resetModules();
+    await expect(import("pages/api/auth/[...nextauth]")).rejects.toThrow("required settings are missing");
+    vi.stubEnv("GATHER_OIDC_CLIENT_ID", "test-client");
+    vi.stubEnv("GATHER_OIDC_CLIENT_SECRET", "test-client-secret");
+    vi.stubEnv("GATHER_ADMIN_IDS", "test-admin");
+    vi.resetModules();
+    authHandler = (await import("pages/api/auth/[...nextauth]")).default;
+    expect(Object.keys(await (await request(appOrigin + "/api/auth/providers")).json())).toEqual([providerId]);
+    expect((await (await request(appOrigin + "/api/auth/session", {}, localCookies)).json()).user).toBeNull();
+    const blockedLocal = await request(
+      appOrigin + "/api/auth/callback/local",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          username: "admin",
+          password: "Disposable-local-password",
+          csrfToken: localCsrf.csrfToken,
+          callbackUrl: appOrigin + "/",
+          json: "true",
+        }).toString(),
+      },
+      localCookies,
+    );
+    expect(blockedLocal.status).toBe(400);
+    expect((await (await request(appOrigin + "/api/auth/session", {}, localCookies)).json()).user).toBeNull();
     const csrf = await (await request(appOrigin + "/api/auth/csrf")).json();
     const login = await request(appOrigin + "/api/auth/signin/" + providerId, {
       method: "POST",
@@ -211,6 +287,48 @@ describe("Gather OIDC callback", () => {
       name: "Gather administrator",
       gatherIdentity: "test-admin",
       emailVerified: true,
+      role: "admin",
+    });
+    const persisted = usersStore();
+    try {
+      expect(persisted.list().find((user) => user.username === "admin")).toMatchObject({
+        id: localUser.id,
+        name: localUser.name,
+        enabled: true,
+      });
+      // Matching email must not merge the OIDC identity into the local account.
+      expect(persisted.list()).toHaveLength(2);
+      expect(persisted.list().find((user) => user.username === null).id).not.toBe(localUser.id);
+    } finally {
+      persisted.close();
+    }
+    // Operator rollback preserves the local account but rejects OIDC cookies.
+    for (const name of ["GATHER_OIDC_ISSUER", "GATHER_OIDC_CLIENT_ID", "GATHER_OIDC_CLIENT_SECRET"])
+      vi.stubEnv(name, "");
+    vi.stubEnv("GATHER_ADMIN_IDS", localIdentity);
+    vi.resetModules();
+    authHandler = (await import("pages/api/auth/[...nextauth]")).default;
+    expect(Object.keys(await (await request(appOrigin + "/api/auth/providers")).json())).toEqual(["local"]);
+    expect((await (await request(appOrigin + "/api/auth/session")).json()).user).toBeNull();
+    const restoredCsrf = await (await request(appOrigin + "/api/auth/csrf", {}, localCookies)).json();
+    await request(
+      appOrigin + "/api/auth/callback/local",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          username: "admin",
+          password: "Disposable-local-password",
+          csrfToken: restoredCsrf.csrfToken,
+          callbackUrl: appOrigin + "/",
+          json: "true",
+        }).toString(),
+      },
+      localCookies,
+    );
+    expect((await (await request(appOrigin + "/api/auth/session", {}, localCookies)).json()).user).toMatchObject({
+      role: "admin",
+      gatherIdentity: localIdentity,
     });
   });
 });

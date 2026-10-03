@@ -13,6 +13,7 @@ vi.mock("utils/gather/admin", () => ({ validEditorOrigin: vi.fn(() => true) }));
 vi.mock("utils/gather/users-store", async (original) => ({
   ...(await original()),
   userAccess: vi.fn(() => ({ enabled: true, role: "editor" })),
+  sessionAccess: token => userAccess(token?.sub),
 }));
 vi.mock("utils/config/config", () => ({ getSettings: () => ({ title: "Shared" }) }));
 vi.mock("utils/config/api-response", () => ({
