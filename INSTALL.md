@@ -1,13 +1,30 @@
-# Install Gather 1.0
+# Install Gather 1.0.2
 
 Use Docker Engine with the Docker Compose plugin on `linux/amd64` or
 `linux/arm64`. Runtime configuration uses `GATHER_*` environment names.
 Existing installations must follow the [configuration migration](README.md#configuration-migration) before upgrading to this build.
 
-## Dashboard with authentication
+## Separate local accounts or OIDC
 
-Use the `v1.0.0` source checkout with the `1.0.0` images, or pin the immutable
-digests recorded in the release notes. The example selects `1.0.0` by default.
+The [encrypted Compose setup](https://gather.daredevilbear.dev/gather/setup/)
+initializes a protected administrator and the complete dashboard, notification
+and recovery stack. With all three OIDC settings absent, supply
+`GATHER_LOCAL_ADMIN_USERNAME` (default `admin`) and a unique
+`GATHER_LOCAL_ADMIN_PASSWORD` of 12–1024 characters. There is no default password.
+Additional local accounts are created in Users & access; users change their own
+passwords in My preferences. Credentials use individually salted scrypt hashes in
+`config/.gather-users.sqlite`; include it in full backups.
+
+Complete OIDC configuration selects OIDC alone; partial configuration is rejected.
+Existing shared-password accounts remain supported. Changing from local accounts
+to OIDC requires an operator migration and restart, and does not transfer roles
+or dashboards between identities. Editing seed inputs does not change an existing
+installation. See [System settings](https://gather.daredevilbear.dev/gather/system/#adding-oidc-after-local-setup).
+
+## Dashboard with shared-password authentication
+
+Use the `v1.0.2` source checkout with the `1.0.2` images, or pin the immutable
+digests recorded in the release notes. The example selects `1.0.2` by default.
 From the repository root:
 
 ```sh
@@ -23,7 +40,7 @@ openssl rand -base64 32  # use a different value as GATHER_AUTH_PASSWORD
 Edit `.env` with the two generated secrets, your external HTTPS origin and exact
 hostname. The sample uses password authentication with the shared `gather`
 identity; `GATHER_ADMIN_IDS=gather` grants that identity administrator access.
-For distinct users, use OIDC as described below.
+For distinct users, use the encrypted local-account setup or OIDC as described below.
 
 ```sh
 docker compose --env-file .env -f deploy/compose.example.yaml config --quiet
@@ -69,7 +86,7 @@ before adopting the instance. See [Setup](https://gather.daredevilbear.dev/gathe
 ## Optional components
 
 The dashboard runs without either companion. To enable the inbox and Web Push,
-use `ghcr.io/daredevilbear/gather-notifications:1.0.0` and follow
+use `ghcr.io/daredevilbear/gather-notifications:1.0.2` and follow
 [Notifications](https://gather.daredevilbear.dev/gather/notifications/) for ntfy,
 authenticated same-origin `/gather-notifications/` routing, session lookup,
 origin validation, and a writable `/data` volume for its unprivileged UID 1001.
@@ -84,7 +101,7 @@ key at `/run/secrets/gather-app-key` and follow
 For encrypted system settings and supervised authentication rollback, follow
 [System settings](https://gather.daredevilbear.dev/gather/system/), including
 separate keys, `/system-data` persistence, and the optional controller's authority.
-Use `ghcr.io/daredevilbear/gather-system-controller:1.0.0`; review
+Use `ghcr.io/daredevilbear/gather-system-controller:1.0.2`; review
 [the controller example](system/compose-controller.example.yaml) before mounting
 a Docker socket. These components require operator configuration and are not
 started by the dashboard example.
