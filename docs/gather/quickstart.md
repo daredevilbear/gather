@@ -1,8 +1,9 @@
 # Encrypted single-file quickstart
 
 Use `deploy/compose.quickstart.yaml` with a released app image containing
-`/app/system/initialize-quickstart.cjs`. Select the compatible immutable app digest
-from release evidence and set `GATHER_IMAGE` in your private `.env`. Original 1.0.0
+`/app/system/initialize-quickstart.cjs`. The manifest defaults to the tested 1.0.1 app, companion and controller digests.
+Keep the shown `GATHER_IMAGE` in your private `.env` so the socket-group command
+uses the same app. Original 1.0.0
 and the dev digest `020c8556…` predate this command and cannot run this quickstart.
 The companion, controller, gateway and broker are pinned independently in Compose.
 
@@ -12,7 +13,7 @@ Copy only `deploy/compose.quickstart.yaml` into a fresh private installation dir
 
 ```dotenv
 GATHER_PROJECT=gather-encrypted
-GATHER_IMAGE=ghcr.io/daredevilbear/gather@sha256:<released-compatible-digest>
+GATHER_IMAGE=ghcr.io/daredevilbear/gather@sha256:79325ebb91823898eb0737d767b615473dcecaee348b0769c165eae456ae8dbd
 GATHER_DOMAIN=your-gather-hostname
 GATHER_OIDC_ISSUER=https://your-identity-provider
 GATHER_OIDC_CLIENT_ID=your-client-id
@@ -26,7 +27,7 @@ Use a real HTTPS hostname/provider accessible to the browser and containers. Reg
 Detect the active Docker engine's socket group before Compose validates required inputs:
 
 ```sh
-export GATHER_IMAGE=ghcr.io/daredevilbear/gather@sha256:<released-compatible-digest>
+export GATHER_IMAGE=ghcr.io/daredevilbear/gather@sha256:79325ebb91823898eb0737d767b615473dcecaee348b0769c165eae456ae8dbd
 export DOCKER_SOCKET_GID=$(docker run --rm --network none --user 0:0 --entrypoint sh \
   -v /var/run/docker.sock:/engine.sock:ro "$GATHER_IMAGE" \
   -c "stat -c '%g' /engine.sock")
@@ -42,4 +43,4 @@ Initialization creates distinct app/notification keys, encrypted app/notificatio
 
 The Docker socket grants the controller substantial engine control. Only use this manifest's unique named containers and the documented controller targets; do not point it at existing deployments. Choose a subnet that does not overlap Docker, LAN or VPN ranges. Keep state private, back up matching keys and databases together, and retain Caddy volumes for certificate continuity.
 
-`sh scripts/ci/smoke-container.sh <image>` checks fresh encrypted boot, idempotence, schema/integrity, key permissions, wrong-key rejection and partial-state refusal. `sh scripts/ci/test-quickstart.sh <image>` tests the exact manifest in a fresh private directory with host ports removed, all five services and verified HTTPS. It preserves state and removes only its own containers/network. Choose an unused test subnet through `GATHER_STANDALONE_SUBNET` when necessary. OS push and physical-device badges remain separately unverified.
+`sh scripts/ci/smoke-container.sh <image>` checks fresh encrypted boot, idempotence, schema/integrity, key permissions, wrong-key rejection and partial-state refusal. `sh scripts/ci/test-quickstart.sh <image> [absolute-manifest-path]` tests the exact manifest in a fresh private directory with host ports removed, all five services and verified HTTPS. It preserves state and removes only its own containers/network. Choose an unused test subnet through `GATHER_STANDALONE_SUBNET` when necessary. OS push and physical-device badges remain separately unverified.

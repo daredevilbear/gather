@@ -3,7 +3,7 @@
 name: ${GATHER_PROJECT:-gather-encrypted}
 services:
   gather:
-    image: ${GATHER_IMAGE:?Set the released app image digest containing initialize-quickstart.cjs}
+    image: ${GATHER_IMAGE:-ghcr.io/daredevilbear/gather@sha256:79325ebb91823898eb0737d767b615473dcecaee348b0769c165eae456ae8dbd}
     container_name: ${GATHER_PROJECT:-gather-encrypted}-dashboard
     restart: unless-stopped
     user: 1001:1001
@@ -22,7 +22,7 @@ services:
       - ./keys/app.key:/run/secrets/gather-app-key:ro
       - ./keys/notification.key:/run/secrets/gather-notification-key:ro
   notifications:
-    image: ghcr.io/daredevilbear/gather-notifications@sha256:a38b93fd11bacb5f0037dd244fc50381fabc7922dd9f427ac3ba46ae9a1143f7
+    image: ghcr.io/daredevilbear/gather-notifications@sha256:db20a7f7fbcc6a4ba1e68d4d105a864964a387bad04deda2e9f71799f1d4d7e4
     container_name: ${GATHER_PROJECT:-gather-encrypted}-notifications
     restart: unless-stopped
     user: 1001:1001
@@ -55,7 +55,7 @@ services:
       retries: 12
       start_period: 30s
   system-controller:
-    image: ghcr.io/daredevilbear/gather-system-controller@sha256:162dd362dc6eb77e3de768fd0504279cc76e1b150e2fbf1d137c7f74f0f68655
+    image: ghcr.io/daredevilbear/gather-system-controller@sha256:6a9e0220338cd77ab661224fb8f0422653c1238e87c320e6585c7b262d42dba0
     container_name: ${GATHER_PROJECT:-gather-encrypted}-controller
     restart: unless-stopped
     user: 1001:1001
@@ -131,7 +131,7 @@ services:
       retries: 12
       start_period: 10s
   initialize:
-    image: ${GATHER_IMAGE:?Set the released app image digest containing initialize-quickstart.cjs}
+    image: ${GATHER_IMAGE:-ghcr.io/daredevilbear/gather@sha256:79325ebb91823898eb0737d767b615473dcecaee348b0769c165eae456ae8dbd}
     profiles:
       - setup
     user: '0:0'
@@ -166,7 +166,7 @@ services:
       - source: broker-initialize
         target: /setup/ntfy-initialize.sh
   publish-test:
-    image: ${GATHER_IMAGE:?Set the released app image digest containing initialize-quickstart.cjs}
+    image: ${GATHER_IMAGE:-ghcr.io/daredevilbear/gather@sha256:79325ebb91823898eb0737d767b615473dcecaee348b0769c165eae456ae8dbd}
     profiles:
       - setup
     user: '0:0'
