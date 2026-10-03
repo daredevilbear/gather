@@ -2,7 +2,7 @@ import { getToken } from "next-auth/jwt";
 
 import { validEditorOrigin } from "utils/gather/admin";
 import { validPersonalLayout } from "utils/gather/personal-layout";
-import { userAccess, usersStore } from "utils/gather/users-store";
+import { sessionAccess, usersStore } from "utils/gather/users-store";
 
 export const config = { api: { bodyParser: { sizeLimit: "128kb" } } };
 export function validDashboard(value) {
@@ -45,7 +45,7 @@ export default async function handler(req, res) {
   if (!token?.sub) return res.status(401).json({ error: "Sign in to open your dashboard." });
   let store;
   try {
-    const access = userAccess(token.sub);
+    const access = sessionAccess(token);
     if (!access.enabled) return res.status(403).json({ error: "Your Gather access is disabled." });
     if (!["GET", "POST"].includes(req.method)) {
       res.setHeader("Allow", "GET, POST");

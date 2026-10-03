@@ -4,7 +4,7 @@ import http from "node:http";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("utils/gather/users-store", () => ({
-  userAccess: () => ({ enabled: true, role: "admin" }),
+  sessionAccess: () => ({ enabled: true, role: "admin" }),
   usersStore: () => ({ identify() {}, close() {} }),
 }));
 vi.mock("utils/logger", () => ({ default: () => ({ debug() {}, warn() {}, error() {} }) }));

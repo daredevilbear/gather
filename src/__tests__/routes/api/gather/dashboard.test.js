@@ -1,11 +1,11 @@
 import { getToken } from "next-auth/jwt";
 import handler, { validDashboard } from "pages/api/gather/dashboard";
 import { validEditorOrigin } from "utils/gather/admin";
-import { userAccess, usersStore } from "utils/gather/users-store";
+import { sessionAccess, usersStore } from "utils/gather/users-store";
 import { beforeEach, expect, it, vi } from "vitest";
 vi.mock("next-auth/jwt", () => ({ getToken: vi.fn() }));
 vi.mock("utils/gather/admin", () => ({ validEditorOrigin: vi.fn() }));
-vi.mock("utils/gather/users-store", () => ({ userAccess: vi.fn(), usersStore: vi.fn() }));
+vi.mock("utils/gather/users-store", () => ({ sessionAccess: vi.fn(), usersStore: vi.fn() }));
 const store = {
   identify: vi.fn(() => ({ name: "Alice", enabled: true, role: "editor" })),
   dashboard: vi.fn(),
@@ -20,7 +20,7 @@ const response = () => {
 beforeEach(() => {
   vi.clearAllMocks();
   getToken.mockResolvedValue({ sub: "alice" });
-  userAccess.mockReturnValue({ role: "editor", enabled: true });
+  sessionAccess.mockReturnValue({ role: "editor", enabled: true });
   validEditorOrigin.mockReturnValue(true);
   usersStore.mockReturnValue(store);
 });
@@ -34,7 +34,7 @@ it("rejects viewer writes, disabled access and cross-origin writes", async () =>
     [{ role: "editor", enabled: false }, true],
     [{ role: "editor", enabled: true }, false],
   ]) {
-    userAccess.mockReturnValue(access);
+    sessionAccess.mockReturnValue(access);
     validEditorOrigin.mockReturnValue(origin);
     const r = response();
     await handler({ method: "POST", body: {} }, r);

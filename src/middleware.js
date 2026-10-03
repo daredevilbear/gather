@@ -2,7 +2,7 @@ import { getToken } from "next-auth/jwt";
 import { NextResponse } from "next/server";
 
 import { isAuthEnabled } from "utils/env";
-import { userAccess } from "utils/gather/users-store";
+import { sessionAccess } from "utils/gather/users-store";
 
 const authEnabled = isAuthEnabled();
 const authSecret = process.env.NEXTAUTH_SECRET || process.env.GATHER_AUTH_SECRET;
@@ -44,7 +44,7 @@ export async function middleware(req) {
     const token = await getToken({ req, secret: authSecret });
     if (token?.sub) {
       try {
-        if (!userAccess(token.sub).enabled)
+        if (!sessionAccess(token).enabled)
           return withPrivateCache(
             NextResponse.json({ error: "Your Gather access is disabled. Contact an administrator." }, { status: 403 }),
           );

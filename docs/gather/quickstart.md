@@ -22,11 +22,48 @@ GATHER_ADMIN_IDS=your-stable-oidc-subject
 GATHER_SUBNET=an-unused-private-subnet-in-CIDR-notation
 ```
 
-Use a real HTTPS hostname/provider accessible to the browser and containers. Register callback `https://your-gather-hostname/api/auth/callback/gather-oidc`. Discovery issuer and authorization/token/JWKS endpoints must satisfy System's same-origin HTTPS checks. Public Caddy certificate issuance also needs appropriate DNS and reachable ports 80/443. The audited Mac sample uses a separate loopback-only local-CA fixture. External DNS/ACME issuance and a real identity provider were not exercised by that fixture.
+### Local accounts instead of OIDC
+
+Local accounts require an app build containing the local-account initializer. The
+pinned 1.0.1 image above supports the OIDC quickstart; it does not include this new
+local-account feature. For source testing, build this branch with
+`docker build -t gather:local-login .` and set `GATHER_IMAGE=gather:local-login`.
+Use that image for both the initializer and app. Do not change a live deployment
+until the tested build is available on your host.
+
+Keep the hostname, project and subnet inputs. Omit all three `GATHER_OIDC_*`
+credentials and `GATHER_ADMIN_IDS`, and supply:
+
+```dotenv
+GATHER_LOCAL_ADMIN_USERNAME=admin
+GATHER_LOCAL_ADMIN_PASSWORD=your-unique-password-of-at-least-12-characters
+```
+
+There is no default password. Initialization creates one protected administrator;
+Gather generates its stable identity and stores it in the encrypted administrator
+allowlist. Passwords are individually salted scrypt hashes in
+`config/.gather-users.sqlite`; the plaintext seed password is not persisted in the
+vault or account database. First-use inputs in `.env` and helper container metadata
+remain visible to Docker operators. Existing complete state is never reseeded by
+editing these inputs or rerunning initialization.
+
+After signing in, create individual usernames, passwords and roles in **Users &
+access**. Users change their own password in **My preferences**. Administrators can
+reset other users' passwords; changing or resetting a password invalidates existing
+sessions. Five failed password attempts lock an account for one minute. Back up the
+account database alongside the matching configuration and system keys.
+
+Supplying all three OIDC credentials selects OIDC alone. Supplying only some is an
+error, even if a local password was supplied. Existing explicitly configured
+`GATHER_AUTH_PASSWORD` installations retain their single shared account; they do
+not gain separate user identities automatically.
+
+For OIDC, use a real HTTPS hostname/provider accessible to the browser and containers. Register callback `https://your-gather-hostname/api/auth/callback/gather-oidc` for OIDC. Discovery issuer and authorization/token/JWKS endpoints must satisfy System's same-origin HTTPS checks. Public Caddy certificate issuance also needs appropriate DNS and reachable ports 80/443. The audited Mac sample uses a separate loopback-only local-CA fixture. External DNS/ACME issuance and a real identity provider were not exercised by that fixture.
 
 Detect the active Docker engine's socket group before Compose validates required inputs:
 
 ```sh
+# Set GATHER_IMAGE to the same app image selected in your .env.
 export GATHER_IMAGE=ghcr.io/daredevilbear/gather@sha256:79325ebb91823898eb0737d767b615473dcecaee348b0769c165eae456ae8dbd
 export DOCKER_SOCKET_GID=$(docker run --rm --network none --user 0:0 --entrypoint sh \
   -v /var/run/docker.sock:/engine.sock:ro "$GATHER_IMAGE" \
@@ -39,7 +76,7 @@ docker compose up -d --wait --wait-timeout 240
 
 Save the observed group in the private `.env` for subsequent invocations. These commands initialize the encrypted state and broker before mounting key files in long-running services. Initializer reruns retain complete state and refuse partial state; editing first-use inputs afterward does not update the encrypted record. Apply later connection changes through protected System settings and confirm after fresh sign-in, or allow recovery to roll back.
 
-Initialization creates distinct app/notification keys, encrypted app/notification/control databases, dashboard storage and distinct topic-scoped reader/publisher credentials. The first-use client secret remains plaintext in `.env` and helper container environment metadata visible to Docker operators even though persisted system records are encrypted. Protect and retire seed input appropriately after provisioning; the current manifest's required interpolation means subsequent commands still need those values, a limitation to improve with a future dedicated secret-input CLI. Do not describe vault encryption as hiding first-use inputs from the host operator.
+Initialization creates distinct app/notification keys, encrypted app/notification/control databases, dashboard storage and distinct topic-scoped reader/publisher credentials. The first-use OIDC client secret or local administrator password remains plaintext in `.env` and helper container environment metadata visible to Docker operators even though persisted system records are encrypted. Protect and retire seed input appropriately after provisioning; After successful initialization, ordinary start commands no longer require seed credentials; retain a private backup if you need to rerun the initializer. Do not describe vault encryption as hiding first-use inputs from the host operator.
 
 The Docker socket grants the controller substantial engine control. Only use this manifest's unique named containers and the documented controller targets; do not point it at existing deployments. Choose a subnet that does not overlap Docker, LAN or VPN ranges. Keep state private, back up matching keys and databases together, and retain Caddy volumes for certificate continuity.
 

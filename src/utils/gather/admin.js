@@ -1,6 +1,6 @@
 import { getToken } from "next-auth/jwt";
 
-import { bootstrapAdmin, userAccess } from "./users-store";
+import { bootstrapAdmin, sessionAccess } from "./users-store";
 
 import { isAuthEnabled } from "utils/env";
 
@@ -12,8 +12,9 @@ export async function administrator(req) {
     .map((s) => s.trim())
     .filter(Boolean);
   if (!token?.sub) return false;
+  const access = sessionAccess(token);
+  if (!access.enabled) return false;
   if (allowed.includes(token.sub)) return true;
-  const access = userAccess(token.sub);
   return access.enabled && access.role === "admin";
 }
 export function validEditorOrigin(req) {

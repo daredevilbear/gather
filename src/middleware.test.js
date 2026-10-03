@@ -10,7 +10,7 @@ const { NextResponse, getToken } = vi.hoisted(() => ({
 }));
 
 const { access } = vi.hoisted(() => ({ access: vi.fn(() => ({ role: "viewer", enabled: true })) }));
-vi.mock("utils/gather/users-store", () => ({ userAccess: access }));
+vi.mock("utils/gather/users-store", () => ({ sessionAccess: access }));
 
 vi.mock("next/server", () => ({ NextResponse }));
 vi.mock("next-auth/jwt", () => ({ getToken }));

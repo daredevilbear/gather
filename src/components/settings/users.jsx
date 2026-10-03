@@ -30,7 +30,10 @@ export default function Users({ preview = false, titleRef, onDirtyChange }) {
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState(""),
     [email, setEmail] = useState(""),
-    [role, setRole] = useState("editor");
+    [role, setRole] = useState("editor"),
+    [username, setUsername] = useState(""),
+    [password, setPassword] = useState(""),
+    [resetting, setResetting] = useState(null);
   const [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [review, setReview] = useState(null);
@@ -49,7 +52,7 @@ export default function Users({ preview = false, titleRef, onDirtyChange }) {
     wasAdding.current = adding;
   }, [adding, review]);
   useEffect(() => {
-    const dirty = Boolean(name || email || review);
+    const dirty = Boolean(name || email || username || password || review);
     onDirtyChange?.(dirty);
     if (!dirty) return;
     const warn = (event) => {
@@ -58,7 +61,7 @@ export default function Users({ preview = false, titleRef, onDirtyChange }) {
     };
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
-  }, [name, email, review, onDirtyChange]);
+  }, [name, email, username, password, review, onDirtyChange]);
   async function request(body) {
     const response = await fetch("/api/gather/users", {
       credentials: "same-origin",
@@ -105,6 +108,9 @@ export default function Users({ preview = false, titleRef, onDirtyChange }) {
       setAdding(false);
       setName("");
       setEmail("");
+      setUsername("");
+      setPassword("");
+      setResetting(null);
       setReview(null);
     } catch (e) {
       setError(e.message);
@@ -115,7 +121,7 @@ export default function Users({ preview = false, titleRef, onDirtyChange }) {
   const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
   const matches = data.users.filter(
     (user) =>
-      terms.every((term) => `${user.name} ${user.email}`.toLowerCase().includes(term)) &&
+      terms.every((term) => `${user.name} ${user.email} ${user.username || ""}`.toLowerCase().includes(term)) &&
       (roleFilter === "all" || user.role === roleFilter) &&
       (filter === "all" ||
         (filter === "disabled"
@@ -170,12 +176,12 @@ export default function Users({ preview = false, titleRef, onDirtyChange }) {
       )}
       {adding && (
         <section id="add-user-form" className={styles.card}>
-          <h3>Prepare a user’s access</h3>
+          <h3>{data.localLogin ? "Create a local account" : "Prepare a user’s access"}</h3>
           {!data.canAddUsers && <p>Individual users require OIDC sign-in. A shared password represents one account.</p>}
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              setReview({ action: "add", name, email, role });
+              setReview({ action: "add", name, email, role, ...(data.localLogin ? { username, password } : {}) });
             }}
           >
             <fieldset disabled={busy || !data.canAddUsers}>
@@ -187,6 +193,37 @@ export default function Users({ preview = false, titleRef, onDirtyChange }) {
                 Email
                 <input required type="email" maxLength={254} value={email} onChange={(e) => setEmail(e.target.value)} />
               </label>
+              {data.localLogin && (
+                <>
+                  <label>
+                    Username
+                    <input
+                      required
+                      minLength={3}
+                      maxLength={80}
+                      autoComplete="off"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Initial password
+                    <input
+                      type="password"
+                      required
+                      minLength={12}
+                      maxLength={1024}
+                      autoComplete="new-password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                  </label>
+                  <p>
+                    Use at least 12 characters. Give the user their credentials separately; Gather sends no invitation.
+                    They can change their password in My preferences.
+                  </p>
+                </>
+              )}
               <label>
                 Role
                 <select value={role} onChange={(e) => setRole(e.target.value)}>
@@ -204,6 +241,8 @@ export default function Users({ preview = false, titleRef, onDirtyChange }) {
                   setAdding(false);
                   setName("");
                   setEmail("");
+                  setUsername("");
+                  setPassword("");
                   setReview(null);
                 }}
               >
@@ -219,16 +258,19 @@ export default function Users({ preview = false, titleRef, onDirtyChange }) {
             Review access change
           </h3>
           <p>
-            {review.name} will have {review.role} access
-            {review.enabled === false ? " with sign-in access disabled" : ""}.
+            {review.action === "resetPassword"
+              ? `Reset the password for ${review.name}. Existing sessions will be signed out.`
+              : `${review.name} will have ${review.role} access${review.enabled === false ? " with sign-in access disabled" : ""}.`}
           </p>
-          <p>
-            {review.role === "admin"
-              ? "This permits changing shared content, managing people and accessing managed secrets."
-              : review.role === "editor"
-                ? "This permits saving a personal layout without changing shared content or other people’s access."
-                : "This permits viewing Gather and using personal notification preferences, but not editing layouts."}
-          </p>
+          {review.action !== "resetPassword" && (
+            <p>
+              {review.role === "admin"
+                ? "This permits changing shared content, managing people and accessing managed secrets."
+                : review.role === "editor"
+                  ? "This permits saving a personal layout without changing shared content or other people’s access."
+                  : "This permits viewing Gather and using personal notification preferences, but not editing layouts."}
+            </p>
+          )}
           <button disabled={busy} onClick={() => save(review)}>
             Confirm access change
           </button>
@@ -237,10 +279,17 @@ export default function Users({ preview = false, titleRef, onDirtyChange }) {
           </button>
         </section>
       )}
-      <p>
-        People sign in through your existing identity provider. Add their verified email here to prepare their role;
-        this does not create an identity-provider account or send an invitation.
-      </p>
+      {data.localLogin ? (
+        <p>
+          People sign in with their own local username and password. Local accounts keep separate dashboards and
+          notification preferences.
+        </p>
+      ) : (
+        <p>
+          People sign in through your existing identity provider. Add their verified email here to prepare their role;
+          this does not create an identity-provider account or send an invitation.
+        </p>
+      )}
       {preview && (
         <p role="status">Preview users are sample accounts. Search here does not include your deployed Gather users.</p>
       )}
@@ -279,8 +328,9 @@ export default function Users({ preview = false, titleRef, onDirtyChange }) {
         </div>
         <p>
           A server administrator is the recovery account configured during setup (previously called bootstrap admin). It
-          cannot be disabled here, preventing a lockout. Its sign-in ID stays internal; use names and verified email for
-          everyday user management. A GUID is not required for adding a person.
+          cannot be disabled here, preventing a lockout. Its sign-in ID stays internal; use names and{" "}
+          {data.localLogin ? "usernames" : "verified email"} for everyday user management. A GUID is not required for
+          adding a person.
         </p>
         <p>
           Roles control Gather, not permissions inside linked services. Hidden dashboard items are a personal
@@ -290,8 +340,9 @@ export default function Users({ preview = false, titleRef, onDirtyChange }) {
       <section className={styles.card}>
         <h3>Search registered users</h3>
         <p>
-          Search accounts already known to Gather by name or email. This does not search your identity provider’s
-          directory.
+          {data.localLogin
+            ? "Search local accounts by name, email or username."
+            : "Search accounts already known to Gather by name or email. This does not search your identity provider’s directory."}
         </p>
         <div className={styles.grid}>
           <label>
@@ -384,6 +435,52 @@ export default function Users({ preview = false, titleRef, onDirtyChange }) {
               {user.enabled ? "Disable access" : "Enable access"}
             </button>
           )}
+          {data.localLogin && user.username && <p>Username: {user.username}</p>}
+          {data.localLogin &&
+            user.username &&
+            !user.protected &&
+            user.id !== data.currentUserId &&
+            (resetting === user.id ? (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setReview({ action: "resetPassword", id: user.id, name: user.name, password });
+                }}
+              >
+                <label>
+                  New password for {user.name}
+                  <input
+                    type="password"
+                    required
+                    minLength={12}
+                    maxLength={1024}
+                    autoComplete="new-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </label>
+                <button disabled={busy}>Review password reset</button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setResetting(null);
+                    setPassword("");
+                  }}
+                >
+                  Cancel password reset
+                </button>
+              </form>
+            ) : (
+              <button
+                disabled={busy || adding || Boolean(review)}
+                onClick={() => {
+                  setResetting(user.id);
+                  setPassword("");
+                }}
+              >
+                Reset password for {user.name}
+              </button>
+            ))}
           {user.lastSeen && <p>Last active: {new Date(user.lastSeen).toLocaleString()}</p>}
         </details>
       ))}

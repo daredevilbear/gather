@@ -12,6 +12,7 @@ const AUTO_LOGIN_RETRY_MS = 10000;
 
 export default function SignIn({ providers, settings, autoLogin }) {
   const router = useRouter();
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const theme = settings?.theme || "dark";
   const color = settings?.color || "slate";
@@ -189,11 +190,43 @@ export default function SignIn({ providers, settings, autoLogin }) {
                           redirect: true,
                           callbackUrl,
                           password,
+                          ...(passwordProvider?.id === "local" ? { username } : {}),
                         });
                       }}
                     >
-                      <label className="block text-sm font-medium text-gray-700 dark:text-slate-300">Password</label>
+                      <p className="text-sm text-gray-600 dark:text-slate-300">
+                        {passwordProvider.id === "local"
+                          ? "Sign in with your local Gather account."
+                          : "Sign in with the shared Gather password."}
+                      </p>
+                      {passwordProvider.id === "local" && (
+                        <>
+                          <label
+                            htmlFor="gather-username"
+                            className="block text-sm font-medium text-gray-700 dark:text-slate-300"
+                          >
+                            Username
+                          </label>
+                          <input
+                            id="gather-username"
+                            name="username"
+                            value={username}
+                            onChange={(event) => setUsername(event.target.value)}
+                            autoComplete="username"
+                            maxLength={80}
+                            required
+                            className="w-full rounded-xl border border-slate-200 bg-white/90 px-4 py-3 text-sm text-gray-900 dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-100"
+                          />
+                        </>
+                      )}
+                      <label
+                        htmlFor="gather-password"
+                        className="block text-sm font-medium text-gray-700 dark:text-slate-300"
+                      >
+                        Password
+                      </label>
                       <input
+                        id="gather-password"
                         type="password"
                         name="password"
                         value={password}
@@ -225,7 +258,7 @@ export default function SignIn({ providers, settings, autoLogin }) {
                 </div>
                 {hasPasswordProvider && error && (
                   <p className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-800/60 dark:bg-red-950/40 dark:text-red-200">
-                    Invalid password. Please try again.
+                    Invalid sign-in. Check your credentials, or try again in a minute.
                   </p>
                 )}
               </div>
