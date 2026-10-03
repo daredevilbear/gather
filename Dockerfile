@@ -10,7 +10,7 @@ COPY . .
 
 ARG CI
 ARG BUILDTIME
-ARG VERSION=1.0.0
+ARG VERSION=1.0.1
 ARG REVISION=unknown
 ENV CI=$CI
 
@@ -31,7 +31,7 @@ RUN if [ "$CI" != "true" ]; then \
 # Runtime Stage
 # =========================
 FROM node:22-alpine AS runner
-ARG VERSION=1.0.0
+ARG VERSION=1.0.1
 ARG REVISION=unknown
 ARG BUILDTIME
 LABEL org.opencontainers.image.title="Gather"
@@ -58,7 +58,13 @@ COPY --link --from=builder --chown=1000:1000 /app/.next/static/ ./.next/static
 
 RUN apk add --no-cache su-exec iputils-ping shadow
 
-COPY system/bootstrap.cjs system/database.cjs system/vault.cjs ./system/
+COPY system/bootstrap.cjs system/database.cjs system/vault.cjs system/initialize-quickstart.cjs ./system/
+
+# The supported Compose installation runs as UID 1001. Only this runtime cache
+# needs write access; leave the rest of the application image unchanged.
+RUN mkdir -p /app/.next/server/route-cache && \
+    chown 1001:1001 /app/.next/server/route-cache && \
+    chmod 700 /app/.next/server/route-cache
 
 USER root
 

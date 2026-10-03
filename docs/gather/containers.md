@@ -54,7 +54,10 @@ CI installs with the frozen pnpm lockfile, runs the entire Vitest suite,
 recovery-controller transaction tests, push-worker tests and the notification
 image's tests. All three images must build before publishing can begin. The app
 smoke test runs without network access, exposed ports, host data or a Docker
-socket; it checks startup health and unauthenticated system-settings denial.
+socket; it initializes fresh encrypted SQLite records, checks UID 1001 decryption,
+key permissions, schema/integrity, idempotence, startup health, unauthenticated
+System settings denial, wrong-key rejection and refusal to overwrite partial state.
+Private test state is retained in a unique temporary directory for diagnosis.
 
 To reproduce locally:
 

@@ -1,0 +1,14 @@
+- Documentation:
+    - Setup guide:
+        - abbr: SU
+          href: https://gather.daredevilbear.dev/gather/setup/
+          description: The sole source for this demo
+    - Layout guide:
+        - abbr: LY
+          href: https://gather.daredevilbear.dev/gather/layout/
+    - Notifications guide:
+        - abbr: NT
+          href: https://gather.daredevilbear.dev/gather/notifications/
+    - Custom API reference:
+        - abbr: API
+          href: https://gather.daredevilbear.dev/widgets/services/customapi/

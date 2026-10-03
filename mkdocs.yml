@@ -15,6 +15,7 @@ nav:
   - "Gather":
       - gather/index.md
       - gather/setup.md
+      - gather/quickstart.md
       - gather/navigation.md
       - gather/settings.md
       - gather/administration.md

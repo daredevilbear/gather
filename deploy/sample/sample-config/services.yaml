@@ -1,0 +1,275 @@
+- Home overview:
+    - Home automation:
+        href: https://localhost:8443/mock/home
+        description: Fictional home metrics · Custom API
+        siteMonitor: http://mock-services:8090/mock/health
+        widget:
+          type: customapi
+          url: http://mock-services:8090/mock/api/home
+          mappings:
+            - field: people
+              label: People home
+              format: number
+            - field: lights
+              label: Lights on
+              format: number
+            - field: switches
+              label: Switches on
+              format: number
+    - Energy and comfort:
+        href: https://localhost:8443/mock/energy
+        description: Fictional energy and temperature · Custom API
+        widget:
+          type: customapi
+          url: http://mock-services:8090/mock/api/home
+          mappings:
+            - field: watts
+              label: Power
+              format: number
+              suffix: ' W'
+            - field: temperature
+              label: Temperature
+              format: float
+              suffix: ' °C'
+            - field: energyKwh
+              label: Today
+              format: float
+              suffix: ' kWh'
+    - Service health:
+        href: https://localhost:8443/mock/status
+        description: Fictional health summary · Custom API
+        widget:
+          type: customapi
+          url: http://mock-services:8090/mock/api/health
+          mappings:
+            - field: healthy
+              label: Healthy
+              format: number
+            - field: degraded
+              label: Degraded
+              format: number
+            - field: offline
+              label: Offline
+              format: number
+- Today:
+    - Monthly calendar:
+        href: https://localhost:8443/mock/events.ics
+        description: Native Calendar widget with a generated iCal feed
+        widget:
+          type: calendar
+          view: monthly
+          showTime: true
+          timezone: America/Los_Angeles
+          integrations:
+            - type: ical
+              name: Lab calendar
+              url: http://mock-services:8090/mock/events.ics
+              color: teal
+              params:
+                showName: true
+    - Agenda:
+        href: https://localhost:8443/mock/events.ics
+        description: Native agenda view of the same generated iCal feed
+        widget:
+          type: calendar
+          view: agenda
+          maxEvents: 5
+          showTime: true
+          previousDays: 1
+          timezone: America/Los_Angeles
+          integrations:
+            - type: ical
+              name: Upcoming
+              url: http://mock-services:8090/mock/events.ics
+              color: cyan
+- Media library:
+    - Photo library:
+        href: https://localhost:8443/mock/photos
+        description: Fictional photos · Custom API
+        widget:
+          type: customapi
+          url: http://mock-services:8090/mock/api/photos
+          mappings:
+            - field: photos
+              label: Photos
+              format: number
+            - field: videos
+              label: Videos
+              format: number
+            - field: storage
+              label: Storage
+              format: bytes
+    - Movies and series:
+        href: https://localhost:8443/mock/media
+        description: Fictional media library · Custom API
+        widget:
+          type: customapi
+          url: http://mock-services:8090/mock/api/media
+          mappings:
+            - field: movies
+              label: Movies
+              format: number
+            - field: series
+              label: Series
+              format: number
+            - field: episodes
+              label: Episodes
+              format: number
+    - Music library:
+        href: https://localhost:8443/mock/music
+        description: Fictional audio collection · Custom API
+        widget:
+          type: customapi
+          url: http://mock-services:8090/mock/api/media
+          mappings:
+            - field: songs
+              label: Songs
+              format: number
+            - field: albums
+              label: Albums
+              format: number
+            - field: streams
+              label: Active streams
+              format: number
+- Operations:
+    - Backup jobs:
+        href: https://localhost:8443/mock/backups
+        description: Fictional completed backups · Custom API
+        widget:
+          type: customapi
+          url: http://mock-services:8090/mock/api/backups
+          mappings:
+            - field: state
+              label: Status
+            - field: duration
+              label: Duration
+              format: duration
+            - field: bytes
+              label: Copied
+              format: bytes
+    - Storage pool:
+        href: https://localhost:8443/mock/storage
+        description: Fictional pool at 78 percent · Custom API
+        widget:
+          type: customapi
+          url: http://mock-services:8090/mock/api/storage
+          mappings:
+            - field: usedPercent
+              label: Used
+              format: percent
+            - field: freeBytes
+              label: Free
+              format: bytes
+            - field: disks
+              label: Disks
+              format: number
+    - Network overview:
+        href: https://localhost:8443/mock/network
+        description: Fictional network metrics · Custom API
+        widget:
+          type: customapi
+          url: http://mock-services:8090/mock/api/network
+          mappings:
+            - field: devices
+              label: Devices
+              format: number
+            - field: upload
+              label: Upload
+              format: bitrate
+            - field: download
+              label: Download
+              format: bitrate
+- Fleet:
+    - Server list:
+        href: https://localhost:8443/mock/servers
+        description: Dynamic list with three fictional servers
+        widget:
+          type: customapi
+          url: http://mock-services:8090/mock/api/servers
+          display: dynamic-list
+          mappings:
+            items: data
+            name: name
+            label: status
+            limit: 5
+            format: text
+            target: https://localhost:8443/mock/server/{id}
+    - Embedded status page:
+        href: https://localhost:8443/mock/status
+        description: Native IFrame widget · same-origin mock page
+        widget:
+          type: iframe
+          name: Demo status
+          src: https://localhost:8443/mock/status
+          classes: h-60
+          allowScrolling: 'yes'
+          referrerPolicy: same-origin
+- Widget laboratory:
+    - Backup detail list:
+        href: https://localhost:8443/mock/backups
+        description: Custom API list display and relative date
+        widget:
+          type: customapi
+          url: http://mock-services:8090/mock/api/backups
+          display: list
+          mappings:
+            - field: state
+              label: Backup state
+              additionalField:
+                field: lastRun
+                format: relativeDate
+                color: theme
+            - field: jobs
+              label: Scheduled jobs
+              format: number
+    - Two widgets on one card:
+        href: https://localhost:8443/mock/home
+        description: Documented widgets array with independent mappings
+        widgets:
+          - type: customapi
+            url: http://mock-services:8090/mock/api/home
+            mappings:
+              - field: watts
+                label: Power
+                format: float
+                scale: 0.001
+                suffix: ' kW'
+          - type: customapi
+            url: http://mock-services:8090/mock/api/photos
+            mappings:
+              - field: users
+                label: Photo users
+                format: number
+    - Remapped health:
+        href: https://localhost:8443/mock/status
+        description: Custom API remap and fallback rules
+        widget:
+          type: customapi
+          url: http://mock-services:8090/mock/api/health
+          mappings:
+            - field: offline
+              label: Outage state
+              remap:
+                - value: 0
+                  to: All available
+                - any: true
+                  to: Check services
+- Failure example:
+    - Intentional outage:
+        href: https://localhost:8443/mock/status
+        description: Expected 503 response; expand to inspect widget errors
+        siteMonitor: http://mock-services:8090/mock/api/error
+        statusStyle: basic
+        widget:
+          type: customapi
+          url: http://mock-services:8090/mock/api/error
+          mappings:
+            - field: state
+              label: Unavailable
+- Demo tools:
+    - Send sample notification:
+        href: https://localhost:8443/mock/notifications
+        description: Open the mock page and publish a real broker message
+    - Notification inbox:
+        href: https://localhost:8443/notifications
+        description: Read, dismiss, filter and test account isolation

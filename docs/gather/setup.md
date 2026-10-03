@@ -15,33 +15,42 @@ For source development, use Node 22.13 or newer, install dependencies with
 [Local interface preview](local-preview.md). `/preview/settings` and
 `/preview/dashboard` are development-only samples, not connected to live accounts.
 
-## 2. Persist configuration and configure sign-in
+## 2. Initialize an encrypted installation
 
-Mount a writable configuration directory at the application's `/app/config`.
-Preserve this directory across container replacement. Configure the external origin
-and authentication in the protected deployment environment:
+The app image supplies `node /app/system/initialize-quickstart.cjs`. Run it once
+against a fresh private installation directory before starting the app. It creates
+distinct 32-byte app and companion keys, encrypted schema-1 SQLite records, initial
+dashboard files and topic-scoped broker credentials. Normal app startup only reads
+existing records and fails closed if required keys or records cannot be unlocked.
+Rerunning initialization retains complete state and refuses partial state; preserve
+failed directories for diagnosis rather than overwriting their keys or records.
 
-```dotenv
-GATHER_OIDC_PROVIDER_ID=gather-oidc
-HOMEPAGE_AUTH_ENABLED=true
-HOMEPAGE_EXTERNAL_URL=https://gather.example.com
-HOMEPAGE_AUTH_SECRET=<a-random-secret-of-at-least-32-characters>
-HOMEPAGE_OIDC_ISSUER=https://identity.example.com
-HOMEPAGE_OIDC_CLIENT_ID=<your-client-id>
-HOMEPAGE_OIDC_CLIENT_SECRET=<your-client-secret>
-GATHER_EDITOR_ENABLED=true
-GATHER_ADMIN_IDS=<your-stable-oidc-subject>
-```
+The complete installation manifest is `deploy/compose.quickstart.yaml`. Gateway
+configuration and the pinned broker's provisioning command are inline in Compose,
+so no setup ZIP, downloaded initializer or separate Caddyfile is required. The
+manifest requires an app image containing the initialization command; older images
+cannot run it. See [Encrypted single-file quickstart](quickstart.md) and release evidence for
+compatible image digests and the manifest checksum. Do not treat a documentation revision as
+an image tag unless that image has actually been published.
 
-Register `/api/auth/callback/gather-oidc` at the external origin as the provider callback.
-Use a provider that supplies distinct subjects and verified email claims for named
-users. A shared password is a compatibility option, not a multi-user identity system.
-Keep bootstrap administrator subjects outside dashboard-editable configuration.
+First-use inputs include an HTTPS hostname, OIDC issuer/client ID/client secret,
+and bootstrap administrator subjects. Register
+`https://<hostname>/api/auth/callback/gather-oidc` with the identity provider. OIDC
+discovery and its authorization, token and JWKS endpoints must satisfy System's
+HTTPS and same-origin checks. Generated system credentials are encrypted, but
+first-use secrets in `.env` or helper container environment metadata remain visible
+to Docker operators. Keep inputs private and back up matching keys and databases.
 
-These examples describe required settings, not a complete deployment manifest.
-Configure your reverse proxy, HTTPS and allowed hosts for your deployment. For
-encrypted system credentials and recoverable connection changes, follow
-[Secure system configuration](system.md), including its key mounts and controller requirements.
+For macOS, use Docker Desktop's Linux engine and detect the engine socket's group
+inside a container before Compose validates `DOCKER_SOCKET_GID`; the Mac file's
+group is not the engine's group. Choose an unused Docker subnet and use a fresh
+project name and directory. A local generated CA needs deliberate browser trust;
+remove temporary trust after testing. Keep TLS verification and authentication on.
+
+The recovery controller mounts the Docker socket and targets only this project's
+explicitly named containers. Its socket remains a privileged boundary. The web
+app has no socket access. See [Secure system configuration](system.md) for mounts,
+confirmed changes, rollback and coordinated backups.
 
 ## 3. Configure Gather
 
