@@ -1,0 +1,53 @@
+title: Gather Documentation Lab
+description: Local Docker demo with fictional services and real notification delivery
+theme: dark
+color: slate
+language: en
+headerStyle: boxed
+useEqualHeights: true
+disableUpdateCheck: true
+disableIndexing: true
+statusStyle: dot
+gather:
+  tabs: [Home, Media, Operations, Lab]
+  accountMenu: true
+  notifications: true
+quicklaunch:
+  searchDescriptions: true
+  hideInternetSearch: true
+  hideVisitURL: true
+layout:
+  Home overview:
+    tab: Home
+    style: row
+    columns: 3
+    displayName: Your home at a glance
+  Today:
+    tab: Home
+    style: row
+    columns: 2
+  Media library:
+    tab: Media
+    style: row
+    columns: 3
+  Operations:
+    tab: Operations
+    style: row
+    columns: 3
+  Fleet:
+    tab: Operations
+    style: row
+    columns: 2
+  Widget laboratory:
+    tab: Lab
+    style: row
+    columns: 3
+  Failure example:
+    tab: Lab
+    initiallyCollapsed: true
+  Demo tools:
+    style: row
+    columns: 2
+  Documentation:
+    style: row
+    columns: 4

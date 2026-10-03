@@ -7,7 +7,7 @@ settings** link still opens the identity provider’s profile page.
 Enable the editor in the app's protected deployment environment:
 
 ```dotenv
-HOMEPAGE_AUTH_ENABLED=true
+GATHER_AUTH_ENABLED=true
 GATHER_EDITOR_ENABLED=true
 GATHER_ADMIN_IDS=stable-oidc-subject-id
 ```
@@ -44,6 +44,33 @@ backs up the current file, atomically replaces it, and revalidates dashboard pro
 Open or reload the dashboard to inspect the result. Existing widget APIs continue
 to provide their normal diagnostics; Check connections checks the dashboard and
 notification companion without making arbitrary network requests.
+
+## Custom API mappings
+
+In Services, expand a service, choose its integration widget and select Custom API.
+Set the server URL and required credentials/method. A URL alone does not define
+output fields. Before Save & apply, open Source and add response mappings:
+
+```yaml
+widget:
+  type: customapi
+  url: http://mock-services:8090/mock/api/health
+  mappings:
+    - field: healthy
+      label: Healthy
+      format: number
+    - field: degraded
+      label: Degraded
+      format: number
+    - field: offline
+      label: Offline
+      format: number
+```
+
+For the fictional response `{"healthy":12,"degraded":1,"offline":0}`, check all
+three values on the dashboard after saving. Integration URLs are fetched from the
+Gather container. Card links and IFrame sources are browser URLs. The guided form
+does not currently expose these mappings; Source completes the supported workflow.
 
 ## Notification preferences
 

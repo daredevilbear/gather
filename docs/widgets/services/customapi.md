@@ -190,7 +190,7 @@ widget:
   display: dynamic-list
   mappings:
     items: data # optional, the path to the array in the API response. Omit this option if the array is at the root level
-    name: id # required, field in each item to use as the item name (left side)
+    name: name # required, field in each item to use as the item name (left side)
     label: ip_address # required, field in each item to use as the item label (right side)
     limit: 5 # optional, limit the number of items to display
     format: text # optional - format of the label field
