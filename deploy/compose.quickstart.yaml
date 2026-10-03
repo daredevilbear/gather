@@ -141,10 +141,13 @@ services:
       - /app/system/initialize-quickstart.cjs
     environment:
       GATHER_DOMAIN: ${GATHER_DOMAIN:?Set your Gather HTTPS hostname}
-      GATHER_OIDC_ISSUER: ${GATHER_OIDC_ISSUER:?Set the HTTPS OIDC issuer}
-      GATHER_OIDC_CLIENT_ID: ${GATHER_OIDC_CLIENT_ID:?Set the OIDC client ID}
-      GATHER_OIDC_CLIENT_SECRET: ${GATHER_OIDC_CLIENT_SECRET:?Set the OIDC client secret}
-      GATHER_ADMIN_IDS: ${GATHER_ADMIN_IDS:?Set your OIDC subject, not your email}
+      GATHER_OIDC_ISSUER: ${GATHER_OIDC_ISSUER:-}
+      GATHER_OIDC_CLIENT_ID: ${GATHER_OIDC_CLIENT_ID:-}
+      GATHER_OIDC_CLIENT_SECRET: ${GATHER_OIDC_CLIENT_SECRET:-}
+      # With no OIDC settings, initialize separate local accounts and their first protected administrator.
+      GATHER_LOCAL_ADMIN_USERNAME: ${GATHER_LOCAL_ADMIN_USERNAME:-admin}
+      GATHER_LOCAL_ADMIN_PASSWORD: ${GATHER_LOCAL_ADMIN_PASSWORD:-}
+      GATHER_ADMIN_IDS: ${GATHER_ADMIN_IDS:-}
       GATHER_EXTERNAL_URL: ${GATHER_EXTERNAL_URL:-https://${GATHER_DOMAIN}}
     volumes:
       - ./:/setup

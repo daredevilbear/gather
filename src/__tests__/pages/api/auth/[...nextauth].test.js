@@ -25,6 +25,14 @@ describe("pages/api/auth/[...nextauth]", () => {
     nextAuthMock.mockClear();
     warnMock.mockClear();
     process.env = { ...originalEnv };
+    for (const key of Object.keys(process.env))
+      if (
+        key.startsWith("GATHER_AUTH_") ||
+        key.startsWith("GATHER_OIDC_") ||
+        key === "GATHER_LOCAL_ACCOUNTS_ENABLED" ||
+        key === "GATHER_PASSWORD_USER_ID"
+      )
+        delete process.env[key];
     delete process.env.GATHER_EXTERNAL_URL;
     delete process.env.NEXTAUTH_SECRET;
     delete process.env.NEXTAUTH_URL;
@@ -144,14 +152,14 @@ describe("pages/api/auth/[...nextauth]", () => {
     await expect(import("pages/api/auth/[...nextauth]")).rejects.toThrow(/absolute HTTP\(S\) URL/i);
   });
 
-  it("throws when auth is enabled but no provider settings are present", async () => {
+  it("selects local accounts when auth is enabled without OIDC or shared-password settings", async () => {
     process.env.GATHER_AUTH_ENABLED = "true";
     process.env.GATHER_AUTH_SECRET = "rk3Xk9wQ0mVJt7cZbN2yLpA8sHdF4gRuEwTiOaSvBnM=";
     process.env.GATHER_EXTERNAL_URL = "https://gather.example";
 
-    await expect(import("pages/api/auth/[...nextauth]")).rejects.toThrow(
-      /Password auth is enabled but required settings are missing/i,
-    );
+    const { authOptions } = await import("pages/api/auth/[...nextauth]");
+    expect(authOptions.providers.map((provider) => provider.id)).toEqual(["local"]);
+    expect(authOptions.providers[0].credentials).toHaveProperty("username");
   });
 
   it.each(["short", "a".repeat(31)])("throws when the auth secret is too weak (%j)", async (secret) => {
@@ -272,6 +280,8 @@ describe("pages/api/auth/[...nextauth]", () => {
     process.env.GATHER_OIDC_CLIENT_SECRET = "client-secret";
     process.env.GATHER_AUTH_SECRET = "rk3Xk9wQ0mVJt7cZbN2yLpA8sHdF4gRuEwTiOaSvBnM=";
     process.env.GATHER_EXTERNAL_URL = "https://gather.example";
+    process.env.GATHER_AUTH_PASSWORD = "shared-password";
+    process.env.GATHER_LOCAL_ACCOUNTS_ENABLED = "true";
     process.env.GATHER_OIDC_NAME = "My OIDC";
     process.env.GATHER_OIDC_SCOPE = "openid email";
 
@@ -362,14 +372,18 @@ describe("pages/api/auth/[...nextauth]", () => {
     });
   });
 
-  it("throws when only partial OIDC settings are provided", async () => {
-    process.env.GATHER_AUTH_ENABLED = "true";
-    process.env.GATHER_OIDC_ISSUER = "https://issuer.example";
-    process.env.GATHER_AUTH_SECRET = "rk3Xk9wQ0mVJt7cZbN2yLpA8sHdF4gRuEwTiOaSvBnM=";
-    process.env.GATHER_EXTERNAL_URL = "https://gather.example";
+  it.each(["GATHER_OIDC_ISSUER", "GATHER_OIDC_CLIENT_ID", "GATHER_OIDC_CLIENT_SECRET"])(
+    "rejects partial OIDC %s even when a shared password exists",
+    async (setting) => {
+      process.env.GATHER_AUTH_ENABLED = "true";
+      process.env[setting] = "partial-setting";
+      process.env.GATHER_AUTH_PASSWORD = "shared-password";
+      process.env.GATHER_AUTH_SECRET = "rk3Xk9wQ0mVJt7cZbN2yLpA8sHdF4gRuEwTiOaSvBnM=";
+      process.env.GATHER_EXTERNAL_URL = "https://gather.example";
 
-    await expect(import("pages/api/auth/[...nextauth]")).rejects.toThrow(
-      /OIDC auth is enabled but required settings are missing/i,
-    );
-  });
+      await expect(import("pages/api/auth/[...nextauth]")).rejects.toThrow(
+        /OIDC auth is enabled but required settings are missing/i,
+      );
+    },
+  );
 });

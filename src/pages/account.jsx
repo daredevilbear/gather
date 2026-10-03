@@ -2,16 +2,17 @@ import Head from "next/head";
 import Link from "next/link";
 import { useState } from "react";
 
+import LocalPassword from "components/account/local-password";
 import usePreferences from "components/account/preferences";
 import GatherIcon from "components/gather/icon";
 import GatherMark from "components/gather/mark";
 import styles from "components/settings/editor.module.css";
 
-export default function AccountPreferences() {
+export default function AccountPreferences({ localLogin = false }) {
   const { data, error, mutate } = usePreferences();
-  return <AccountPreferencesContent data={data} error={error} mutate={mutate} />;
+  return <AccountPreferencesContent data={data} error={error} mutate={mutate} localLogin={localLogin} />;
 }
-export function AccountPreferencesContent({ data, error, mutate, request = fetch }) {
+export function AccountPreferencesContent({ data, error, mutate, request = fetch, localLogin = false }) {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
   const [saveError, setSaveError] = useState("");
@@ -85,6 +86,7 @@ export function AccountPreferencesContent({ data, error, mutate, request = fetch
           </div>
           <p role="status">{busy ? "Saving…" : status || (!data ? "Loading preferences…" : "")}</p>
         </section>
+        {localLogin && <LocalPassword request={request} />}
         <Link href="/notifications" className={styles.preferenceLink}>
           <GatherIcon name="bell" />
           <span>
@@ -104,4 +106,9 @@ export function AccountPreferencesContent({ data, error, mutate, request = fetch
       </div>
     </main>
   );
+}
+
+export async function getServerSideProps() {
+  const { localAccountsEnabled } = await import("utils/gather/users-store");
+  return { props: { localLogin: localAccountsEnabled() } };
 }

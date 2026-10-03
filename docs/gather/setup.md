@@ -33,8 +33,17 @@ cannot run it. See [Encrypted single-file quickstart](quickstart.md) and release
 compatible image digests and the manifest checksum. Do not treat a documentation revision as
 an image tag unless that image has actually been published.
 
-First-use inputs include an HTTPS hostname, OIDC issuer/client ID/client secret,
-and bootstrap administrator subjects. Register
+First-use inputs include an HTTPS hostname and your choice of sign-in method.
+With all three OIDC settings empty, supply `GATHER_LOCAL_ADMIN_USERNAME` (default
+`admin`) and `GATHER_LOCAL_ADMIN_PASSWORD` (12–1024 characters). Initialization
+creates a protected local administrator with a generated stable identity. No default
+password or public registration is provided. Additional local accounts are created
+in Users & access; users change their passwords in My preferences. Passwords are
+stored as individually salted scrypt hashes in `config/.gather-users.sqlite`.
+
+For OIDC, supply issuer/client ID/client secret and bootstrap administrator subjects.
+Complete OIDC settings take precedence over local login; partial OIDC configuration
+is rejected rather than falling back. Register
 `https://<hostname>/api/auth/callback/gather-oidc` with the identity provider. OIDC
 discovery and its authorization, token and JWKS endpoints must satisfy System's
 HTTPS and same-origin checks. Generated system credentials are encrypted, but
@@ -64,8 +73,11 @@ For an existing Homepage installation, follow the reviewable
 For managed secrets, mount the 32-byte app key and follow
 [Secrets and variables](administration.md#secrets-and-variables).
 
-Use Users & access to prepare named roles for existing identity-provider users.
-This does not create provider accounts or send invitations. My dashboard provides
+With local sign-in, use Users & access to create accounts with separate usernames,
+passwords and roles, disable access or reset a user's password. A reset invalidates
+that account's existing sessions. With OIDC, Users & access prepares named roles
+for existing identity-provider users; it does not create provider accounts.
+Neither method sends invitations. My dashboard provides
 private links and tabs; shared integration widgets retain their existing scope.
 See [Users, roles and personal dashboards](administration.md#users-roles-and-personal-dashboards).
 

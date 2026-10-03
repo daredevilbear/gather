@@ -5,7 +5,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 
 import { applyNextAuthEnv, isAuthEnabled } from "utils/env";
 import { oidcProviderId } from "utils/gather/oidc";
-import { userAccess, usersStore } from "utils/gather/users-store";
+import { localAccountsEnabled, sessionAccess, usersStore } from "utils/gather/users-store";
 import createLogger from "utils/logger";
 
 const MIN_AUTH_SECRET_LENGTH = 32;
@@ -57,7 +57,7 @@ if (authEnabled) {
     }
   } else if (hasAnyOidcConfig) {
     throw new Error("OIDC auth is enabled but required settings are missing.");
-  } else if (!gatherAuthPassword || !process.env.NEXTAUTH_SECRET) {
+  } else if (!process.env.NEXTAUTH_SECRET) {
     throw new Error("Password auth is enabled but required settings are missing.");
   }
 
@@ -112,6 +112,23 @@ if (authEnabled) {
         },
       },
     ];
+  } else if (localAccountsEnabled()) {
+    const provider = CredentialsProvider({
+      id: "local",
+      name: "Local accounts",
+      credentials: { username: { label: "Username", type: "text" }, password: { label: "Password", type: "password" } },
+      async authorize(credentials) {
+        const directory = usersStore();
+        try {
+          const user = await directory.authenticate(credentials?.username, credentials?.password);
+          if (!user) createLogger("nextauth").warn("Failed local sign-in attempt");
+          return user;
+        } finally {
+          directory.close();
+        }
+      },
+    });
+    providers = [{ ...provider, ...provider.options }];
   } else {
     providers = [
       CredentialsProvider({
@@ -145,7 +162,7 @@ export const authOptions = {
   providers,
   callbacks: {
     async session({ session, token }) {
-      const access = userAccess(token?.sub);
+      const access = sessionAccess(token);
       if (!access.enabled) return { ...session, user: null };
       if (session.user) {
         session.user.role = access.role;
@@ -154,8 +171,10 @@ export const authOptions = {
       }
       return session;
     },
-    async jwt({ token, account, profile }) {
+    async jwt({ token, account, profile, user }) {
       if (account) {
+        if (account.provider === "local") token.localCredentialVersion = user?.localCredentialVersion;
+        else delete token.localCredentialVersion;
         token.emailVerified = profile?.email_verified === true;
         if (token.sub) {
           const directory = usersStore();

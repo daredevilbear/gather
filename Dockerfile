@@ -58,7 +58,7 @@ COPY --link --from=builder --chown=1000:1000 /app/.next/static/ ./.next/static
 
 RUN apk add --no-cache su-exec iputils-ping shadow
 
-COPY system/bootstrap.cjs system/database.cjs system/vault.cjs system/initialize-quickstart.cjs ./system/
+COPY system/bootstrap.cjs system/database.cjs system/vault.cjs system/initialize-quickstart.cjs system/local-accounts.cjs ./system/
 
 # The supported Compose installation runs as UID 1001. Only this runtime cache
 # needs write access; leave the rest of the application image unchanged.

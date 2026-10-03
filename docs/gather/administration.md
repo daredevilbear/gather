@@ -53,7 +53,19 @@ This is incremental accessibility work, not an ADA certification or a completed 
 ## Users, roles and personal dashboards
 
 Users & access lists people by name and email, with role, access status, last activity and a bounded activity history.
-Add a name, email and role to prepare access, then review the change. This creates a Gather record, not an identity-provider account, and sends no email.
+When OIDC is absent, Gather supports separate local accounts. The first protected
+administrator is created during encrypted setup; administrators create additional
+users with a name, email, unique username, initial password and role in Users &
+access. Username matching is case-insensitive. Passwords require 12–1024 characters
+and are stored as individually salted scrypt hashes, never returned in the user
+list. Local emails are profile information, not provider-verified identities.
+Users change their own password in My preferences; administrators can reset other
+users' passwords. Both operations invalidate existing sessions. The protected
+administrator changes its own password with its current password. Account disabling
+blocks sign-in and existing sessions. There is no public account registration or
+email invitation. Five failed attempts lock an account for one minute.
+
+With OIDC, Add a name, email and role to prepare access, then review the change. This creates a Gather record, not an identity-provider account, and sends no email.
 The existing OIDC provider must verify the email before a prepared role is claimed.
 Users whose identity has no prepared role retain shared-dashboard access as viewers. Existing server-configured administrators remain protected.
 

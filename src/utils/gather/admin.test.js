@@ -1,9 +1,9 @@
 import { getToken } from "next-auth/jwt";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { administrator, systemAdministrator, validEditorOrigin } from "./admin";
-import { userAccess } from "./users-store";
+import { sessionAccess } from "./users-store";
 vi.mock("./users-store", () => ({
-  userAccess: vi.fn(() => ({ role: "viewer", enabled: true })),
+  sessionAccess: vi.fn(() => ({ role: "viewer", enabled: true })),
   bootstrapAdmin: vi.fn(() => false),
 }));
 vi.mock("next-auth/jwt", () => ({ getToken: vi.fn() }));
@@ -43,7 +43,7 @@ it("keeps native administrators outside protected system configuration", async (
   vi.stubEnv("GATHER_EDITOR_ENABLED", "true");
   vi.stubEnv("GATHER_ADMIN_IDS", "bootstrap");
   getToken.mockResolvedValue({ sub: "member" });
-  userAccess.mockReturnValue({ role: "admin", enabled: true });
+  sessionAccess.mockReturnValue({ role: "admin", enabled: true });
   expect(await administrator({})).toBe(true);
   expect(await systemAdministrator({})).toBe(false);
 });
@@ -53,6 +53,6 @@ it("rejects disabled native administrators", async () => {
   vi.stubEnv("GATHER_EDITOR_ENABLED", "true");
   vi.stubEnv("GATHER_ADMIN_IDS", "bootstrap");
   getToken.mockResolvedValue({ sub: "member" });
-  userAccess.mockReturnValueOnce({ role: "admin", enabled: false });
+  sessionAccess.mockReturnValueOnce({ role: "admin", enabled: false });
   expect(await administrator({})).toBe(false);
 });

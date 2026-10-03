@@ -5,8 +5,9 @@ import path from "node:path";
 import database from "../../../system/database.cjs";
 import vault from "../../../system/vault.cjs";
 
-import { oidcProviderId } from "./oidc";
 import { ConfigError } from "./config-store";
+import { oidcProviderId } from "./oidc";
+import { localAccountsEnabled } from "./users-store";
 const fail = (m, status = 400) => {
   throw new ConfigError(m, status);
 };
@@ -39,6 +40,7 @@ export function publicConfig() {
     status: state(),
     configured: true,
     origin: app.env.GATHER_EXTERNAL_URL,
+    localLogin: localAccountsEnabled(app.env),
     issuer: app.env.GATHER_OIDC_ISSUER || "",
     clientId: app.env.GATHER_OIDC_CLIENT_ID || "",
     providerName: app.env.GATHER_OIDC_NAME || "SSO",
@@ -64,14 +66,17 @@ export function candidate(input, subject) {
     )
   )
     fail("Unsupported system setting.");
-  url(input.issuer);
+  const localLogin = localAccountsEnabled(app.env);
+  if (!localLogin) url(input.issuer);
+  else if (input.issuer || input.clientId || input.clientSecret)
+    fail("This installation uses local accounts. Configure their passwords in Users & access or My preferences.");
   url(input.ntfyUrl, false);
   if (
     new URL(input.ntfyUrl).protocol === "http:" &&
     new URL(input.ntfyUrl).origin !== new URL(notification.env.NTFY_URL).origin
   )
     fail("Use HTTPS when configuring a new notification server.");
-  for (const key of ["clientId", "providerName"])
+  for (const key of localLogin ? [] : ["clientId", "providerName"])
     if (!text(input[key], 200) || !input[key].trim()) fail("Client ID and provider name are required.");
   if (
     !Array.isArray(input.admins) ||
@@ -91,7 +96,7 @@ export function candidate(input, subject) {
   const changedClient =
     input.issuer.replace(/\/+$/, "") !== app.env.GATHER_OIDC_ISSUER?.replace(/\/+$/, "") ||
     input.clientId !== app.env.GATHER_OIDC_CLIENT_ID;
-  if (changedClient && !input.clientSecret)
+  if (!localLogin && changedClient && !input.clientSecret)
     fail("Supply the client secret when changing the OIDC issuer or client ID.");
   if (new URL(input.ntfyUrl).origin !== new URL(notification.env.NTFY_URL).origin && !input.ntfyAuth)
     fail("Supply new credentials when changing the notification server.");
@@ -102,27 +107,29 @@ export function candidate(input, subject) {
   if (input.clientSecret) app.env.GATHER_OIDC_CLIENT_SECRET = input.clientSecret;
   notification.env.NTFY_URL = input.ntfyUrl.replace(/\/+$/, "");
   if (input.ntfyAuth) notification.env.NTFY_AUTH = input.ntfyAuth;
-  if (!app.env.GATHER_OIDC_CLIENT_SECRET || !notification.env.NTFY_AUTH) fail("Connection credentials are required.");
+  if ((!localLogin && !app.env.GATHER_OIDC_CLIENT_SECRET) || !notification.env.NTFY_AUTH)
+    fail("Connection credentials are required.");
   return { app, notification, baseRevision: app.revision };
 }
 export async function checkConnections(records) {
   const issuer = records.app.env.GATHER_OIDC_ISSUER;
   let discovery;
-  try {
-    const r = await fetch(issuer + "/.well-known/openid-configuration", {
-      redirect: "error",
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!r.ok) throw Error();
-    const body = await r.text();
-    if (body.length > 100000) throw Error();
-    discovery = JSON.parse(body);
-    if (discovery.issuer?.replace(/\/+$/, "") !== issuer) throw Error();
-    for (const key of ["authorization_endpoint", "token_endpoint", "jwks_uri"])
-      if (url(discovery[key]).origin !== new URL(issuer).origin) throw Error();
-  } catch {
-    fail("OIDC discovery failed. Check the issuer URL and its HTTPS certificate.");
-  }
+  if (!localAccountsEnabled(records.app.env))
+    try {
+      const r = await fetch(issuer + "/.well-known/openid-configuration", {
+        redirect: "error",
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!r.ok) throw Error();
+      const body = await r.text();
+      if (body.length > 100000) throw Error();
+      discovery = JSON.parse(body);
+      if (discovery.issuer?.replace(/\/+$/, "") !== issuer) throw Error();
+      for (const key of ["authorization_endpoint", "token_endpoint", "jwks_uri"])
+        if (url(discovery[key]).origin !== new URL(issuer).origin) throw Error();
+    } catch {
+      fail("OIDC discovery failed. Check the issuer URL and its HTTPS certificate.");
+    }
   try {
     const r = await fetch(records.notification.env.NTFY_URL + "/v1/health", {
       redirect: "error",
@@ -150,7 +157,9 @@ export async function checkConnections(records) {
   } catch {
     fail("Notification connection failed. Check the server, credentials and topic permissions.");
   }
-  return "OIDC discovery and ntfy authentication passed. The OIDC client secret is verified by a fresh sign-in after applying.";
+  return localAccountsEnabled(records.app.env)
+    ? "Local accounts are configured and ntfy authentication passed. Confirm with a fresh local sign-in after applying."
+    : "OIDC discovery and ntfy authentication passed. The OIDC client secret is verified by a fresh sign-in after applying.";
 }
 export function stage(records, subject) {
   const p = vault.locations();
@@ -199,7 +208,7 @@ export function confirm(token) {
           token.gatherLoginAt < Math.floor(status.started / 1000) ||
           process.env.GATHER_SYSTEM_REVISION !== status.revision
         )
-          fail("Sign in again through SSO before confirming this change.", 403);
+          fail("Sign in again before confirming this change.", 403);
         database.put(db, "confirmed", { revision: status.revision, subject: token.sub });
         return { confirmed: true };
       }),
