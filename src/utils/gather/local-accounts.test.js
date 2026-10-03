@@ -31,6 +31,7 @@ afterEach(() => {
   store.close();
   fs.rmSync(dir, { recursive: true, force: true });
   vi.unstubAllEnvs();
+  vi.restoreAllMocks();
   vi.useRealTimers();
 });
 it("stores distinct salted hashes, normalizes usernames, and never exposes credentials", async () => {
@@ -67,10 +68,39 @@ it("locks repeated failures for a minute, then allows the correct password", asy
   store.addLocal({ ...alice, username: "lock-test" }, "Admin");
   for (let i = 0; i < 5; i++) expect(await store.authenticate("lock-test", "wrong-password")).toBeNull();
   expect(await store.authenticate("lock-test", alice.password)).toBeNull();
+  store.close();
+  store = usersStore(dir);
+  expect(await store.authenticate("lock-test", alice.password)).toBeNull();
   const now = Date.now();
   vi.spyOn(Date, "now").mockReturnValue(now + 61000);
   expect(await store.authenticate("lock-test", alice.password)).toHaveProperty("id");
   vi.restoreAllMocks();
+});
+it("persists identity, access status and reset credentials when storage is reopened", async () => {
+  store.addLocal(alice, "Admin");
+  const original = await store.authenticate("alice", alice.password);
+  const id = store.list()[0].id;
+  store.resetPassword(id, "Replacement-persisted-password", "admin", "Admin");
+  store.update(id, { role: "viewer", enabled: false }, "admin", "Admin");
+  store.close();
+  store = usersStore(dir);
+  expect(store.list()[0]).toMatchObject({ id, username: "alice", role: "viewer", enabled: false });
+  expect(await store.authenticate("alice", "Replacement-persisted-password")).toBeNull();
+  store.update(id, { role: "viewer", enabled: true }, "admin", "Admin");
+  expect(await store.authenticate("alice", alice.password)).toBeNull();
+  expect(await store.authenticate("alice", "Replacement-persisted-password")).toMatchObject({
+    id: original.id,
+    localCredentialVersion: 2,
+  });
+  expect(sessionAccess({ sub: original.id, localCredentialVersion: 1 }, dir).enabled).toBe(false);
+});
+it.each(["reset", "disable"])("rejects authentication if a %s happens during password verification", async (action) => {
+  store.addLocal(alice, "Admin");
+  const pending = store.authenticate("alice", alice.password);
+  const id = store.list()[0].id;
+  if (action === "reset") store.resetPassword(id, "Replacement-race-password", "admin", "Admin");
+  else store.update(id, { role: "editor", enabled: false }, "admin", "Admin");
+  expect(await pending).toBeNull();
 });
 it("disabling users and password resets revoke existing sessions", async () => {
   store.addLocal(alice, "Admin");
@@ -106,6 +136,10 @@ it("does not claim pending OIDC roles from unverified local email and blocks loc
   expect(sessionAccess({ sub: "local:unprovisioned", localCredentialVersion: 1 }, dir).enabled).toBe(false);
   expect(store.list().find((user) => user.name === "Prepared").pending).toBe(true);
   expect(local.localAccountsEnabled({ GATHER_OIDC_ISSUER: "partial" })).toBe(false);
+  store.addLocal({ ...alice, email: "local@example.test" }, "Admin");
+  const user = await store.authenticate("alice", alice.password);
+  const token = { sub: user.id, localCredentialVersion: user.localCredentialVersion };
+  expect(sessionAccess(token, dir).enabled).toBe(true);
   vi.stubEnv("GATHER_OIDC_ISSUER", "https://issuer.example.test");
-  expect(sessionAccess({ sub: "local:unprovisioned", localCredentialVersion: 1 }, dir).enabled).toBe(false);
+  expect(sessionAccess(token, dir).enabled).toBe(false);
 });

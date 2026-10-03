@@ -145,6 +145,16 @@ confirmation and rollback sequence. The sign-in-again button opens the local log
 page. Configuring OIDC or changing authentication modes requires an operator migration;
 this local-account form does not replace the current identity system.
 
+When an operator adds OIDC later, the active server configuration must contain
+the issuer, client ID and client secret together, plus the OIDC administrator's
+subject in `GATHER_ADMIN_IDS`. Restart Gather after changing that configuration.
+Complete OIDC configuration takes precedence over the original local-account
+marker; partial OIDC configuration prevents authentication from starting. Existing
+local sessions lose access, while local credentials remain in the user database.
+An OIDC identity is separate from a local identity even when their emails match;
+roles and personal dashboards are not automatically transferred. Restoring the
+local configuration and administrator subject allows local sign-in again.
+
 Local credential hashes and account profile records live in
 `config/.gather-users.sqlite`, separately from the encrypted system vault. Include
 that database in complete backups; restoring only the vault does not restore local

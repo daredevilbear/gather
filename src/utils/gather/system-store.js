@@ -7,6 +7,7 @@ import vault from "../../../system/vault.cjs";
 
 import { ConfigError } from "./config-store";
 import { oidcProviderId } from "./oidc";
+import { localAccountsEnabled } from "./users-store";
 const fail = (m, status = 400) => {
   throw new ConfigError(m, status);
 };
@@ -39,7 +40,7 @@ export function publicConfig() {
     status: state(),
     configured: true,
     origin: app.env.GATHER_EXTERNAL_URL,
-    localLogin: app.env.GATHER_LOCAL_ACCOUNTS_ENABLED === "true",
+    localLogin: localAccountsEnabled(app.env),
     issuer: app.env.GATHER_OIDC_ISSUER || "",
     clientId: app.env.GATHER_OIDC_CLIENT_ID || "",
     providerName: app.env.GATHER_OIDC_NAME || "SSO",
@@ -65,7 +66,7 @@ export function candidate(input, subject) {
     )
   )
     fail("Unsupported system setting.");
-  const localLogin = app.env.GATHER_LOCAL_ACCOUNTS_ENABLED === "true";
+  const localLogin = localAccountsEnabled(app.env);
   if (!localLogin) url(input.issuer);
   else if (input.issuer || input.clientId || input.clientSecret)
     fail("This installation uses local accounts. Configure their passwords in Users & access or My preferences.");
@@ -113,7 +114,7 @@ export function candidate(input, subject) {
 export async function checkConnections(records) {
   const issuer = records.app.env.GATHER_OIDC_ISSUER;
   let discovery;
-  if (records.app.env.GATHER_LOCAL_ACCOUNTS_ENABLED !== "true")
+  if (!localAccountsEnabled(records.app.env))
     try {
       const r = await fetch(issuer + "/.well-known/openid-configuration", {
         redirect: "error",
@@ -156,7 +157,7 @@ export async function checkConnections(records) {
   } catch {
     fail("Notification connection failed. Check the server, credentials and topic permissions.");
   }
-  return records.app.env.GATHER_LOCAL_ACCOUNTS_ENABLED === "true"
+  return localAccountsEnabled(records.app.env)
     ? "Local accounts are configured and ntfy authentication passed. Confirm with a fresh local sign-in after applying."
     : "OIDC discovery and ntfy authentication passed. The OIDC client secret is verified by a fresh sign-in after applying.";
 }

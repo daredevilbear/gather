@@ -226,3 +226,47 @@ it("changes the protected administrator password only with its current password 
   await first.login("admin", change.password);
   expect((await first.session()).user.gatherIdentity).toBe(admin);
 });
+it("rejects non-admin resets and lets a viewer change only their own password", async () => {
+  const administrator = browser(),
+    editor = browser(),
+    viewer = browser();
+  await administrator.login("admin");
+  await editor.login("editor");
+  await viewer.login("viewer");
+  const adminId = store.list().find((user) => user.username === "admin").id;
+  const viewerId = store.list().find((user) => user.username === "viewer").id;
+  const reset = { action: "resetPassword", id: viewerId, password: "Replacement-viewer-password" };
+  expect((await editor.post("/api/gather/users", reset)).status).toBe(403);
+  expect((await viewer.post("/api/gather/users", reset)).status).toBe(403);
+  expect((await administrator.post("/api/gather/users", { ...reset, id: adminId })).status).toBe(400);
+  const identity = (await viewer.session()).user.gatherIdentity;
+  expect(
+    (
+      await viewer.post("/api/gather/password", {
+        currentPassword: password,
+        password: reset.password,
+      })
+    ).status,
+  ).toBe(200);
+  expect((await viewer.session()).user).toBeNull();
+  await viewer.login("viewer", reset.password);
+  expect((await viewer.session()).user).toMatchObject({ role: "viewer", gatherIdentity: identity });
+  expect((await administrator.session()).user).toMatchObject({ role: "admin", gatherIdentity: admin });
+  expect((await editor.session()).user.role).toBe("editor");
+});
+it("applies administrator role changes to an existing local session immediately", async () => {
+  const administrator = browser(),
+    editor = browser();
+  await administrator.login("admin");
+  await editor.login("editor");
+  const id = store.list().find((user) => user.username === "editor").id;
+  expect(
+    (await administrator.post("/api/gather/users", { action: "update", id, role: "admin", enabled: true })).status,
+  ).toBe(200);
+  expect((await editor.request("/api/gather/users")).status).toBe(200);
+  expect(
+    (await administrator.post("/api/gather/users", { action: "update", id, role: "viewer", enabled: true })).status,
+  ).toBe(200);
+  expect((await editor.session()).user.role).toBe("viewer");
+  expect((await editor.request("/api/gather/users")).status).toBe(403);
+});
