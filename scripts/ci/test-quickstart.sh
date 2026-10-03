@@ -6,7 +6,7 @@ umask 077
 root=$(mktemp -d "${TMPDIR:-/tmp}/gather-quickstart.XXXXXX")
 id=$(basename "$root" | tr '[:upper:].' '[:lower:]-')
 log="$root/validation.txt"
-cp deploy/compose.quickstart.yaml "$root/compose.yaml"
+cp "${2:-deploy/compose.quickstart.yaml}" "$root/compose.yaml"
 image=$(docker image inspect "${1:?Supply a container image}" --format '{{.Id}}')
 export GATHER_PROJECT="gather-$id" GATHER_IMAGE="$image" GATHER_DOMAIN=localhost
 export GATHER_OIDC_ISSUER=https://identity.demo.local GATHER_OIDC_CLIENT_ID=gather-demo
