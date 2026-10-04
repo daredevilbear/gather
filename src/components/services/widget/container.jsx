@@ -1,4 +1,4 @@
-import { useContext, useMemo } from "react";
+import { Children, useContext, useMemo } from "react";
 
 import Error from "./error";
 import { BlockHighlightContext } from "./highlight-context";
@@ -29,7 +29,8 @@ export default function Container({ error = false, children, service }) {
     return <Error service={service} error={error} />;
   }
 
-  const childrenArray = Array.isArray(children) ? children : [children];
+  // Flatten mapped child arrays before applying the configured field filter.
+  const childrenArray = Children.toArray(children);
 
   let visibleChildren = childrenArray;
   let fields = service?.widget?.fields;

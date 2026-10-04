@@ -37,7 +37,7 @@ export default function Component({ service: configuredService }) {
         <Block field="unraid.arrayUsedSpace" label="unraid.arrayUsed" />
         <Block field="unraid.arrayFree" label="unraid.arrayFree" />
         <Block field="unraid.arrayUsedPercent" label="unraid.arrayUsed" />
-        {...POOLS.flatMap((pool) =>
+        {POOLS.flatMap((pool) =>
           POOL_FIELDS.map(({ param, label }) => (
             <Block
               key={`${pool}-${param}`}
@@ -92,7 +92,7 @@ export default function Component({ service: configuredService }) {
         value={t("common.percent", { value: data.arrayUsedPercent })}
         highlightValue={data.arrayUsedPercent}
       />
-      {...POOLS.flatMap((pool) =>
+      {POOLS.flatMap((pool) =>
         POOL_FIELDS.map(({ param, label, valueKey, valueType }) => {
           const poolValue = data.caches?.[widget?.[pool]]?.[valueKey] || "-";
 

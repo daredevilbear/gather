@@ -68,3 +68,37 @@ be investigated rather than bypassed. Before enabling caching, upgrade to an
 officially fixed release or apply and test a reviewed fix; verify isolation of
 authenticated responses and handling of `Set-Cookie` and `max-stale`. Upgrade
 the affected dependency when an official fix becomes available.
+
+## CodeQL review of October 4, 2026
+
+The scan at `9b84e565ff4ec464442a03e3ce922e752b164608` reported seven alerts.
+TrueNAS WebSocket authentication now requires verified TLS. Legacy shared-password
+verification uses per-process random salts and scrypt with N=32768, r=8, p=1;
+request inputs and concurrent hashing work are bounded. Push subscription key
+validation is bounded to the maximum encoded key length. Unraid uses ordinary
+JSX array children, flattened before widget field selection, to avoid the
+CodeQL extractor's spread-child parse warning.
+
+Three findings need contextual interpretation:
+
+- `js/insufficient-password-hash` in `src/widgets/wazuh/proxy.js` (#7): SHA-256
+  identifies a short-lived, server-only in-memory authentication-token cache entry.
+  It is not a persisted password verifier. The identity includes service,
+  URL, username and password so changed credentials cannot reuse a session.
+  `proxy.test.js` checks reuse, invalidation on credential changes, and token refresh.
+- `js/insufficient-password-hash` in `src/widgets/jdownloader/tools.js` (#6):
+  SHA-256 derives the MyJDownloader login/device secrets and encryption tokens.
+  These values are part of the external authentication protocol, rather than a
+  Gather password database. Replacing SHA-256 would break compatibility with
+  [MyJDownloader](https://my.jdownloader.org/developers/). Preserve the protocol
+  while protecting the configured credentials and transport.
+- `js/xss-through-dom` in `src/components/settings/pickers.jsx` (#2): the reported
+  sink is a React image `src` attribute, not HTML insertion. The picker tests use
+  quote breakout, script markup, JavaScript URLs and SVG data URLs and verify
+  that they cannot create script elements or event-handler attributes. This
+  assessment applies to the image sink; it does not authorize these strings in
+  HTML, iframe, navigation or script sinks.
+
+Reassess these findings if cache exposure, credential storage, protocol behavior,
+or rendering sinks change. Keep the regression tests and CodeQL analysis enabled;
+do not exclude these files or disable the affected rules globally.
