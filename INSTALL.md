@@ -1,4 +1,4 @@
-# Install Gather 1.0.2
+# Install Gather 1.0.3
 
 Use Docker Engine with the Docker Compose plugin on `linux/amd64` or
 `linux/arm64`. Runtime configuration uses `GATHER_*` environment names.
@@ -16,15 +16,17 @@ passwords in My preferences. Credentials use individually salted scrypt hashes i
 `config/.gather-users.sqlite`; include it in full backups.
 
 Complete OIDC configuration selects OIDC alone; partial configuration is rejected.
-Existing shared-password accounts remain supported. Changing from local accounts
-to OIDC requires an operator migration and restart, and does not transfer roles
+Existing shared-password accounts remain supported. Shared-password verification
+uses salted scrypt, accepts 1–1024 characters, and allows two concurrent checks
+per app process; excess concurrent attempts fail and may be retried. Changing from
+local accounts to OIDC requires an operator migration and restart, and does not transfer roles
 or dashboards between identities. Editing seed inputs does not change an existing
 installation. See [System settings](https://gather.daredevilbear.dev/gather/system/#adding-oidc-after-local-setup).
 
 ## Dashboard with shared-password authentication
 
-Use the `v1.0.2` source checkout with the `1.0.2` images, or pin the immutable
-digests recorded in the release notes. The example selects `1.0.2` by default.
+Use the `v1.0.3` source checkout with the `1.0.3` images, or pin the immutable
+digests recorded in the release notes. The example selects `1.0.3` by default.
 From the repository root:
 
 ```sh
@@ -86,7 +88,7 @@ before adopting the instance. See [Setup](https://gather.daredevilbear.dev/gathe
 ## Optional components
 
 The dashboard runs without either companion. To enable the inbox and Web Push,
-use `ghcr.io/daredevilbear/gather-notifications:1.0.2` and follow
+use `ghcr.io/daredevilbear/gather-notifications:1.0.3` and follow
 [Notifications](https://gather.daredevilbear.dev/gather/notifications/) for ntfy,
 authenticated same-origin `/gather-notifications/` routing, session lookup,
 origin validation, and a writable `/data` volume for its unprivileged UID 1001.
@@ -101,12 +103,20 @@ key at `/run/secrets/gather-app-key` and follow
 For encrypted system settings and supervised authentication rollback, follow
 [System settings](https://gather.daredevilbear.dev/gather/system/), including
 separate keys, `/system-data` persistence, and the optional controller's authority.
-Use `ghcr.io/daredevilbear/gather-system-controller:1.0.2`; review
+Use `ghcr.io/daredevilbear/gather-system-controller:1.0.3`; review
 [the controller example](system/compose-controller.example.yaml) before mounting
 a Docker socket. These components require operator configuration and are not
 started by the dashboard example.
 
 ## Upgrades, source builds, and backups
+
+Gather 1.0.3 includes the [security fixes and compatibility notes](CHANGELOG.md#103).
+Upgrade the app and enabled companions together; existing encrypted state and
+local/OIDC accounts do not need reinitialization. TrueNAS v2 now requires HTTPS
+and verified TLS. Use a certificate matching its configured hostname; for a
+private CA, mount the PEM CA file read-only and set `NODE_EXTRA_CA_CERTS` to its
+container path before starting the app. Do not disable certificate verification.
+Review configured shared passwords against the limits above.
 
 Pin the three image digests listed in the release notes for repeatability. The
 `latest` channel follows released `main`; `dev` follows development. A version tag

@@ -10,7 +10,7 @@ COPY . .
 
 ARG CI
 ARG BUILDTIME
-ARG VERSION=1.0.2
+ARG VERSION=1.0.3
 ARG REVISION=unknown
 ENV CI=$CI
 
@@ -31,7 +31,7 @@ RUN if [ "$CI" != "true" ]; then \
 # Runtime Stage
 # =========================
 FROM node:22-alpine AS runner
-ARG VERSION=1.0.2
+ARG VERSION=1.0.3
 ARG REVISION=unknown
 ARG BUILDTIME
 LABEL org.opencontainers.image.title="Gather"
