@@ -177,3 +177,18 @@ it("focuses icon search and restores the chooser on Escape", () => {
   expect(screen.queryByRole("searchbox", { name: "Search icons" })).not.toBeInTheDocument();
   expect(trigger).toHaveFocus();
 });
+
+// CodeQL #2 reports this image URL as an HTML sink; React keeps it in an attribute.
+it.each([
+  'https://example.test/x" onerror="alert(1)',
+  '/x"><script>alert(1)</script>',
+  "javascript:alert(1)",
+  'data:image/svg+xml,<svg onload="alert(1)"/>',
+])("keeps an adversarial icon value inside the image attribute: %s", (value) => {
+  const { container } = render(<IconPicker value={value} onChange={vi.fn()} />);
+  const image = screen.getByRole("img", { name: "Selected icon" });
+  expect(image).not.toHaveAttribute("onerror");
+  expect(image).not.toHaveAttribute("onload");
+  expect(container.querySelector("script, svg")).toBeNull();
+  expect(image.getAttribute("src")).not.toMatch(/^(javascript:|data:image\/svg)/i);
+});

@@ -143,7 +143,8 @@ def validate_subscription(value):
         raise ValueError('Invalid subscription keys')
     for name, size in [('auth',16), ('p256dh',65)]:
         key = keys.get(name, '')
-        if not isinstance(key, str) or not re.fullmatch(r'[A-Za-z0-9_-]+={0,2}', key):
+        # A 65-byte public key needs at most 88 base64 characters including padding.
+        if not isinstance(key, str) or len(key) > 88 or not re.fullmatch(r'[A-Za-z0-9_-]{1,88}={0,2}', key):
             raise ValueError('Invalid subscription keys')
         decoded = base64.urlsafe_b64decode(key + '=' * (-len(key) % 4))
         if len(decoded) != size or name == 'p256dh' and decoded[0] != 4:

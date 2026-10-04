@@ -136,9 +136,9 @@ export default async function truenasProxyHandler(req, res, map) {
   try {
     let data;
     const wsUrl = new URL(formatApiCall(widgets[widget.type].wsAPI, { ...widget }));
-    const useSecure = wsUrl.protocol === "https:" || Boolean(widget.key); // API key requires secure connection
-    wsUrl.protocol = useSecure ? "wss:" : "ws:";
-    const ws = new WebSocket(wsUrl, { rejectUnauthorized: false });
+    // Both API keys and password authentication require a verified TLS connection.
+    wsUrl.protocol = "wss:";
+    const ws = new WebSocket(wsUrl, { rejectUnauthorized: true });
     await waitForEvent(ws, () => true, { event: "open", parseJson: false }); // wait for open
     try {
       await authenticate(ws, widget);

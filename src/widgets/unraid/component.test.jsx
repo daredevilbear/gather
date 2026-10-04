@@ -68,3 +68,15 @@ describe("widgets/unraid/component", () => {
     expect(screen.getByText("7")).toBeInTheDocument();
   });
 });
+
+it.each([false, true])("retains configured pool fields after flattening mapped children (loaded=%s)", (loaded) => {
+  useWidgetAPI.mockReturnValue({
+    data: loaded ? { caches: { fast: { fsUsed: 42, fsFree: 58, fsUsedPercent: 42 } } } : undefined,
+    error: undefined,
+  });
+  const service = { widget: { type: "unraid", pool1: "fast", fields: ["pool1UsedPercent"] } };
+  const { container } = renderWithProviders(<Component service={service} />);
+  expect(container.querySelectorAll(".service-block")).toHaveLength(1);
+  expect(screen.getByText("unraid.poolUsed")).toBeInTheDocument();
+  if (loaded) expect(screen.getByText("42")).toBeInTheDocument();
+});
