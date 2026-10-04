@@ -1,7 +1,10 @@
 # Encrypted single-file quickstart
 
 Use `deploy/compose.quickstart.yaml` with a released app image containing
-`/app/system/initialize-quickstart.cjs`. The manifest defaults to the tested 1.0.1 app, companion and controller digests.
+`/app/system/initialize-quickstart.cjs`. The manifest defaults to the Gather 1.0.3 app, companion and controller version tags.
+For repeatable installation, use the verified immutable image set in the 1.0.3
+release notes through `GATHER_IMAGE`, `GATHER_NOTIFICATIONS_IMAGE` and
+`GATHER_CONTROLLER_IMAGE`.
 Keep the shown `GATHER_IMAGE` in your private `.env` so the socket-group command
 uses the same app. Original 1.0.0
 and the dev digest `020c8556…` predate this command and cannot run this quickstart.
@@ -13,7 +16,7 @@ Copy only `deploy/compose.quickstart.yaml` into a fresh private installation dir
 
 ```dotenv
 GATHER_PROJECT=gather-encrypted
-GATHER_IMAGE=ghcr.io/daredevilbear/gather@sha256:79325ebb91823898eb0737d767b615473dcecaee348b0769c165eae456ae8dbd
+GATHER_IMAGE=ghcr.io/daredevilbear/gather:1.0.3
 GATHER_DOMAIN=your-gather-hostname
 GATHER_OIDC_ISSUER=https://your-identity-provider
 GATHER_OIDC_CLIENT_ID=your-client-id
@@ -24,12 +27,8 @@ GATHER_SUBNET=an-unused-private-subnet-in-CIDR-notation
 
 ### Local accounts instead of OIDC
 
-Local accounts require an app build containing the local-account initializer. The
-pinned 1.0.1 image above supports the OIDC quickstart; it does not include this new
-local-account feature. For source testing, build this branch with
-`docker build -t gather:local-login .` and set `GATHER_IMAGE=gather:local-login`.
-Use that image for both the initializer and app. Do not change a live deployment
-until the tested build is available on your host.
+Gather 1.0.3 includes the local-account initializer and the OIDC quickstart.
+Use the same selected app image for both initialization and the dashboard.
 
 Keep the hostname, project and subnet inputs. Omit all three `GATHER_OIDC_*`
 credentials and `GATHER_ADMIN_IDS`, and supply:
@@ -68,7 +67,7 @@ Detect the active Docker engine's socket group before Compose validates required
 
 ```sh
 # Set GATHER_IMAGE to the same app image selected in your .env.
-export GATHER_IMAGE=ghcr.io/daredevilbear/gather@sha256:79325ebb91823898eb0737d767b615473dcecaee348b0769c165eae456ae8dbd
+export GATHER_IMAGE=ghcr.io/daredevilbear/gather:1.0.3
 export DOCKER_SOCKET_GID=$(docker run --rm --network none --user 0:0 --entrypoint sh \
   -v /var/run/docker.sock:/engine.sock:ro "$GATHER_IMAGE" \
   -c "stat -c '%g' /engine.sock")

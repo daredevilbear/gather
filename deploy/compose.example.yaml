@@ -1,7 +1,7 @@
 # Dashboard only. Configure your own HTTPS proxy; companions are opt-in.
 services:
   gather:
-    image: ghcr.io/daredevilbear/gather:${GATHER_VERSION:-1.0.2}
+    image: ghcr.io/daredevilbear/gather:${GATHER_VERSION:-1.0.3}
     restart: unless-stopped
     user: "1001:1001"
     cap_drop: [ALL]

@@ -1,5 +1,31 @@
 # Gather release notes
 
+## 1.0.3
+
+- Verify TrueNAS v2 WebSocket TLS certificates before sending API keys or login
+  credentials. Use HTTPS with a certificate matching the configured hostname;
+  mount a private CA and set `NODE_EXTRA_CA_CERTS` when needed.
+- Replace legacy shared-password SHA-256 comparisons with randomly salted
+  scrypt. Accept 1–1024 characters and limit verification to two concurrent
+  attempts per application process; excess attempts fail and may be retried.
+  Separate local accounts and OIDC retain their existing authentication behavior.
+- Bound notification Web Push key validation before matching and decoding.
+- Remove Unraid JSX spread children and preserve mapped pool field selection,
+  resolving the CodeQL extraction warning.
+- Add adversarial image-picker and real untrusted-TLS regression coverage.
+  Record two CodeQL false positives and the required MyJDownloader protocol hash
+  exception without disabling analysis or excluding files.
+- Guard GameDig's existing disabled HTTP cache behavior with a real HTTP-client
+  regression test. The transitive dependency itself is not patched.
+- Align installation examples, all three image versions, and release guidance.
+
+Upgrade all three Gather images together to 1.0.3. Existing encrypted state,
+individual local accounts and OIDC identities are retained; no reinitialization
+or database migration is required. Back up state and keys before upgrading.
+Review TrueNAS certificate trust and shared-password limits before restarting.
+Immutable image identities and validation evidence are recorded in the GitHub
+release. See [INSTALL.md](INSTALL.md) and [SECURITY.md](SECURITY.md).
+
 ## 1.0.2
 
 - Separate local usernames/passwords when OIDC is absent, with administrator,

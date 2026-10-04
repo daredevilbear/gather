@@ -28,16 +28,16 @@ built on the inherited dashboard and widget system.
 - Homepage-compatible integrations plus Gather additions, including vCenter,
   Bitcoin Node, Bitaxe, NerdAxe, Wazuh, and Velociraptor.
 
-## Install 1.0
+## Install 1.0.3
 
-Gather 1.0.0 uses three independently deployable images, all built from the same
+Gather 1.0.3 uses three independently deployable images, all built from the same
 source revision for `linux/amd64` and `linux/arm64`:
 
 | Image                                            | Purpose                                            | Release tag |
 | ------------------------------------------------ | -------------------------------------------------- | ----------- |
-| `ghcr.io/daredevilbear/gather`                   | Dashboard                                          | `1.0.0`     |
-| `ghcr.io/daredevilbear/gather-notifications`     | Optional inbox and Web Push companion              | `1.0.0`     |
-| `ghcr.io/daredevilbear/gather-system-controller` | Optional recovery controller with Docker authority | `1.0.0`     |
+| `ghcr.io/daredevilbear/gather`                   | Dashboard                                          | `1.0.3`     |
+| `ghcr.io/daredevilbear/gather-notifications`     | Optional inbox and Web Push companion              | `1.0.3`     |
+| `ghcr.io/daredevilbear/gather-system-controller` | Optional recovery controller with Docker authority | `1.0.3`     |
 
 Follow [INSTALL.md](INSTALL.md) for a complete dashboard example with persistent
 configuration, authentication, and HTTPS proxy requirements. Enable the optional
@@ -51,8 +51,12 @@ They count downloads across tags and architectures, including automated pulls;
 they do not count unique users. Counts can be cached or unavailable, and appear
 only when the packages are publicly readable. No deployment credentials are used.
 
-Gather 1.0.2 adds separate local accounts when OIDC is absent. The encrypted
-quickstart creates the first administrator; manage users in Users & access and
+Gather 1.0.3 adds security fixes for shared-password verification, TrueNAS TLS,
+and notification key validation, plus the Unraid widget extraction fix. TrueNAS
+v2 requires trusted HTTPS; private CAs can use `NODE_EXTRA_CA_CERTS`.
+
+Separate local accounts introduced in 1.0.2 remain available when OIDC is absent.
+The encrypted quickstart creates the first administrator; manage users in Users & access and
 change your own password in My preferences. See [installation](INSTALL.md) and
 [release notes](CHANGELOG.md).
 
@@ -134,6 +138,7 @@ legacy configuration aliases and the old SSO callback are removed.
    listed in its `manifest.json`, removing current SQLite `-wal`/`-shm` files
    and restoring their saved copies if present,
    before restarting any component. Never run the helper against live writers.
+
 3. Update your Compose environment keys from `HOMEPAGE_*` to `GATHER_*` too;
    renaming `.env` keys alone does not change keys declared inside Compose.
    Rename `homepage.*` discovery labels to `gather.*`, and
