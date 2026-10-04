@@ -12,6 +12,8 @@ export default async function gamedigProxyHandler(req, res) {
   const url = new URL(serviceWidget.url);
 
   try {
+    // Keep incoming headers out of GameDig options. Its HTTP caching must remain
+    // disabled while GHSA-ch52-4w7c-c8xp is unpatched; see SECURITY.md.
     const gamedigOptions = {
       type: serviceWidget.serverType,
       host: url.hostname,
