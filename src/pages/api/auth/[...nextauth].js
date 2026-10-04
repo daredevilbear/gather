@@ -1,10 +1,9 @@
-import { createHash, timingSafeEqual } from "node:crypto";
-
 import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
 import { applyNextAuthEnv, isAuthEnabled } from "utils/env";
 import { oidcProviderId } from "utils/gather/oidc";
+import createSharedPasswordVerifier from "utils/gather/shared-password";
 import { localAccountsEnabled, sessionAccess, usersStore } from "utils/gather/users-store";
 import createLogger from "utils/logger";
 
@@ -15,9 +14,6 @@ const issuer = process.env.GATHER_OIDC_ISSUER;
 const clientId = process.env.GATHER_OIDC_CLIENT_ID;
 const clientSecret = process.env.GATHER_OIDC_CLIENT_SECRET;
 const gatherAuthPassword = process.env.GATHER_AUTH_PASSWORD;
-const gatherAuthPasswordDigest = gatherAuthPassword
-  ? createHash("sha256").update(gatherAuthPassword, "utf8").digest()
-  : null;
 
 // Also done in instrumentation.js
 applyNextAuthEnv();
@@ -130,6 +126,7 @@ if (authEnabled) {
     });
     providers = [{ ...provider, ...provider.options }];
   } else {
+    const verifyPassword = createSharedPasswordVerifier(gatherAuthPassword);
     providers = [
       CredentialsProvider({
         name: "Password",
@@ -138,12 +135,7 @@ if (authEnabled) {
         },
         async authorize(credentials) {
           const provided = credentials?.password;
-          if (!gatherAuthPasswordDigest || typeof provided !== "string") {
-            logFailedPasswordSignIn();
-            return null;
-          }
-          const providedDigest = createHash("sha256").update(provided, "utf8").digest();
-          const isMatch = timingSafeEqual(providedDigest, gatherAuthPasswordDigest);
+          const isMatch = await verifyPassword(provided);
           if (!isMatch) {
             logFailedPasswordSignIn();
             return null;

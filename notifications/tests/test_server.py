@@ -19,6 +19,26 @@ push=importlib.util.module_from_spec(spec);spec.loader.exec_module(push)
 
 def b64(data): return base64.urlsafe_b64encode(data).decode().rstrip('=')
 
+class SubscriptionValidationTests(unittest.TestCase):
+    def subscription(self):
+        return {'endpoint':'https://web.push.apple.com/test-subscription',
+                'keys':{'auth':b64(b'0123456789abcdef'), 'p256dh':b64(b'\x04' + b'x' * 64)}}
+
+    def test_accepts_padded_and_unpadded_keys(self):
+        for padded in (False, True):
+            value = self.subscription()
+            if padded:
+                value['keys'] = {k:v + '=' * (-len(v) % 4) for k,v in value['keys'].items()}
+            self.assertEqual(push.validate_subscription(value), value)
+
+    def test_rejects_oversized_malformed_and_wrong_length_keys(self):
+        for name in ('auth', 'p256dh'):
+            for key in ('-' * 8192 + '!', '-' * 89, 'abc', 'a===', None, 123):
+                value = self.subscription()
+                value['keys'][name] = key
+                with self.subTest(name=name, key=str(key)[:30]), self.assertRaises((ValueError, TypeError)):
+                    push.validate_subscription(value)
+
 @unittest.skipUnless(importlib.util.find_spec('cryptography') and importlib.util.find_spec('pywebpush'), 'Run these integration tests in the Gather notifications image')
 class PushTests(unittest.TestCase):
     def setUp(self):

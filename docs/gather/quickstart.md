@@ -56,7 +56,11 @@ account database alongside the matching configuration and system keys.
 Supplying all three OIDC credentials selects OIDC alone. Supplying only some is an
 error, even if a local password was supplied. Existing explicitly configured
 `GATHER_AUTH_PASSWORD` installations retain their single shared account; they do
-not gain separate user identities automatically.
+not gain separate user identities automatically. Shared-password verification uses
+salted scrypt, accepts 1–1024 characters, and permits at most two concurrent checks
+per app process. Excess concurrent attempts fail sign-in and may be retried. The
+configured shared password remains in the environment or encrypted configuration;
+individual local accounts are the preferred option for new installations.
 
 For OIDC, use a real HTTPS hostname/provider accessible to the browser and containers. Register callback `https://your-gather-hostname/api/auth/callback/gather-oidc` for OIDC. Discovery issuer and authorization/token/JWKS endpoints must satisfy System's same-origin HTTPS checks. Public Caddy certificate issuance also needs appropriate DNS and reachable ports 80/443. The audited Mac sample uses a separate loopback-only local-CA fixture. External DNS/ACME issuance and a real identity provider were not exercised by that fixture.
 

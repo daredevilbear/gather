@@ -10,6 +10,13 @@ Learn more about [TrueNas](https://www.truenas.com/).
 | < 26.04 (REST API)      | 1 (default)             |
 | > 25.04 (Websocket API) | 2                       |
 
+Version 2 uses TLS for both API-key and password authentication and verifies the
+server certificate. Use an HTTPS URL whose hostname matches the certificate.
+For a private CA, mount its PEM certificate read-only into the Gather app container
+and set `NODE_EXTRA_CA_CERTS` to that file's path before starting the container.
+An untrusted, expired, or hostname-mismatched certificate causes the connection to
+fail; certificate verification cannot be disabled by the widget.
+
 Allowed fields: `["load", "uptime", "alerts"]`.
 
 To create an API Key, follow [the official TrueNAS documentation](https://www.truenas.com/docs/scale/scaletutorials/toptoolbar/managingapikeys/).
@@ -21,7 +28,7 @@ To use the `enablePools` option with TrueNAS Core, the `nasType` parameter is re
 ```yaml
 widget:
   type: truenas
-  url: http://truenas.host.or.ip
+  url: https://truenas.host.or.ip
   version: 2 # optional, defaults to 1
   username: user # not required if using api key
   password: pass # not required if using api key
