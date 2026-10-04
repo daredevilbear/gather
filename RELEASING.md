@@ -7,7 +7,12 @@ Develop on `dev`; merge a reviewed release from `dev` into `main`. Keep
 defaults, `NOTICE` copies, and release documentation in agreement. The dashboard,
 notification companion, and optional controller share one Gather release version.
 `package.json` stays `private` because Gather is distributed as source/containers,
-not an npm package.
+not an npm package. Update `.env.example` and every current Compose/install
+example too. The source quickstart uses immutable release version tags and
+supports `GATHER_IMAGE`, `GATHER_NOTIFICATIONS_IMAGE` and
+`GATHER_CONTROLLER_IMAGE` digest overrides. Before those tags exist, CI builds
+the app and companions from the same checkout for the complete quickstart gate.
+Release downloads and the documentation record the verified source image digests.
 
 Use annotated `vMAJOR.MINOR.PATCH` Git tags on `main`. Homepage tags inherited by a
 local checkout are not Gather releases; do not push them with `--tags`. Gather's

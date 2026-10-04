@@ -8,6 +8,10 @@ id=$(basename "$root" | tr '[:upper:].' '[:lower:]-')
 log="$root/validation.txt"
 cp "${2:-deploy/compose.quickstart.yaml}" "$root/compose.yaml"
 image=$(docker image inspect "${1:?Supply a container image}" --format '{{.Id}}')
+notifications_image="gather-quickstart-notifications:$id"
+controller_image="gather-quickstart-controller:$id"
+export GATHER_NOTIFICATIONS_IMAGE=${GATHER_NOTIFICATIONS_IMAGE:-$notifications_image}
+export GATHER_CONTROLLER_IMAGE=${GATHER_CONTROLLER_IMAGE:-$controller_image}
 export GATHER_PROJECT="gather-$id" GATHER_IMAGE="$image" GATHER_DOMAIN=localhost
 export GATHER_OIDC_ISSUER=https://identity.demo.local GATHER_OIDC_CLIENT_ID=gather-demo
 export GATHER_OIDC_CLIENT_SECRET=fixture-client-secret GATHER_ADMIN_IDS=demo-admin
@@ -19,12 +23,22 @@ services:
     ports: !reset []
 YAML
 dc() { docker compose --project-directory "$root" -f "$root/compose.yaml" -f "$root/test.yaml" "$@"; }
-cleanup() { dc down >/dev/null 2>&1 || true; }
+cleanup() {
+ dc down >/dev/null 2>&1 || true
+ docker image rm "$notifications_image" "$controller_image" >/dev/null 2>&1 || true
+}
 trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 {
  printf 'Private test data retained at: %s\nApp image ID: %s\n' "$root" "$image"
+ if [ "$GATHER_NOTIFICATIONS_IMAGE" = "$notifications_image" ]; then
+  docker build -t "$GATHER_NOTIFICATIONS_IMAGE" notifications
+ fi
+ if [ "$GATHER_CONTROLLER_IMAGE" = "$controller_image" ]; then
+  docker build -t "$GATHER_CONTROLLER_IMAGE" system
+ fi
+ printf 'Testing companions: %s / %s\n' "$GATHER_NOTIFICATIONS_IMAGE" "$GATHER_CONTROLLER_IMAGE"
  dc --profile setup config --quiet
  dc --profile setup run --rm --no-deps initialize
  before=$(shasum -a 256 "$root/keys/"*.key "$root/system-data/"*/settings.sqlite)

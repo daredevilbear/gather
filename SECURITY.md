@@ -1,6 +1,6 @@
 # Security
 
-Security fixes target the latest Gather 1.0.x release. Development images are
+Security fixes target Gather 1.0.3, the latest Gather 1.0.x release. Development images are
 intended for testing and may change before a stable release. Upgrade to the
 latest supported patch version before reproducing an issue.
 
@@ -70,6 +70,8 @@ authenticated responses and handling of `Set-Cookie` and `max-stale`. Upgrade
 the affected dependency when an official fix becomes available.
 
 ## CodeQL review of October 4, 2026
+
+The fixes and documented assessments below ship in Gather 1.0.3.
 
 The scan at `9b84e565ff4ec464442a03e3ce922e752b164608` reported seven alerts.
 TrueNAS WebSocket authentication now requires verified TLS. Legacy shared-password
