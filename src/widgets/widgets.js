@@ -6,6 +6,7 @@ import atsumeru from "./atsumeru/widget";
 import audiobookshelf from "./audiobookshelf/widget";
 import authentik from "./authentik/widget";
 import autobrr from "./autobrr/widget";
+import avalonnano3s from "./avalonnano3s/widget";
 import azuredevops from "./azuredevops/widget";
 import backrest from "./backrest/widget";
 import bazarr from "./bazarr/widget";
@@ -179,6 +180,7 @@ const widgets = {
   bazarr,
   booklore,
   beszel,
+  avalonnano3s,
   bitaxe,
   nerdaxe,
   bitcoinnode,
