@@ -132,6 +132,22 @@
     "doc": "autobrr"
   },
   {
+    "id": "avalonnano3s",
+    "name": "Avalon Nano 3s",
+    "fields": [
+      {
+        "key": "url",
+        "kind": "url"
+      },
+      {
+        "key": "port",
+        "kind": "number"
+      }
+    ],
+    "doc": "avalonnano3s",
+    "docUrl": "https://gather.daredevilbear.dev/widgets/services/avalonnano3s/"
+  },
+  {
     "id": "azuredevops",
     "name": "Azure DevOps",
     "fields": [

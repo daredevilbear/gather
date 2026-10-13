@@ -43,7 +43,8 @@ instruction to run a separate Homepage instance.
   [bookmarks](../configs/bookmarks.md), and [Home widgets](../configs/info-widgets.md).
 - [Service widget reference](../widgets/services/index.md) and
   [information widgets](../widgets/info/index.md).
-- Gather guides for [Bitaxe](../widgets/services/bitaxe.md),
+- Gather guides for [Avalon Nano 3s](../widgets/services/avalonnano3s.md) (dev),
+  [Bitaxe](../widgets/services/bitaxe.md),
   [NerdAxe / NerdQAxe](../widgets/services/nerdaxe.md),
   [Wazuh](../widgets/services/wazuh.md),
   [Velociraptor](../widgets/services/velociraptor.md), and

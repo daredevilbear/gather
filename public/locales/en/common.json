@@ -1,4 +1,18 @@
 {
+    "avalonnano3s": {
+        "hashrate": "Hash Rate",
+        "averagehashrate": "Average Hash Rate",
+        "temperature": "ASIC Temperature",
+        "max": "Max",
+        "fan": "Fan",
+        "accepted": "Accepted Shares",
+        "rejectedshares": "Rejected Shares",
+        "rejected": "rejected",
+        "hardwareerrors": "Hardware Errors",
+        "bestdifficulty": "Best Share Diff",
+        "uptime": "Miner Uptime",
+        "updated": "Last updated:"
+    },
     "wazuh": {
         "total": "Agents",
         "active": "Active",
