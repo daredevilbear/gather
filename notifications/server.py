@@ -8,6 +8,7 @@ import sqlite3
 import threading
 import time
 import uuid
+from collections import deque
 from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -31,6 +32,8 @@ DB = DATA / 'push.sqlite3'
 KEY = DATA / 'vapid.pem'
 public_key = ''
 last_poll = 0
+feed_lock = threading.RLock()
+MESSAGE_FIELDS = ('id','time','topic','title','message','priority','tags','click')
 
 def runtime_settings():
     """Only non-secret preferences can be overridden by the dashboard editor."""
@@ -94,6 +97,8 @@ def initialize():
         CREATE TABLE IF NOT EXISTS inbox_state (
           owner TEXT NOT NULL, message TEXT NOT NULL, status TEXT NOT NULL CHECK(status IN ('read','dismissed')),
           updated REAL NOT NULL, PRIMARY KEY(owner,message));
+        CREATE TABLE IF NOT EXISTS retained_messages (
+          id TEXT PRIMARY KEY, time REAL NOT NULL, expires REAL NOT NULL, body TEXT NOT NULL);
         ''')
         db.execute('INSERT OR IGNORE INTO state VALUES (?,?)', ('cursor', str(int(time.time()))))
     os.chmod(DB, 0o600)
@@ -158,17 +163,87 @@ def payload(message):
     return {'id':str(message['id']), 'title':str(message.get('title') or message['topic'])[:120],
             'body':str(message.get('message', 'Open Gather to view this notification.'))[:500]}
 
-def retained_feed(topics):
-    from collections import deque
-    request = Request(NTFY_URL+'/'+topics+'/json?poll=1&since=720h',
+def replay(topics, since, limit=None, ident=None):
+    """Reject in-stream errors too: ntfy may already have sent HTTP 200."""
+    if not re.fullmatch(r'[A-Za-z0-9_-]+(?:,[A-Za-z0-9_-]+)*', topics) or not re.fullmatch(r'[A-Za-z0-9_-]+', since):
+        raise ValueError('Invalid notification replay cursor')
+    query = '?poll=1&since='+since + ('&id='+ident if ident else '')
+    request = Request(NTFY_URL+'/'+topics+'/json'+query,
                       headers={'Authorization':os.environ['NTFY_AUTH']})
-    messages = deque(maxlen=200)
+    messages = deque(maxlen=limit)
     with urlopen(request, timeout=15) as response:
         for line in response:
             item = json.loads(line)
+            if not isinstance(item, dict) or 'error' in item or 'code' in item:
+                raise RuntimeError('Incomplete notification replay')
             if item.get('event') == 'message' and item.get('topic') in topics.split(','):
-                messages.append({k:item[k] for k in ('id','time','topic','title','message','priority','tags','click') if k in item})
-    return list(reversed(messages))
+                messages.append(item)
+        if getattr(response, 'headers', {}).get('X-Messages-Truncated') == '1' and (limit is None or len(messages) < limit):
+            raise RuntimeError('Incomplete notification replay')
+    return list(messages)
+
+def cache_messages(db, messages, now):
+    for item in messages:
+        expires = min(item.get('expires', item['time']+30*86400), item['time']+30*86400)
+        body = {k:item[k] for k in MESSAGE_FIELDS if k in item}
+        db.execute('INSERT OR REPLACE INTO retained_messages VALUES (?,?,?,?)',
+                   (item['id'],item['time'],expires,json.dumps(body)))
+    db.execute('DELETE FROM retained_messages WHERE expires<=?', (now,))
+    db.execute('''DELETE FROM retained_messages WHERE id NOT IN
+                  (SELECT id FROM retained_messages ORDER BY time DESC,rowid DESC LIMIT 200)''')
+
+def cached_feed(db):
+    return [json.loads(row[0]) for row in db.execute(
+        'SELECT body FROM retained_messages WHERE expires>? ORDER BY time DESC,rowid DESC LIMIT 200',
+        (time.time(),))]
+
+def retained_feed(topics):
+    """Share a durable, bounded inbox instead of replaying 30 days per caller."""
+    with feed_lock:
+        now = time.time()
+        with connect() as db:
+            row = db.execute("SELECT value FROM state WHERE key='feed'").fetchone()
+            saved = json.loads(row[0]) if row else {}
+            row = db.execute("SELECT value FROM state WHERE key='feed_retry'").fetchone()
+            retry = json.loads(row[0]) if row else {}
+            current = saved.get('topics') == topics
+            feed = cached_feed(db) if current else []
+        if current and now-saved['checked'] < 30:
+            return feed
+        if retry.get('topics') == topics and now < retry['after']:
+            raise RuntimeError('Notification replay retry pending')
+        replace = not current or now-saved['replayed'] >= 300
+        try:
+            if not current:
+                # Find the newest 200 without downloading a busy topic's entire
+                # month. Empty/sparse topics still receive the full retention window.
+                for since in ('1h','6h','24h','168h','720h'):
+                    messages = replay(topics, since, limit=200)
+                    if len(messages) >= 200:
+                        break
+            elif replace:
+                # Reconcile deletions and cache expiry within the displayed window.
+                since = str(int(feed[-1]['time'])-1) if len(feed) == 200 else '720h'
+                messages = replay(topics, since, limit=200)
+            else:
+                messages = replay(topics, saved['cursor'], limit=200)
+        except Exception:
+            # Concurrent readers/retries must let ntfy's bandwidth budget refill
+            # instead of repeatedly spending it on the start of the same replay.
+            with connect() as db:
+                db.execute("INSERT OR REPLACE INTO state VALUES ('feed_retry',?)",
+                           (json.dumps({'topics':topics,'after':time.time()+60}),))
+            raise
+        cursor = messages[-1]['id'] if messages else (saved['cursor'] if current and not replace else str(int(now)-1))
+        state = {'topics':topics, 'cursor':cursor, 'checked':now,
+                 'replayed':now if replace else saved['replayed']}
+        with connect() as db:
+            if replace:
+                db.execute('DELETE FROM retained_messages')
+            cache_messages(db, messages, now)
+            db.execute("INSERT OR REPLACE INTO state VALUES ('feed',?)", (json.dumps(state),))
+            db.execute("DELETE FROM state WHERE key='feed_retry'")
+            return cached_feed(db)
 
 def unread_badge(db, owner, messages):
     row = db.execute('SELECT body FROM preferences WHERE owner=?', (owner,)).fetchone()
@@ -180,7 +255,11 @@ def unread_badge(db, owner, messages):
 
 def ingest(messages, now, topics=None):
     topics = topics or runtime_settings()['topics']
-    with connect() as db:
+    with feed_lock, connect() as db:
+        row = db.execute("SELECT value FROM state WHERE key='feed'").fetchone()
+        if row and json.loads(row[0]).get('topics') == topics:
+            # Persist the new inbox entry before its push is eligible for delivery.
+            cache_messages(db, [m for m in messages if m.get('event') == 'message' and m.get('topic') in topics.split(',')], now)
         for message in messages:
             if message.get('event') != 'message' or message.get('topic') not in topics.split(','):
                 continue
@@ -208,10 +287,7 @@ def poll():
     # The cursor is a server-produced message ID or the initial Unix timestamp.
     if not re.fullmatch(r'[A-Za-z0-9_-]+', cursor):
         raise ValueError('Invalid cursor')
-    request = Request(NTFY_URL+'/'+topics+'/json?poll=1&since='+cursor,
-                      headers={'Authorization':os.environ['NTFY_AUTH']})
-    with urlopen(request, timeout=15) as response:
-        messages = [json.loads(line) for line in response]
+    messages = replay(topics, cursor)
     ingest(messages, time.time(), topics)
     last_poll = time.time()
 
@@ -345,14 +421,11 @@ class Handler(BaseHTTPRequestHandler):
             ident = self.path[len(PREFIX+'message/'):]
             if not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', ident):
                 return self.respond(400,{'error':'Invalid notification ID'})
-            request = Request(NTFY_URL+'/'+topics+'/json?poll=1&since=720h',
-                              headers={'Authorization':os.environ['NTFY_AUTH']})
-            with urlopen(request,timeout=15) as response:
-                for line in response:
-                    item = json.loads(line)
-                    if item.get('event') == 'message' and item.get('id') == ident and item.get('topic') in topics.split(','):
-                        message = {k:item[k] for k in ('id','time','topic','title','message','priority','tags','click') if k in item}
-                        return self.respond(200,{'message':message})
+            messages = replay(topics, '720h', ident=ident)
+            for item in messages:
+                if item.get('id') == ident:
+                    message = {k:item[k] for k in MESSAGE_FIELDS if k in item}
+                    return self.respond(200,{'message':message})
             return self.respond(404,{'error':'Notification expired or unavailable'})
         if self.path == PREFIX+'sw.js':
             return self.respond(200,Path('/app/sw.js').read_text().replace('__GATHER_ICON__', json.dumps(preferences['icon'])).encode(),'application/javascript; charset=utf-8')
