@@ -1,4 +1,4 @@
-# Install Gather 1.0.3
+# Install Gather 1.0.4
 
 Use Docker Engine with the Docker Compose plugin on `linux/amd64` or
 `linux/arm64`. Runtime configuration uses `GATHER_*` environment names.
@@ -25,8 +25,8 @@ installation. See [System settings](https://gather.daredevilbear.dev/gather/syst
 
 ## Dashboard with shared-password authentication
 
-Use the `v1.0.3` source checkout with the `1.0.3` images, or pin the immutable
-digests recorded in the release notes. The example selects `1.0.3` by default.
+Use the `v1.0.4` source checkout with the `1.0.4` images, or pin the immutable
+digests recorded in the release notes. The example selects `1.0.4` by default.
 From the repository root:
 
 ```sh
@@ -88,7 +88,7 @@ before adopting the instance. See [Setup](https://gather.daredevilbear.dev/gathe
 ## Optional components
 
 The dashboard runs without either companion. To enable the inbox and Web Push,
-use `ghcr.io/daredevilbear/gather-notifications:1.0.3` and follow
+use `ghcr.io/daredevilbear/gather-notifications:1.0.4` and follow
 [Notifications](https://gather.daredevilbear.dev/gather/notifications/) for ntfy,
 authenticated same-origin `/gather-notifications/` routing, session lookup,
 origin validation, and a writable `/data` volume for its unprivileged UID 1001.
@@ -103,14 +103,15 @@ key at `/run/secrets/gather-app-key` and follow
 For encrypted system settings and supervised authentication rollback, follow
 [System settings](https://gather.daredevilbear.dev/gather/system/), including
 separate keys, `/system-data` persistence, and the optional controller's authority.
-Use `ghcr.io/daredevilbear/gather-system-controller:1.0.3`; review
+Use `ghcr.io/daredevilbear/gather-system-controller:1.0.4`; review
 [the controller example](system/compose-controller.example.yaml) before mounting
 a Docker socket. These components require operator configuration and are not
 started by the dashboard example.
 
 ## Upgrades, source builds, and backups
 
-Gather 1.0.3 includes the [security fixes and compatibility notes](CHANGELOG.md#103).
+Gather 1.0.4 includes the [notification inbox and badge fixes](CHANGELOG.md#104)
+and retains the [1.0.3 security fixes and compatibility notes](CHANGELOG.md#103).
 Upgrade the app and enabled companions together; existing encrypted state and
 local/OIDC accounts do not need reinitialization. TrueNAS v2 now requires HTTPS
 and verified TLS. Use a certificate matching its configured hostname; for a
