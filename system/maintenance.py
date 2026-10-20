@@ -48,7 +48,13 @@ class Maintenance:
                 raise RuntimeError('Unsupported mount')
             return source
         state = mount(app, '/system-data')
-        sources = [(mount(app, '/app/config'), '/source/config'), (state, '/source/system'),
+        config = mount(app, '/app/config')
+        if mount(notification, '/vault') != state+'/notification' or mount(notification, '/config') != config:
+            raise RuntimeError('Notification vault or configuration mounts disagree')
+        for container, protected in ((app, ('/system-data','/app/config')), (notification, ('/data',))):
+            if any(entry.get('Destination','').startswith(root+'/') for entry in container.get('Mounts',[]) for root in protected):
+                raise RuntimeError('Nested persistent mounts require an operator-managed backup')
+        sources = [(config, '/source/config'), (state, '/source/system'),
                    (mount(notification, '/data'), '/source/push'),
                    (mount(app, '/run/secrets/gather-app-key'), '/source/keys/app.key'),
                    (mount(app, '/run/secrets/gather-notification-key'), '/source/keys/notification.key'),

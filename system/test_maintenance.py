@@ -52,7 +52,7 @@ class MaintenanceTests(unittest.TestCase):
     def test_helper_uses_exact_installed_image_and_fixed_isolated_mounts(self):
         def inspect(method,target,data=None):
             mounts=[{'Type':'bind','Source':'/srv/gather/'+name,'Destination':dest} for name,dest in [
-                ('config','/app/config'),('system','/system-data'),('push','/data'),
+                ('config','/app/config'),('config','/config'),('system','/system-data'),('system/notification','/vault'),('push','/data'),
                 ('app.key','/run/secrets/gather-app-key'),('notification.key','/run/secrets/gather-notification-key')]]
             return {'Image':'sha256:'+'a'*64,'Config':{'User':'1001:1001'},'Mounts':mounts}
         self.maintenance.api=inspect;spec=self.maintenance.plan(self.file)
@@ -64,3 +64,11 @@ class MaintenanceTests(unittest.TestCase):
     def test_pointer_cannot_select_an_arbitrary_path(self):
         write(self.root/'control/maintenance/active.json',{'id':'../../outside'})
         with self.assertRaises(ValueError):load(self.root)
+
+    def test_mismatched_notification_vault_is_rejected_before_stopping(self):
+        def inspect(method,target,data=None):
+            mounts=[{'Type':'bind','Source':'/srv/gather/'+name,'Destination':dest} for name,dest in [
+                ('config','/app/config'),('config','/config'),('system','/system-data'),('wrong-vault','/vault')]]
+            return {'Image':'sha256:'+'a'*64,'Config':{'User':'1001:1001'},'Mounts':mounts}
+        self.maintenance.api=inspect
+        with self.assertRaisesRegex(RuntimeError,'mounts disagree'):self.maintenance.plan(self.file)
