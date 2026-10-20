@@ -1,5 +1,29 @@
 # Gather release notes
 
+## 1.0.4
+
+- Remember the browser's push opt-in per account and notification prefix. Restore
+  missing subscriptions on open/resume while OS permission remains granted,
+  preserve explicit opt-outs, and reject recovery requests after a sign-in change.
+- Include the account's unread inbox count in encrypted Web Push payloads so
+  installed apps can update their badges while closed without a signed-in fetch.
+- Keep a shared persistent inbox of the latest 200 retained messages, refresh it
+  incrementally, and reject truncated ntfy replays, including errors delivered
+  after HTTP 200. Preserve the last complete snapshot and back off retries instead
+  of reporting a false zero unread count.
+- Retain read/dismiss state, badge preferences, VAPID keys and subscriptions in
+  the existing notification data directory. Push tests use the real inbox count.
+- Include the Avalon Nano 3s integration previously available on the production
+  channel, with read-only miner telemetry refreshed every 10 seconds.
+
+Upgrade all three Gather images together to 1.0.4 and preserve notification
+`/data` with the other state and keys. No first-use reinitialization is needed;
+the companion creates its retained inbox cache on startup. Supported installed
+apps need notification permission and badges enabled. Reading on another device
+updates a closed app's badge on its next push or open. Automated regression and
+live inbox/count checks passed; physical iPhone background badge verification
+remains pending. See [notification behavior](docs/gather/notifications.md).
+
 ## 1.0.3
 
 - Verify TrueNAS v2 WebSocket TLS certificates before sending API keys or login

@@ -62,6 +62,20 @@ cutover. The [integrated editor](settings.md) can manage topics and branding thr
 
 ### Badge refresh diagnostics
 
+Gather remembers this browser's push choice separately for each account and
+notification prefix. An existing enabled subscription records the opt-in when
+the installed app opens. On later opens or resumes, Gather restores a missing
+browser subscription or server registration when that opt-in is still enabled
+and notification permission is already granted. Recovery does not request new
+OS permission and requires a companion supporting account-bound requests.
+
+An explicit Disable or Reset choice is preserved. A different account does not
+inherit the previous account's opt-in, and the server rejects requests if sign-in
+changes during recovery. If browser site data is cleared, the remembered choice
+is lost and push must be enabled again. Revoked OS permission also requires user
+action. Routine container updates preserve notification `/data` and VAPID keys;
+opening the updated app lets it reconcile the existing browser subscription.
+
 The companion includes the unread count in each encrypted push. It calculates the
 count for the subscription's account at delivery time (including retries), using
 the same latest 200 retained messages and read/dismiss states as the inbox. A
