@@ -24,12 +24,14 @@ CMD ["node","-e","process.on('SIGTERM',()=>process.exit(0));setInterval(()=>{},1
 DOCKER
 docker build -q -t "$name-helper" "$fixture/context" >/dev/null
 docker build -q -t "$name-controller" "$root/system" >/dev/null
+socket_gid=$(docker run --rm --user 0 -v /var/run/docker.sock:/var/run/docker.sock --entrypoint stat "$name-controller" -c %g /var/run/docker.sock)
+# Match production UID and socket group, so Linux file ownership is exercised.
 # Only generated synthetic secrets are ever mounted here.
 docker run --rm -v "$fixture:/fixture" "$name-helper" node /tests/fixture.cjs initialize
 docker run -d --name "$name-app" -v "$fixture/config:/app/config" -v "$fixture/system:/system-data" -v "$fixture/keys/app.key:/run/secrets/gather-app-key:ro" -v "$fixture/keys/notification.key:/run/secrets/gather-notification-key:ro" "$name-helper" >/dev/null
 docker run -d --name "$name-notifications" -v "$fixture/system/notification:/vault:ro" -v "$fixture/config:/config:ro" -v "$fixture/push:/data" -v "$fixture/keys/notification.key:/run/secrets/gather-notification-key:ro" "$name-helper" >/dev/null
 tick() {
-  docker run --rm --user 0 --network none -v /var/run/docker.sock:/var/run/docker.sock -v "$fixture/system:/system-data" --entrypoint python "$name-controller" -B -c "from controller import Controller; c=Controller('/system-data','$name-app','$name-notifications','unused-gateway'); c.ready=lambda:True; c.tick()"
+  docker run --rm --user 1001:1001 --group-add "$socket_gid" --network none -v /var/run/docker.sock:/var/run/docker.sock -v "$fixture/system:/system-data" --entrypoint python "$name-controller" -B -c "from controller import Controller; c=Controller('/system-data','$name-app','$name-notifications','unused-gateway'); c.ready=lambda:True; c.tick()"
 }
 fixture_action() { docker run --rm -v "$fixture:/fixture" "$name-helper" node /tests/fixture.cjs "$1"; }
 tick
