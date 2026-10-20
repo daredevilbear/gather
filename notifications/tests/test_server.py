@@ -61,6 +61,59 @@ class PushTests(unittest.TestCase):
         handler.owner=lambda:owner
         handler.do_POST()
         return responses[-1]
+    def get_api(self, action, owner='account-a'):
+        handler=push.Handler.__new__(push.Handler);handler.path=push.PREFIX+action
+        responses=[];handler.respond=lambda *args:responses.append(args);handler.owner=lambda:owner
+        handler.do_GET();return responses[-1]
+    def test_device_diagnostics_are_private_and_track_acceptance_and_revocation(self):
+        self.api('subscribe')
+        ident=push.subscription_id(self.sub)
+        self.assertEqual(self.api('device',owner='account-b',body={'account':'account-b','id':ident,'action':'rename','label':'Phone'})[0],404)
+        self.assertEqual(self.api('device',body={'account':'account-a','id':ident,'action':'rename','label':'My iPhone'})[0],200)
+        self.api('test');push.drain(send=lambda *_:None)
+        data=self.get_api('diagnostics')[1]
+        self.assertEqual(data['devices'][0]['label'],'My iPhone')
+        self.assertIsNotNone(data['devices'][0]['last_sent'])
+        self.assertNotIn('endpoint',json.dumps(data));self.assertNotIn('p256dh',json.dumps(data))
+        self.assertEqual(self.get_api('diagnostics',owner='account-b')[1]['devices'],[])
+        self.api('device',body={'account':'account-a','id':ident,'action':'revoke'})
+        self.assertTrue(self.api('status')[1]['revoked'])
+        self.api('subscribe');self.assertFalse(self.api('status')[1]['revoked'])
+    def test_rules_survive_legacy_preferences_and_only_group_that_account(self):
+        self.api('subscribe')
+        other={**self.sub,'endpoint':'https://web.push.apple.com/another-device'}
+        self.api('subscribe',owner='account-b',body=other)
+        rules={'groupSeconds':60,'criticalBypass':False}
+        self.assertEqual(self.api('rules',body={'account':'account-a','rules':rules})[0],200)
+        self.api('inbox-state',body={'account':'account-a','updates':{},'preferences':{'badge':True,'pushPage':True,'inboxView':'panel'}})
+        self.assertEqual(self.get_api('diagnostics')[1]['rules']['groupSeconds'],60)
+        now=time.time()
+        messages=[{'event':'message','id':str(index),'topic':'apps','title':'Alert','message':'Same signal','time':now} for index in (1,2)]
+        push.ingest(messages,now)
+        with push.connect() as db:
+            a=db.execute('SELECT q.* FROM queue q JOIN subscriptions s ON s.id=q.subscriber WHERE s.owner=?',('account-a',)).fetchall()
+            b=db.execute('SELECT q.* FROM queue q JOIN subscriptions s ON s.id=q.subscriber WHERE s.owner=?',('account-b',)).fetchall()
+            self.assertEqual(len(a),1);self.assertEqual(json.loads(a[0]['body'])['repeatCount'],2)
+            self.assertEqual(a[0]['next_try'],now+60);self.assertEqual(len(b),2)
+    def test_muted_alerts_remain_in_retained_inbox_and_unread_count(self):
+        self.api('subscribe');self.api('rules',body={'account':'account-a','rules':{'mutedTopics':['apps']}})
+        now=time.time()
+        with push.connect() as db:db.execute("INSERT OR REPLACE INTO state VALUES ('feed',?)",(json.dumps({'topics':'apps'}),))
+        push.ingest([{'event':'message','id':'muted','topic':'apps','time':now}],now)
+        with push.connect() as db:
+            self.assertEqual(db.execute('SELECT count(*) FROM queue').fetchone()[0],0)
+            self.assertEqual(push.unread_badge(db,'account-a',push.cached_feed(db)),1)
+    def test_expired_device_has_sanitized_error_and_unknown_badge_is_not_zero(self):
+        self.api('subscribe');self.api('test')
+        error=RuntimeError('secret endpoint must not be returned');error.response=SimpleNamespace(status_code=410)
+        def fail(*_):raise error
+        push.drain(send=fail)
+        data=self.get_api('diagnostics')[1]
+        self.assertEqual(data['devices'][0]['state'],'expired')
+        self.assertEqual(data['devices'][0]['last_error'],'HTTP 410')
+        self.feed.side_effect=RuntimeError('unavailable')
+        self.assertIsNone(self.get_api('diagnostics')[1]['expectedBadge'])
+
     def test_verified_legacy_email_state_migrates_to_stable_identity(self):
         import hashlib
         email='person@example.test'
@@ -97,11 +150,11 @@ class PushTests(unittest.TestCase):
         self.assertEqual(self.api('subscribe',origin='https://evil.invalid')[0],403)
         self.assertEqual(self.api('subscribe',header='')[0],403)
         self.assertEqual(self.api('subscribe')[0],200)
-        self.assertEqual(self.api('status')[1],{'enabled':True})
+        self.assertTrue(self.api('status')[1]['enabled'])
         self.assertEqual(self.api('subscribe',owner='account-b')[0],409)
         self.assertEqual(self.api('unsubscribe',owner='account-b')[0],409)
         self.assertEqual(self.api('unsubscribe')[0],200)
-        self.assertEqual(self.api('status')[1],{'enabled':False})
+        self.assertFalse(self.api('status')[1]['enabled'])
 
     def test_push_requests_reject_account_changes_before_mutating(self):
         stale={**self.sub,'account':'account-a'}
@@ -301,7 +354,7 @@ class PushTests(unittest.TestCase):
             push.drain(push.deliver)
         self.assertEqual(len(captured),1)
         body=json.loads(http_ece.decrypt(captured[0],private_key=self.private,auth_secret=self.auth,version='aes128gcm'))
-        self.assertEqual(body,{'id':'unread','title':'apps','body':'Background alert','badgeCount':1})
+        self.assertEqual(body,{'id':'unread','title':'apps','body':'Background alert','topic':'apps','priority':3,'badgeCount':1})
         with push.connect() as db:self.assertEqual(db.execute('SELECT count(*) FROM queue').fetchone()[0],0)
 
 

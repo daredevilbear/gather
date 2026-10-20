@@ -1,5 +1,23 @@
 # Gather release notes
 
+## 1.1.0
+
+- Add account-specific notification health, device management and expected badge diagnostics.
+- Add quiet hours, topic muting, priority-based critical bypass and repeated-alert grouping.
+- Add About & updates with component versions, build channel and mismatch warnings.
+- Show widget refresh age, stale/error status and offline state.
+- Add protected, encrypted complete backups with inspection, coordinated restore and automatic rollback.
+- Add separate phone layout ordering, density and pinned favorites per account and dashboard.
+
+Upgrade the app, notification companion and controller together. Preserve existing
+configuration, all SQLite state, notification data and keys; do not rerun first-use
+initialization. Existing accounts and preferences are retained. Complete backups
+require the supported persistent mounts and UID 1001, include secrets, and restore
+to the same origin and app version with fresh sign-in confirmation. Keep external
+services, ntfy history, custom mounted assets and integration credential files
+outside Gather state in separate operator backups. Physical installed-device
+background badge verification remains pending.
+
 ## 1.0.4
 
 - Remember the browser's push opt-in per account and notification prefix. Restore

@@ -2,6 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
+import { validMobileProfile, validMobileTarget } from "./mobile-layout";
+
 export const DEFAULT_PREFERENCES = { widgetsPosition: "below" };
 
 export function preferencesStore(directory) {
@@ -19,12 +21,35 @@ export function preferencesStore(directory) {
       return { ...DEFAULT_PREFERENCES, ...(row ? JSON.parse(row.body) : {}) };
     },
     save(owner, value) {
-      if (!value || Object.keys(value).some((key) => key !== "widgetsPosition") ||
-        !["above", "below"].includes(value.widgetsPosition)) throw Error("Invalid preferences");
-      db.prepare("INSERT INTO preferences VALUES (?,?) ON CONFLICT(owner) DO UPDATE SET body=excluded.body")
-        .run(owner, JSON.stringify(value));
+      if (
+        !value ||
+        typeof value !== "object" ||
+        Array.isArray(value) ||
+        !Object.keys(value).length ||
+        Object.keys(value).some((key) => !["widgetsPosition", "mobileProfile"].includes(key)) ||
+        ("widgetsPosition" in value && !["above", "below"].includes(value.widgetsPosition)) ||
+        ("mobileProfile" in value &&
+          (!value.mobileProfile ||
+            Object.keys(value.mobileProfile).sort().join(",") !== "profile,target" ||
+            !validMobileTarget(value.mobileProfile.target) ||
+            !validMobileProfile(value.mobileProfile.profile)))
+      )
+        throw Error("Invalid preferences");
+      const prior = this.read(owner);
+      const next = { ...prior, ...("widgetsPosition" in value ? { widgetsPosition: value.widgetsPosition } : {}) };
+      if (value.mobileProfile) {
+        const { target, profile } = value.mobileProfile;
+        next.mobileProfiles = { ...prior.mobileProfiles, [target]: profile };
+        if (Object.keys(next.mobileProfiles).length > 50) throw Error("Too many mobile profiles");
+      }
+      db.prepare("INSERT INTO preferences VALUES (?,?) ON CONFLICT(owner) DO UPDATE SET body=excluded.body").run(
+        owner,
+        JSON.stringify(next),
+      );
       return this.read(owner);
     },
-    close() { db.close(); },
+    close() {
+      db.close();
+    },
   };
 }

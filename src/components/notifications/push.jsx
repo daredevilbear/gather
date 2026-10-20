@@ -38,7 +38,9 @@ export default function PushControls({ api, prefix }) {
   const synchronize = useCallback(
     async (context) => {
       let subscription = await context.registration.pushManager.getSubscription();
-      let active = Boolean(subscription && (await api("status", subscriptionBody(subscription, context))).enabled);
+      const server = subscription ? await api("status", subscriptionBody(subscription, context)) : {};
+      let active = Boolean(subscription && server.enabled);
+      if (server.revoked) remember(context, false);
       let recoveryError = false;
       const saved = intent(context);
       if (active && saved !== "disabled") remember(context, true);

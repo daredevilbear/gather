@@ -1,4 +1,4 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
 @config '../../tailwind.config.js';
 
@@ -96,5 +96,21 @@ dialog ::-webkit-scrollbar {
 
 .service-container + .chart {
   margin-top: 2.5rem;
-  margin-bottom: .5rem;
+  margin-bottom: 0.5rem;
+}
+
+@media (max-width: 639px) {
+  [data-mobile-density="compact"] .service-description {
+    display: none;
+  }
+  [data-mobile-density="compact"] .service-name {
+    padding-top: 0.4rem;
+    padding-bottom: 0.4rem;
+  }
+  [data-mobile-density="compact"] .service-icon {
+    width: 2.5rem;
+  }
+  [data-mobile-density="compact"] .service-title {
+    min-height: 44px;
+  }
 }

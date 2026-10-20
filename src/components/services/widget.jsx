@@ -1,6 +1,7 @@
 import { useTranslation } from "next-i18next/pages";
 
 import ErrorBoundary from "components/errorboundry";
+import Freshness from "components/services/freshness";
 import components from "widgets/components";
 
 export default function Widget({ widget, service }) {
@@ -11,9 +12,11 @@ export default function Widget({ widget, service }) {
   const fullService = { ...service, widget };
   if (ServiceWidget) {
     return (
-      <ErrorBoundary>
-        <ServiceWidget service={fullService} />
-      </ErrorBoundary>
+      <Freshness>
+        <ErrorBoundary>
+          <ServiceWidget service={fullService} />
+        </ErrorBoundary>
+      </Freshness>
     );
   }
 

@@ -160,3 +160,52 @@ Local credential hashes and account profile records live in
 that database in complete backups; restoring only the vault does not restore local
 accounts. Password changes increment a credential version, immediately invalidating
 old application, notification-session and session-based MCP access.
+
+## Complete encrypted backup and restore wizard
+
+Protected server administrators can open **System settings → Complete encrypted
+backup & restore** (`/backups`). The updated app, notification companion and
+recovery controller must be installed together. The supported installation uses
+UID 1001 (directly or through the image entrypoint with PUID/PGID 1001), the standard `/app/config`, `/system-data`, companion `/data` mounts and
+the two key file mounts under `/run/secrets`. Both services must be running.
+The companion can mount the shared config directory or its generated `.gather-runtime` subdirectory. Nested persistent mounts require operator-managed backups instead.
+
+The controller pauses Gather and its notification companion while capturing a
+coordinated snapshot. SQLite databases are copied with SQLite’s snapshot mechanism,
+including committed WAL content. The bundle includes configuration, accounts,
+personal dashboards and layout preferences, configuration history, managed
+variables, encrypted system databases, notification subscriptions and read state,
+VAPID signing key and both recovery keys. The controller’s maintenance transport
+key, pending operations and generated runtime output are excluded. Recovery state
+in an exported control database is reset to idle.
+
+The archive uses AES-256-GCM with a random salt and nonce and scrypt-derived key
+(N=32768, r=8, p=1). Passphrases have 12–1024 characters. The passphrase is never
+stored: a derived archive key is protected by a separate local maintenance key
+until the operation finishes. Keep the downloaded encrypted bundle privately and
+save its passphrase separately. Gather cannot recover a lost passphrase.
+
+Restore has two explicit steps: upload and inspect, then review and replace.
+Inspection authenticates the entire encrypted archive before extracting files,
+checks safe paths, file hashes, SQLite integrity, schema compatibility, vault/key
+agreement, matching public origin and matching app version. A restore replaces
+Gather state only after inspection. Before replacement, the helper creates an
+encrypted snapshot of the current installation for rollback. Both services restart;
+a protected administrator must sign in again and confirm within ten minutes.
+Unhealthy services, missing confirmation or an interrupted activation trigger
+rollback. Keep access to the restored administrator credentials before starting.
+
+The controller launches a fixed helper from the installed app’s exact image ID.
+The helper has no network, Docker socket or exposed ports, drops capabilities and
+uses a read-only container filesystem with only fixed data mounts. API input cannot
+select commands, image IDs, mount paths or container names. Normal system settings
+activation and backup/restore operations exclude each other.
+
+Snapshots are limited to 256 MiB and 10,000 files, with a 1 MiB manifest metadata limit; at most ten maintenance operations
+can be stored. Delete downloaded server copies from the wizard to free space.
+Uploads require additional free space for inspection and recovery. External ntfy
+broker history, identity-provider configuration, deployment definitions and other
+services are outside the Gather bundle and require separate operator backups. Custom files mounted outside the state directories, including images and integration credential files, also require separate operator backups.
+Restore to the same public origin and app version, with compatible Compose mounts.
+A new host must have the corresponding image set and initialized controller mounts
+before using the wizard. Keep an independent operator backup for host-loss recovery.

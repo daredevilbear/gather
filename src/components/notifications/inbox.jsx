@@ -350,6 +350,7 @@ export default function Inbox({
             </select>
           </label>
           <small>App icon badges depend on your device and notification permissions.</small>
+          <Link href="/notification-health">Notification health & alert rules</Link>
           <PushControls api={api} prefix={safePrefix} />
         </details>
         <div className={styles.list}>

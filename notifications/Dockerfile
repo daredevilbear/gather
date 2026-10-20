@@ -1,5 +1,5 @@
 FROM python:3.13-alpine
-ARG VERSION=1.0.4
+ARG VERSION=1.1.0
 ARG REVISION=unknown
 ARG BUILDTIME
 LABEL org.opencontainers.image.title="Gather notifications"
@@ -9,10 +9,12 @@ LABEL org.opencontainers.image.licenses="GPL-3.0"
 LABEL org.opencontainers.image.version=$VERSION
 LABEL org.opencontainers.image.revision=$REVISION
 LABEL org.opencontainers.image.created=$BUILDTIME
+RUN apk add --no-cache tzdata
 RUN pip install --no-cache-dir pywebpush==2.0.3
 WORKDIR /app
-COPY server.py sw.js vault_loader.py ./
+COPY server.py sw.js vault_loader.py alert_rules.py ./
 COPY LICENSE NOTICE VERSION /usr/share/gather/
-ENV GATHER_VERSION=$VERSION
+ENV GATHER_VERSION=$VERSION GATHER_REVISION=$REVISION
+RUN cp /usr/share/gather/VERSION /app/SOURCE_VERSION
 USER 1001:1001
 CMD ["python", "-B", "server.py"]
