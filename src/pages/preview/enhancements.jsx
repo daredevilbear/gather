@@ -61,7 +61,7 @@ export default function EnhancementsPreview() {
     result: {
       files: 24,
       bytes: 1048576,
-      version: "1.0.4",
+      version: "1.1.0",
       origin: "https://gather.example.test",
       created: new Date().toISOString(),
     },

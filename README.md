@@ -28,16 +28,16 @@ built on the inherited dashboard and widget system.
 - Homepage-compatible integrations plus Gather additions, including vCenter,
   Bitcoin Node, Bitaxe, NerdAxe, Wazuh, and Velociraptor.
 
-## Install 1.0.4
+## Install 1.1.0
 
-Gather 1.0.4 uses three independently deployable images, all built from the same
+Gather 1.1.0 uses three independently deployable images, all built from the same
 source revision for `linux/amd64` and `linux/arm64`:
 
 | Image                                            | Purpose                                            | Release tag |
 | ------------------------------------------------ | -------------------------------------------------- | ----------- |
-| `ghcr.io/daredevilbear/gather`                   | Dashboard                                          | `1.0.4`     |
-| `ghcr.io/daredevilbear/gather-notifications`     | Optional inbox and Web Push companion              | `1.0.4`     |
-| `ghcr.io/daredevilbear/gather-system-controller` | Optional recovery controller with Docker authority | `1.0.4`     |
+| `ghcr.io/daredevilbear/gather`                   | Dashboard                                          | `1.1.0`     |
+| `ghcr.io/daredevilbear/gather-notifications`     | Optional inbox and Web Push companion              | `1.1.0`     |
+| `ghcr.io/daredevilbear/gather-system-controller` | Optional recovery controller with Docker authority | `1.1.0`     |
 
 Follow [INSTALL.md](INSTALL.md) for a complete dashboard example with persistent
 configuration, authentication, and HTTPS proxy requirements. Enable the optional
@@ -51,11 +51,15 @@ They count downloads across tags and architectures, including automated pulls;
 they do not count unique users. Counts can be cached or unavailable, and appear
 only when the packages are publicly readable. No deployment credentials are used.
 
-Gather 1.0.4 fixes empty notification inboxes and background app badge counts
-when ntfy history is truncated, and includes the Avalon Nano 3s widget. It retains
-the shared-password, TrueNAS TLS, notification key validation and Unraid fixes
-from 1.0.3. TrueNAS v2 requires trusted HTTPS; private CAs can use
-`NODE_EXTRA_CA_CERTS`.
+Gather 1.1.0 adds notification health and device management, quiet hours and alert
+rules, component version information, widget freshness, complete encrypted
+backup/restore, and separate phone layouts with pinned favorites. See the
+[1.1.0 release notes](CHANGELOG.md#110) and
+[upgrade guidance](INSTALL.md#upgrades-source-builds-and-backups).
+
+It includes the 1.0.4 notification inbox and badge fixes and the Avalon Nano 3s
+widget, together with the earlier security improvements. TrueNAS v2 requires
+trusted HTTPS; private CAs can use `NODE_EXTRA_CA_CERTS`.
 
 Separate local accounts introduced in 1.0.2 remain available when OIDC is absent.
 The encrypted quickstart creates the first administrator; manage users in Users & access and
