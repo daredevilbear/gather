@@ -45,6 +45,21 @@ Open or reload the dashboard to inspect the result. Existing widget APIs continu
 to provide their normal diagnostics; Check connections checks the dashboard and
 notification companion without making arbitrary network requests.
 
+### Widget refresh status
+
+**Appearance → Show widget refresh status** controls the line beneath service
+widgets that shows the last refresh time or waiting, stale, failed and offline
+status. It is enabled by default. Turn it off and **Save & apply** to hide the
+line on all dashboards, including personal dashboards. Widgets continue fetching
+and displaying metrics. Open or reload the dashboard after saving.
+
+The equivalent setting in `settings.yaml` is:
+
+```yaml
+gather:
+  showWidgetRefreshStatus: false
+```
+
 ## Custom API mappings
 
 In Services, expand a service, choose its integration widget and select Custom API.

@@ -61,7 +61,7 @@ export default function Freshness({ children }) {
     <FreshnessContext.Provider value={report}>
       {children}
       <span
-        className={`block px-2 pb-1 text-[10px] ${offline || ["error", "stale"].includes(result.state) ? "text-amber-600 dark:text-amber-300" : "opacity-60"}`}
+        className={`widget-refresh-status block px-2 pb-1 text-[10px] ${offline || ["error", "stale"].includes(result.state) ? "text-amber-600 dark:text-amber-300" : "opacity-60"}`}
         title={
           result.time
             ? `Last successful refresh: ${new Date(result.time).toLocaleString()}`

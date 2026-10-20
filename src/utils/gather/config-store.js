@@ -86,7 +86,7 @@ export function validate(file, text) {
         fail("Group display names must contain 1–120 characters.");
     }
     if (value.gather !== undefined && !object(value.gather)) fail("Gather settings must be an object.");
-    for (const field of ["accountMenu", "notifications"])
+    for (const field of ["accountMenu", "notifications", "showWidgetRefreshStatus"])
       if (value.gather?.[field] !== undefined && typeof value.gather[field] !== "boolean")
         fail(`${field} must be a checkbox value.`);
     const tabs = value.gather?.tabs;

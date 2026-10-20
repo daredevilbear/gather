@@ -52,3 +52,8 @@ zero metric. Samples become stale after three polling intervals (at least one
 minute); offline status is explicit. Widgets without a completed API refresh show
 that they are waiting. The timestamp is an observation of Gather’s refresh, not a
 guarantee that the upstream system’s own measurements are current.
+
+In **Dashboard settings → Appearance**, turn off **Show widget refresh status**
+to hide this entire line on all dashboards, including personal dashboards. Widget
+requests and metric values keep updating. The setting is enabled by default;
+save with **Save & apply**, then open or reload the dashboard.
