@@ -68,6 +68,22 @@ the same latest 200 retained messages and read/dismiss states as the inbox. A
 disabled badge preference sends zero. Push tests carry the real inbox count and
 do not add a new unread message.
 
+The companion shares a persistent inbox snapshot between feed requests and push
+delivery. Initial loading starts with recent history and widens only until it has
+200 messages or covers 30 days. Later refreshes use the last message ID; the normal
+poller also saves new inbox entries before queuing their pushes. Every five minutes,
+the displayed history window is reconciled with ntfy to remove deleted messages.
+Expirations are applied when reading the snapshot. The snapshot survives container
+updates in the same `/data` volume as subscriptions and read state.
+
+This avoids repeatedly downloading a month of history for each browser or push
+batch. ntfy's replay bandwidth limit can append an error after HTTP 200 and some
+older messages have already been sent. Such a response is rejected, preserving
+the last complete snapshot and cursor; an incomplete replay must never become a
+false zero unread count. Individual message lookups filter by ID on the ntfy server.
+Failed replays share a persisted one-minute retry delay, allowing the bandwidth
+budget to refill even when several browsers or push batches request the inbox.
+
 The worker applies this count directly, so a background update does not depend
 on a valid browser sign-in session or extra network requests from a suspended
 iPhone/iPad or Mac web app. If the companion cannot read ntfy's retained feed, it
