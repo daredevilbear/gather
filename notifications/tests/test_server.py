@@ -102,6 +102,20 @@ class PushTests(unittest.TestCase):
         self.assertEqual(self.api('unsubscribe',owner='account-b')[0],409)
         self.assertEqual(self.api('unsubscribe')[0],200)
         self.assertEqual(self.api('status')[1],{'enabled':False})
+
+    def test_push_requests_reject_account_changes_before_mutating(self):
+        stale={**self.sub,'account':'account-a'}
+        self.assertEqual(self.api('subscribe',owner='account-b',body=stale)[0],409)
+        with push.connect() as db:
+            self.assertEqual(db.execute('SELECT count(*) FROM subscriptions').fetchone()[0],0)
+        self.assertEqual(self.api('subscribe',body=stale)[0],200)
+        for action in ('status','test','unsubscribe'):
+            with self.subTest(action=action):
+                self.assertEqual(self.api(action,owner='account-b',body=stale)[0],409)
+        with push.connect() as db:
+            self.assertEqual(db.execute('SELECT count(*) FROM subscriptions').fetchone()[0],1)
+            self.assertEqual(db.execute('SELECT count(*) FROM queue').fetchone()[0],0)
+
     def test_reject_private_hosts_and_bad_keys(self):
         for endpoint in ['http://web.push.apple.com/x','https://127.0.0.1/x','https://web.push.apple.com.evil.invalid/x','https://user@web.push.apple.com/x','https://web.push.apple.com:8443/x','https://web.push.apple.com/x#frag']:
             with self.subTest(endpoint=endpoint),self.assertRaises(ValueError):
