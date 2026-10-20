@@ -1,5 +1,6 @@
 import * as yaml from "js-yaml";
 import Head from "next/head";
+import Link from "next/link";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 
@@ -1425,6 +1426,13 @@ export default function SettingsEditor({ request = api, preview = false, persona
                 </p>
               )}
               {!doc && busy && <p role="status">Loading settings…</p>}
+              {section === "backups" && canManageSystem && (
+                <p>
+                  <Link href="/backups">
+                    Complete encrypted backup & restore, including accounts and notification keys
+                  </Link>
+                </p>
+              )}
               {section === "system" && canManageSystem && (
                 <SystemSettings embedded preview={preview} onDirtyChange={setSystemDirty} titleRef={sectionTitle} />
               )}

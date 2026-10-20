@@ -5,6 +5,7 @@ import path from "node:path";
 import database from "../../../system/database.cjs";
 import vault from "../../../system/vault.cjs";
 
+import { maintenanceBusy } from "./backup-store";
 import { ConfigError } from "./config-store";
 import { oidcProviderId } from "./oidc";
 import { localAccountsEnabled } from "./users-store";
@@ -177,6 +178,7 @@ export function stage(records, subject) {
     p.directory,
     (db) =>
       database.transaction(db, () => {
+        if (maintenanceBusy()) fail("Finish the pending backup or restore before changing system settings.", 409);
         const status = database.value(db, "state", { phase: "idle" });
         if (["awaiting_confirmation", "applying", "rolling_back"].includes(status.phase))
           fail("A configuration change is already awaiting confirmation.", 409);

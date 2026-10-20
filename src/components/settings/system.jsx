@@ -1,4 +1,5 @@
 import { signIn } from "next-auth/react";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import styles from "./editor.module.css";
@@ -138,6 +139,9 @@ export default function SystemSettings({ embedded = false, preview = false, onDi
   }
   return (
     <Container className={embedded ? styles.systemSection : styles.editor}>
+      <p>
+        <Link href="/backups">Complete encrypted backup & restore</Link>
+      </p>
       <header className={embedded ? styles.heading : styles.top}>
         <div>
           <p className={styles.eyebrow}>ADMINISTRATION</p>

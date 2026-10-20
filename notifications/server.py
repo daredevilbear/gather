@@ -15,6 +15,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
+from alert_rules import DEFAULT_RULES, validate_rules, allowed, critical
 from vault_loader import load as load_vault
 load_vault()
 
@@ -86,6 +87,12 @@ def initialize():
         CREATE TABLE IF NOT EXISTS subscriptions (
           id TEXT PRIMARY KEY, owner TEXT NOT NULL, body TEXT NOT NULL,
           created REAL NOT NULL, updated REAL NOT NULL, last_test REAL NOT NULL DEFAULT 0);
+        CREATE TABLE IF NOT EXISTS devices (
+          id TEXT PRIMARY KEY, owner TEXT NOT NULL, label TEXT NOT NULL DEFAULT 'Browser device',
+          last_seen REAL, last_sent REAL, last_error TEXT, state TEXT NOT NULL DEFAULT 'active');
+        CREATE TABLE IF NOT EXISTS alert_groups (
+          subscriber TEXT NOT NULL, signature TEXT NOT NULL, event TEXT NOT NULL,
+          started REAL NOT NULL, count INTEGER NOT NULL, PRIMARY KEY(subscriber,signature));
         CREATE TABLE IF NOT EXISTS events (id TEXT PRIMARY KEY, received REAL NOT NULL);
         CREATE TABLE IF NOT EXISTS queue (
           event TEXT NOT NULL, subscriber TEXT NOT NULL REFERENCES subscriptions(id) ON DELETE CASCADE,
@@ -100,6 +107,7 @@ def initialize():
         CREATE TABLE IF NOT EXISTS retained_messages (
           id TEXT PRIMARY KEY, time REAL NOT NULL, expires REAL NOT NULL, body TEXT NOT NULL);
         ''')
+        db.execute("INSERT OR IGNORE INTO devices(id,owner,last_seen) SELECT id,owner,updated FROM subscriptions")
         db.execute('INSERT OR IGNORE INTO state VALUES (?,?)', ('cursor', str(int(time.time()))))
     os.chmod(DB, 0o600)
 
@@ -122,6 +130,7 @@ def owner_for_cookie(cookie):
         if legacy != owner:
             with connect() as db:
                 db.execute('UPDATE subscriptions SET owner=? WHERE owner=?', (owner,legacy))
+                db.execute('UPDATE devices SET owner=? WHERE owner=?', (owner,legacy))
                 db.execute('''INSERT INTO inbox_state SELECT ?,message,status,updated FROM inbox_state WHERE owner=?
                   ON CONFLICT(owner,message) DO UPDATE SET
                   status=CASE WHEN inbox_state.status='dismissed' OR excluded.status='dismissed' THEN 'dismissed' ELSE 'read' END,
@@ -161,7 +170,8 @@ def subscription_id(subscription):
 
 def payload(message):
     return {'id':str(message['id']), 'title':str(message.get('title') or message['topic'])[:120],
-            'body':str(message.get('message', 'Open Gather to view this notification.'))[:500]}
+            'body':str(message.get('message', 'Open Gather to view this notification.'))[:500],
+            'topic':message.get('topic'), 'priority':message.get('priority', 3)}
 
 def replay(topics, since, limit=None, ident=None):
     """Reject in-stream errors too: ntfy may already have sent HTTP 200."""
@@ -267,13 +277,31 @@ def ingest(messages, now, topics=None):
             inserted = db.execute('INSERT OR IGNORE INTO events VALUES (?,?)',(ident,now)).rowcount
             if inserted and now - 86400 <= message['time'] <= now + 300:
                 body = json.dumps(payload(message))
-                for sub in db.execute('SELECT id FROM subscriptions WHERE created<=?',(message['time']+1,)).fetchall():
+                for sub in db.execute('SELECT id,owner FROM subscriptions WHERE created<=?',(message['time']+1,)).fetchall():
+                    saved = db.execute('SELECT body FROM preferences WHERE owner=?', (sub['owner'],)).fetchone()
+                    rules = validate_rules(json.loads(saved[0]).get('rules', {}) if saved else {})
+                    if not allowed(rules, message, now):
+                        continue
+                    group_seconds = 0 if critical(rules, message) else rules['groupSeconds']
+                    if group_seconds:
+                        signature = hashlib.sha256(json.dumps([message.get('topic'),message.get('title'),message.get('message'),message.get('priority',3)]).encode()).hexdigest()
+                        group = db.execute('SELECT * FROM alert_groups WHERE subscriber=? AND signature=?', (sub['id'],signature)).fetchone()
+                        if group and now-group['started'] < group_seconds:
+                            grouped = payload(message)
+                            grouped['repeatCount'] = group['count']+1
+                            grouped['body'] = grouped['body'][:450]+' ('+str(grouped['repeatCount'])+' occurrences)'
+                            changed = db.execute('UPDATE queue SET body=? WHERE event=? AND subscriber=?', (json.dumps(grouped),group['event'],sub['id'])).rowcount
+                            if changed:
+                                db.execute('UPDATE alert_groups SET count=count+1 WHERE subscriber=? AND signature=?', (sub['id'],signature))
+                                continue
+                        db.execute('INSERT OR REPLACE INTO alert_groups VALUES (?,?,?,?,?)', (sub['id'],signature,ident,now,1))
                     db.execute('INSERT OR IGNORE INTO queue(event,subscriber,body,created,next_try) VALUES (?,?,?,?,?)',
-                               (ident,sub['id'],body,now,now))
+                               (ident,sub['id'],body,now,now+group_seconds))
             db.execute('UPDATE state SET value=? WHERE key=?',(ident,'cursor'))
         db.execute('DELETE FROM inbox_state WHERE updated<?',(now-31*86400,))
         db.execute('DELETE FROM events WHERE received<?',(now-31*86400,))
         db.execute('DELETE FROM queue WHERE created<?',(now-86400,))
+        db.execute('DELETE FROM alert_groups WHERE started<?', (now-86400,))
 
 def poll():
     global last_poll
@@ -325,6 +353,11 @@ def drain(send=deliver):
             if not subscriber:
                 continue
             body = json.loads(row['body'])
+            saved = db.execute('SELECT body FROM preferences WHERE owner=?', (subscriber['owner'],)).fetchone()
+            rules = validate_rules(json.loads(saved[0]).get('rules', {}) if saved else {})
+            if not row['event'].startswith('test-') and not allowed(rules, body, now):
+                db.execute('DELETE FROM queue WHERE event=? AND subscriber=?', (row['event'],row['subscriber']))
+                continue
             if messages is not None:
                 # Calculate at delivery, including retries, to include current read
                 # state and preferences without a browser session or extra fetches.
@@ -335,6 +368,8 @@ def drain(send=deliver):
             response = getattr(error, 'response', None)
             code = response.status_code if response is not None else None
             with connect() as db:
+                db.execute('UPDATE devices SET last_error=?,state=? WHERE id=?',
+                           ('HTTP '+str(code) if isinstance(code,int) else 'Send failed', 'expired' if code in (404,410) else 'retrying', row['subscriber']))
                 if code in (404,410):
                     db.execute('DELETE FROM subscriptions WHERE id=?',(row['subscriber'],))
                 else:
@@ -343,6 +378,7 @@ def drain(send=deliver):
                                (now+delay,row['event'],row['subscriber']))
         else:
             with connect() as db:
+                db.execute("UPDATE devices SET last_sent=?,last_error=NULL,state='active' WHERE id=?", (now,row['subscriber']))
                 db.execute('DELETE FROM queue WHERE event=? AND subscriber=?',(row['event'],row['subscriber']))
 
 def worker():
@@ -385,6 +421,8 @@ class Handler(BaseHTTPRequestHandler):
     def inbox(self, owner, updates=None, preferences=None):
         with connect() as db:
             if preferences is not None:
+                previous = db.execute('SELECT body FROM preferences WHERE owner=?', (owner,)).fetchone()
+                preferences = {**(json.loads(previous[0]) if previous else {}), **preferences}
                 db.execute('INSERT INTO preferences VALUES (?,?) ON CONFLICT(owner) DO UPDATE SET body=excluded.body',
                            (owner,json.dumps(preferences)))
             row = db.execute('SELECT body FROM preferences WHERE owner=?', (owner,)).fetchone()
@@ -433,10 +471,26 @@ class Handler(BaseHTTPRequestHandler):
             return self.respond(200,json.dumps({'id':'/','name':preferences['appName'],'short_name':preferences['appName'],'start_url':'/','scope':'/','display':'standalone','background_color':'#182938','theme_color':'#182938','icons':[{'src':preferences['icon'],'sizes':'512x512','type':'image/png'}]}).encode(),'application/manifest+json')
         if self.path == PREFIX+'health':
             return self.respond(200 if time.time()-last_poll < 120 else 503, {'ready':time.time()-last_poll < 120})
-        if self.path not in (PREFIX+'config', PREFIX+'inbox-state'):
+        if self.path not in (PREFIX+'config', PREFIX+'inbox-state', PREFIX+'diagnostics'):
             return self.respond(404,{'error':'Not found'})
         owner = self.owner()
         if owner:
+            if self.path == PREFIX+'diagnostics':
+                with connect() as db:
+                    row = db.execute('SELECT body FROM preferences WHERE owner=?', (owner,)).fetchone()
+                    rules = validate_rules(json.loads(row[0]).get('rules', {}) if row else {})
+                    devices = [dict(row) for row in db.execute("SELECT id,label,last_seen,last_sent,last_error,state FROM devices WHERE owner=? ORDER BY CASE WHEN state IN ('active','retrying') THEN 0 ELSE 1 END,last_seen DESC LIMIT 50", (owner,))]
+                    pending = db.execute('SELECT count(*) FROM queue q JOIN subscriptions s ON q.subscriber=s.id WHERE s.owner=?', (owner,)).fetchone()[0]
+                try:
+                    messages = retained_feed(topics)
+                    with connect() as db:
+                        expected = unread_badge(db, owner, messages)
+                except Exception:
+                    expected = None
+                return self.respond(200, {'account':owner,'devices':devices,'rules':rules,'topics':topics.split(','),
+                    'expectedBadge':expected,'pending':pending,'lastPoll':last_poll or None,
+                    'version':Path('/app/SOURCE_VERSION').read_text().strip() if Path('/app/SOURCE_VERSION').exists() else os.environ.get('GATHER_VERSION', 'unknown'),
+                    'revision':os.environ.get('GATHER_REVISION','unknown')})
             if self.path == PREFIX+'inbox-state':
                 return self.inbox(owner)
             self.respond(200,{'publicKey':public_key,'account':owner,'pushRecovery':True})
@@ -448,7 +502,7 @@ class Handler(BaseHTTPRequestHandler):
             self.respond(503,{'error':'Push service temporarily unavailable'})
 
     def post(self):
-        if self.path not in [PREFIX+x for x in ('subscribe','unsubscribe','status','test','inbox-state')]:
+        if self.path not in [PREFIX+x for x in ('subscribe','unsubscribe','status','test','inbox-state','rules','device')]:
             return self.respond(404,{'error':'Not found'})
         if self.headers.get('Origin') != ORIGIN or self.headers.get('X-Gather-Push') != '1':
             return self.respond(403,{'error':'Invalid request origin'})
@@ -462,6 +516,29 @@ class Handler(BaseHTTPRequestHandler):
             if not 0 < size <= (32768 if self.path == PREFIX+'inbox-state' else 8192):
                 return self.respond(413,{'error':'Invalid request size'})
             value = json.loads(self.rfile.read(size))
+            if self.path in (PREFIX+'rules', PREFIX+'device'):
+                if not isinstance(value, dict) or value.get('account') != owner:
+                    return self.respond(409,{'error':'Account changed; refresh Gather'})
+                with connect() as db:
+                    if self.path.endswith('/rules'):
+                        rules = validate_rules(value.get('rules'))
+                        row = db.execute('SELECT body FROM preferences WHERE owner=?', (owner,)).fetchone()
+                        saved = json.loads(row[0]) if row else {}
+                        saved['rules'] = rules
+                        db.execute('INSERT OR REPLACE INTO preferences VALUES (?,?)', (owner,json.dumps(saved)))
+                    else:
+                        ident = value.get('id')
+                        device = db.execute('SELECT owner FROM devices WHERE id=? AND owner=?', (ident,owner)).fetchone()
+                        if not device:
+                            return self.respond(404,{'error':'Device unavailable'})
+                        if value.get('action') == 'revoke':
+                            db.execute('DELETE FROM subscriptions WHERE id=? AND owner=?', (ident,owner))
+                            db.execute("UPDATE devices SET state='revoked' WHERE id=? AND owner=?", (ident,owner))
+                        elif value.get('action') == 'rename' and isinstance(value.get('label'),str) and 1 <= len(value['label'].strip()) <= 80:
+                            db.execute('UPDATE devices SET label=? WHERE id=? AND owner=?', (value['label'].strip(),ident,owner))
+                        else:
+                            raise ValueError('Invalid device operation')
+                return self.respond(200,{'ok':True})
             if self.path == PREFIX+'inbox-state':
                 if not isinstance(value, dict) or value.get('account') != owner:
                     return self.respond(409,{'error':'Account changed; refresh Gather'})
@@ -472,10 +549,13 @@ class Handler(BaseHTTPRequestHandler):
                     return self.respond(400,{'error':'Invalid notification status updates'})
                 preferences = value.get('preferences')
                 if preferences is not None and (not isinstance(preferences, dict) or
-                    set(preferences) != {'badge','pushPage','inboxView'} or
+                    set(preferences) - {'badge','pushPage','inboxView','rules'} or
+                    not {'badge','pushPage','inboxView'} <= set(preferences) or
                     type(preferences.get('badge')) is not bool or type(preferences.get('pushPage')) is not bool or
                     preferences.get('inboxView') not in ('panel','page')):
                     return self.respond(400,{'error':'Invalid notification preferences'})
+                if preferences is not None and 'rules' in preferences:
+                    validate_rules(preferences.pop('rules'))
                 return self.inbox(owner, updates, preferences)
             # Recovery requests carry the account that opted in before awaiting
             # browser APIs. Reject a sign-in change before binding or removing it.
@@ -488,10 +568,14 @@ class Handler(BaseHTTPRequestHandler):
         now = time.time()
         with connect() as db:
             existing = db.execute('SELECT * FROM subscriptions WHERE id=?',(ident,)).fetchone()
-            if existing and existing['owner'] != owner:
+            device_owner = db.execute('SELECT owner FROM devices WHERE id=?', (ident,)).fetchone()
+            if (existing and existing['owner'] != owner) or (device_owner and device_owner['owner'] != owner):
                 return self.respond(409,{'error':'This browser subscription belongs to a different account. Reset browser notifications before enabling.'})
             if self.path.endswith('/status'):
-                return self.respond(200,{'enabled':existing is not None})
+                if existing:
+                    db.execute('UPDATE devices SET last_seen=? WHERE id=? AND owner=?', (now,ident,owner))
+                device = db.execute('SELECT state FROM devices WHERE id=? AND owner=?', (ident,owner)).fetchone()
+                return self.respond(200,{'enabled':existing is not None,'deviceId':ident,'revoked':bool(device and device['state']=='revoked')})
             if self.path.endswith('/subscribe'):
                 count = db.execute('SELECT count(*) FROM subscriptions WHERE owner=?',(owner,)).fetchone()[0]
                 if existing is None and count >= 10:
@@ -499,8 +583,11 @@ class Handler(BaseHTTPRequestHandler):
                 db.execute('''INSERT INTO subscriptions(id,owner,body,created,updated) VALUES (?,?,?,?,?)
                               ON CONFLICT(id) DO UPDATE SET body=excluded.body,updated=excluded.updated''',
                            (ident,owner,json.dumps(subscription),now,now))
+                db.execute("INSERT INTO devices(id,owner,last_seen) VALUES (?,?,?) ON CONFLICT(id) DO UPDATE SET last_seen=excluded.last_seen,state='active'", (ident,owner,now))
+                db.execute('DELETE FROM devices WHERE owner=? AND id NOT IN (SELECT id FROM subscriptions) AND id NOT IN (SELECT id FROM devices WHERE owner=? ORDER BY last_seen DESC LIMIT 50)', (owner,owner))
             elif self.path.endswith('/unsubscribe'):
                 db.execute('DELETE FROM subscriptions WHERE id=? AND owner=?',(ident,owner))
+                db.execute("UPDATE devices SET state='disabled' WHERE id=? AND owner=?", (ident,owner))
             elif self.path.endswith('/test'):
                 if existing is None:
                     return self.respond(404,{'error':'Enable push on this device first'})

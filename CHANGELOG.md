@@ -1,5 +1,14 @@
 # Gather release notes
 
+## Unreleased
+
+- Add account-specific notification health, device management and expected badge diagnostics.
+- Add quiet hours, topic muting, priority-based critical bypass and repeated-alert grouping.
+- Add About & updates with component versions, build channel and mismatch warnings.
+- Show widget refresh age, stale/error status and offline state.
+- Add protected, encrypted complete backups with inspection, coordinated restore and automatic rollback.
+- Add separate phone layout ordering, density and pinned favorites per account and dashboard.
+
 ## 1.0.4
 
 - Remember the browser's push opt-in per account and notification prefix. Restore

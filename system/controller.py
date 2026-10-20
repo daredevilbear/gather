@@ -3,6 +3,7 @@
 Run with fixed, operator-owned arguments. Input files never select commands/paths.
 """
 import argparse
+import os
 import json
 import http.client
 import socket
@@ -10,6 +11,7 @@ import re
 import time
 import uuid
 from pathlib import Path
+from maintenance import Maintenance
 from database import Transaction, get, put, event
 
 
@@ -19,23 +21,28 @@ class DockerConnection(http.client.HTTPConnection):
         self.sock.settimeout(self.timeout)
         self.sock.connect('/var/run/docker.sock')
 
-def docker(method, name, suffix):
-    if not re.fullmatch(r'[A-Za-z0-9_.-]+',name):
-        raise ValueError('Invalid operator container name')
-    connection=DockerConnection('localhost',timeout=90)
+def docker_api(method, target, data=None):
+    if not re.fullmatch(r'/containers/(?:create|[A-Za-z0-9_.-]+(?:/(?:json|start|stop|restart|wait))?)(?:\?[A-Za-z0-9_=&-]+)?', target):
+        raise ValueError('Invalid container operation')
+    connection=DockerConnection('localhost',timeout=120)
     try:
-        connection.request(method,'/containers/'+name+'/'+suffix)
+        connection.request(method,target,body=json.dumps(data).encode() if data is not None else None,
+                           headers={'Content-Type':'application/json'} if data is not None else {})
         response=connection.getresponse();body=response.read(1048576)
-        if response.status not in (200,204,304):
-            raise RuntimeError('Container operation failed')
+        if response.status not in (200,201,204,304): raise RuntimeError('Container operation failed')
         return json.loads(body) if body else {}
     finally:connection.close()
+
+def docker(method, name, suffix):
+    if not re.fullmatch(r'[A-Za-z0-9_.-]+',name): raise ValueError('Invalid operator container name')
+    return docker_api(method,'/containers/'+name+'/'+suffix)
 
 class Controller:
     def __init__(self, root, app, notification, gateway, timeout=600):
         self.root=Path(root);self.control=self.root/'control'
         self.containers=[app,notification,gateway];self.timeout=timeout
         self.control.mkdir(parents=True,exist_ok=True)
+        self.maintenance=Maintenance(self,docker_api)
     def state(self):
         with Transaction(self.root) as db: return get(db,'state',{'phase':'idle'})
     def restart(self):
@@ -60,8 +67,12 @@ class Controller:
             event(db,'rolled_back',state['revision'])
         print('System configuration rolled back.',flush=True)
     def tick(self):
+        maintenance_active=self.maintenance.tick()
         now=int(time.time()*1000)
-        with Transaction(self.root) as db: put(db,'heartbeat',now)
+        with Transaction(self.root) as db:
+            put(db,'heartbeat',now)
+            put(db,'controller',{'version':Path('/usr/share/gather/VERSION').read_text().strip() if Path('/usr/share/gather/VERSION').exists() else os.environ.get('GATHER_VERSION','unknown'),'revision':os.environ.get('GATHER_REVISION','unknown'),'backupFormat':1})
+        if maintenance_active:return
         state=self.state()
         if state['phase'] in ('applying','rolling_back'):
             self.rollback(state,'Controller recovered an interrupted activation.');return

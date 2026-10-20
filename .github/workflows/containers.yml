@@ -59,6 +59,9 @@ jobs:
             -v "$PWD/notifications:/tests:ro" -w /tests gather-notifications:test \
             python -B -m unittest test_vault
 
+      - name: Test complete encrypted backup and restore with isolated containers
+        run: sh scripts/ci/test-complete-backup.sh
+
   build:
     name: Build ${{ matrix.name }}
     needs: tests
