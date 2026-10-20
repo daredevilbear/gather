@@ -50,6 +50,9 @@ class PushTests(unittest.TestCase):
         self.auth=b'0123456789abcdef'
         key=self.private.public_key().public_bytes(serialization.Encoding.X962,serialization.PublicFormat.UncompressedPoint)
         self.sub={'endpoint':'https://web.push.apple.com/test-subscription','keys':{'auth':b64(self.auth),'p256dh':b64(key)}}
+        self.read_feed=push.retained_feed
+        feed_patch=patch.object(push,'retained_feed',return_value=[])
+        self.feed=feed_patch.start();self.addCleanup(feed_patch.stop)
     def api(self,action,owner='account-a',body=None,origin=push.ORIGIN,header='1'):
         handler=push.Handler.__new__(push.Handler);handler.path=push.PREFIX+action
         encoded=json.dumps(self.sub if body is None else body).encode()
@@ -115,6 +118,68 @@ class PushTests(unittest.TestCase):
         sent=[];push.drain(lambda sub,body:sent.append(json.loads(body)))
         self.assertEqual([m['id'] for m in sent],['new'])
         with push.connect() as db:self.assertEqual(db.execute('SELECT count(*) FROM queue').fetchone()[0],0)
+    def test_push_badges_are_account_scoped_and_use_retained_inbox(self):
+        self.api('subscribe')
+        other={**self.sub,'endpoint':'https://web.push.apple.com/other-subscription'}
+        self.api('subscribe',owner='account-b',body=other)
+        self.mark({'one':'read','two':'dismissed'})
+        self.feed.return_value=[{'id':'one'},{'id':'two'},{'id':'three'}]
+        now=time.time()
+        push.ingest([{'event':'message','id':'three','time':now,'topic':'apps'}],now)
+        sent={}
+        push.drain(lambda sub,body:sent.update({sub['endpoint']:json.loads(body)}))
+        self.assertEqual(sent[self.sub['endpoint']]['badgeCount'],1)
+        self.assertEqual(sent[other['endpoint']]['badgeCount'],3)
+        self.assertNotIn('owner',sent[self.sub['endpoint']])
+        self.feed.assert_called_once_with('apps')
+
+    def test_retry_badges_use_current_read_state_and_disabled_preference(self):
+        self.api('subscribe');self.api('test')
+        self.feed.return_value=[{'id':'one'},{'id':'two'}]
+        sent=[]
+        def temporary(sub,body):
+            sent.append(json.loads(body));raise RuntimeError('temporary')
+        push.drain(temporary)
+        self.assertEqual(sent[-1]['badgeCount'],2)
+        self.mark({'one':'read'})
+        with push.connect() as db:db.execute('UPDATE queue SET next_try=0')
+        push.drain(temporary)
+        self.assertEqual(sent[-1]['badgeCount'],1)
+        self.mark({'two':'dismissed'})
+        with push.connect() as db:db.execute('UPDATE queue SET next_try=0')
+        push.drain(temporary)
+        self.assertEqual(sent[-1]['badgeCount'],0)
+        self.feed.return_value=[{'id':'unread'}]
+        self.api('inbox-state',body={'account':'account-a','updates':{},
+            'preferences':{'badge':False,'pushPage':True,'inboxView':'panel'}})
+        with push.connect() as db:db.execute('UPDATE queue SET next_try=0')
+        push.drain(lambda sub,body:sent.append(json.loads(body)))
+        self.assertEqual(sent[-1]['badgeCount'],0)
+        self.assertTrue(sent[-1]['id'].startswith('test-'))
+
+    def test_badge_clear_and_feed_failure_do_not_lose_notifications(self):
+        self.api('subscribe');self.api('test')
+        self.feed.side_effect=RuntimeError('ntfy unavailable')
+        sent=[]
+        push.drain(lambda sub,body:sent.append(json.loads(body)))
+        self.assertNotIn('badgeCount',sent[-1])
+        self.feed.side_effect=None
+        with push.connect() as db:db.execute('UPDATE subscriptions SET last_test=0')
+        self.api('test')
+        push.drain(lambda sub,body:sent.append(json.loads(body)))
+        self.assertEqual(sent[-1]['badgeCount'],0)
+        self.feed.reset_mock()
+        push.drain()
+        self.feed.assert_not_called()
+
+    def test_delivery_rechecks_subscription_after_fetching_badge_feed(self):
+        self.api('subscribe');self.api('test')
+        def unsubscribe(topics):
+            self.api('unsubscribe');return []
+        self.feed.side_effect=unsubscribe
+        sent=[]
+        push.drain(lambda *args:sent.append(args))
+        self.assertEqual(sent,[])
     def test_retries_expired_subscriptions_and_test_throttle(self):
         self.api('subscribe');self.assertEqual(self.api('test')[0],200);self.assertEqual(self.api('test')[0],429)
         def temporary(*args):raise RuntimeError('temporary')
@@ -195,18 +260,52 @@ class PushTests(unittest.TestCase):
             captured.append((url,kwargs))
             return SimpleNamespace(status_code=201,headers={},text='',content=b'')
         with patch('requests.Session.request',request):
-            push.deliver(self.sub,json.dumps({'title':'Test','body':'Encrypted notification'}))
+            push.deliver(self.sub,json.dumps({'title':'Test','body':'Encrypted notification','badgeCount':7}))
         url,kwargs=captured[0]
         self.assertEqual(url,self.sub['endpoint']);self.assertFalse(kwargs['allow_redirects'])
         headers={k.lower():v for k,v in kwargs['headers'].items()}
         self.assertTrue(headers['authorization'].startswith('vapid '))
         decoded=http_ece.decrypt(kwargs['data'],private_key=self.private,auth_secret=self.auth,version='aes128gcm')
         self.assertEqual(json.loads(decoded)['body'],'Encrypted notification')
+        self.assertEqual(json.loads(decoded)['badgeCount'],7)
         self.assertNotIn(b'Encrypted notification',kwargs['data'])
+
+    def test_retained_inbox_to_encrypted_push_badge_without_browser_session(self):
+        import http_ece
+        self.api('subscribe');self.mark({'read':'read'})
+        now=time.time()
+        message={'event':'message','id':'unread','topic':'apps','time':now,'message':'Background alert'}
+        push.ingest([message],now)
+        history=[{**message,'id':'read'},message]
+        self.feed.side_effect=self.read_feed
+        captured=[]
+        def request(session,method,url,**kwargs):
+            captured.append(kwargs['data'])
+            return SimpleNamespace(status_code=201,headers={},text='',content=b'')
+        response=io.BytesIO(''.join(json.dumps(item)+'\n' for item in history).encode())
+        with patch.dict(os.environ,{'NTFY_AUTH':'Bearer test'}),patch.object(push,'urlopen',return_value=response),patch.object(push,'owner_for_cookie',side_effect=AssertionError('No browser session required')),patch('requests.Session.request',request):
+            push.drain(push.deliver)
+        self.assertEqual(len(captured),1)
+        body=json.loads(http_ece.decrypt(captured[0],private_key=self.private,auth_secret=self.auth,version='aes128gcm'))
+        self.assertEqual(body,{'id':'unread','title':'apps','body':'Background alert','badgeCount':1})
+        with push.connect() as db:self.assertEqual(db.execute('SELECT count(*) FROM queue').fetchone()[0],0)
 
 if __name__=='__main__':unittest.main()
 
 class RuntimeSettingsTests(unittest.TestCase):
+    def test_retained_feed_matches_latest_200_inbox_messages_and_filters_topics(self):
+        messages=[{'event':'message','id':str(i),'topic':'apps','time':i,'message':'Example'} for i in range(205)]
+        messages.extend([{'event':'keepalive','id':'keep','topic':'apps'},
+                         {'event':'message','id':'private','topic':'another'}])
+        response=io.BytesIO(''.join(json.dumps(item)+'\n' for item in messages).encode())
+        with patch.dict(os.environ,{'NTFY_AUTH':'Bearer test'}),patch.object(push,'urlopen',return_value=response) as upstream:
+            feed=push.retained_feed('apps')
+        self.assertEqual([item['id'] for item in feed],list(map(str,range(204,4,-1))))
+        self.assertNotIn('event',feed[0])
+        request=upstream.call_args.args[0]
+        self.assertEqual(request.get_header('Authorization'),'Bearer test')
+        self.assertTrue(request.full_url.endswith('/apps/json?poll=1&since=720h'))
+
     def test_runtime_overrides_preserve_server_credentials_and_validate_topics(self):
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory) / 'preferences.json'

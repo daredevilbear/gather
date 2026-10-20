@@ -158,6 +158,26 @@ def payload(message):
     return {'id':str(message['id']), 'title':str(message.get('title') or message['topic'])[:120],
             'body':str(message.get('message', 'Open Gather to view this notification.'))[:500]}
 
+def retained_feed(topics):
+    from collections import deque
+    request = Request(NTFY_URL+'/'+topics+'/json?poll=1&since=720h',
+                      headers={'Authorization':os.environ['NTFY_AUTH']})
+    messages = deque(maxlen=200)
+    with urlopen(request, timeout=15) as response:
+        for line in response:
+            item = json.loads(line)
+            if item.get('event') == 'message' and item.get('topic') in topics.split(','):
+                messages.append({k:item[k] for k in ('id','time','topic','title','message','priority','tags','click') if k in item})
+    return list(reversed(messages))
+
+def unread_badge(db, owner, messages):
+    row = db.execute('SELECT body FROM preferences WHERE owner=?', (owner,)).fetchone()
+    if row and json.loads(row['body']).get('badge') is False:
+        return 0
+    states = {row['message'] for row in db.execute(
+        'SELECT message FROM inbox_state WHERE owner=? AND updated>=?', (owner,time.time()-31*86400))}
+    return sum(message['id'] not in states for message in messages)
+
 def ingest(messages, now, topics=None):
     topics = topics or runtime_settings()['topics']
     with connect() as db:
@@ -214,13 +234,27 @@ def drain(send=deliver):
     with connect() as db:
         rows = db.execute('''SELECT q.*,s.body AS subscription FROM queue q JOIN subscriptions s ON s.id=q.subscriber
                              WHERE q.next_try<=? ORDER BY q.created LIMIT 20''',(now,)).fetchall()
+    if not rows:
+        return
+    try:
+        messages = retained_feed(runtime_settings()['topics'])
+    except Exception:
+        # Still deliver the alert if ntfy is unavailable; older workers can refresh
+        # the badge themselves. Do not substitute zero for an unknown count.
+        messages = None
     for row in rows:
         # Recheck after selection so an unsubscribe removes pending sends.
         with connect() as db:
-            if not db.execute('SELECT 1 FROM subscriptions WHERE id=?',(row['subscriber'],)).fetchone():
+            subscriber = db.execute('SELECT owner FROM subscriptions WHERE id=?',(row['subscriber'],)).fetchone()
+            if not subscriber:
                 continue
+            body = json.loads(row['body'])
+            if messages is not None:
+                # Calculate at delivery, including retries, to include current read
+                # state and preferences without a browser session or extra fetches.
+                body['badgeCount'] = unread_badge(db, subscriber['owner'], messages)
         try:
-            send(json.loads(row['subscription']), row['body'])
+            send(json.loads(row['subscription']), json.dumps(body))
         except Exception as error:
             response = getattr(error, 'response', None)
             code = response.status_code if response is not None else None
@@ -304,15 +338,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == PREFIX+'feed':
             if not self.owner():
                 return
-            from collections import deque
-            request = Request(NTFY_URL+'/'+topics+'/json?poll=1&since=720h', headers={'Authorization':os.environ['NTFY_AUTH']})
-            messages = deque(maxlen=200)
-            with urlopen(request, timeout=15) as response:
-                for line in response:
-                    item = json.loads(line)
-                    if item.get('event') == 'message' and item.get('topic') in topics.split(','):
-                        messages.append({k:item[k] for k in ('id','time','topic','title','message','priority','tags','click') if k in item})
-            return self.respond(200,{'messages':list(reversed(messages)),'checked_at':int(time.time())})
+            return self.respond(200,{'messages':retained_feed(topics),'checked_at':int(time.time())})
         if self.path.startswith(PREFIX+'message/'):
             if not self.owner():
                 return
