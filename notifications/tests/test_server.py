@@ -283,7 +283,7 @@ class PushTests(unittest.TestCase):
             captured.append(kwargs['data'])
             return SimpleNamespace(status_code=201,headers={},text='',content=b'')
         response=io.BytesIO(''.join(json.dumps(item)+'\n' for item in history).encode())
-        with patch.dict(os.environ,{'NTFY_AUTH':'Bearer test'}),patch.object(push,'urlopen',return_value=response),patch.object(push,'owner_for_cookie',side_effect=AssertionError('No browser session required')),patch('requests.Session.request',request):
+        with patch.dict(os.environ,{'NTFY_AUTH':'Bearer test'}),patch.object(push,'urlopen',side_effect=lambda *a,**kw:io.BytesIO(''.join(json.dumps(item)+'\n' for item in history).encode())),patch.object(push,'owner_for_cookie',side_effect=AssertionError('No browser session required')),patch('requests.Session.request',request):
             push.drain(push.deliver)
         self.assertEqual(len(captured),1)
         body=json.loads(http_ece.decrypt(captured[0],private_key=self.private,auth_secret=self.auth,version='aes128gcm'))
@@ -292,9 +292,113 @@ class PushTests(unittest.TestCase):
 
 if __name__=='__main__':unittest.main()
 
-class RuntimeSettingsTests(unittest.TestCase):
+@unittest.skipUnless(importlib.util.find_spec('cryptography'), 'Run in the Gather notifications image')
+class RetainedFeedTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
+        for name,value in [('DATA',Path(self.tmp.name)),('DB',Path(self.tmp.name)/'push.sqlite3'),('KEY',Path(self.tmp.name)/'vapid.pem')]:
+            replacement=patch.object(push,name,value);replacement.start();self.addCleanup(replacement.stop)
+        push.initialize()
+
+    def message(self, ident, **changes):
+        return {'event':'message','id':ident,'topic':'apps','time':time.time(), **changes}
+
+    def response(self, messages):
+        return io.BytesIO(''.join(json.dumps(item)+'\n' for item in messages).encode())
+
+    def upstream(self, messages):
+        return patch.object(push,'urlopen',side_effect=lambda *a,**kw:self.response(messages))
+
+    def test_partial_replay_with_inline_ntfy_error_is_not_a_valid_empty_inbox(self):
+        # ntfy can exhaust its replay bandwidth after HTTP 200 and append an
+        # error to an otherwise valid NDJSON stream. Old, already-read messages
+        # before that error must never become an authoritative zero badge.
+        items=[{'event':'message','id':'old-read','topic':'apps','time':1},
+               {'code':42905,'error':'daily bandwidth limit reached'}]
+        response=io.BytesIO(''.join(json.dumps(item)+'\n' for item in items).encode())
+        with patch.dict(os.environ,{'NTFY_AUTH':'Bearer test'}),patch.object(push,'urlopen',return_value=response):
+            with self.assertRaises(RuntimeError):
+                push.retained_feed('apps')
+        with push.connect() as db:
+            self.assertIsNone(db.execute("SELECT value FROM state WHERE key='feed'").fetchone())
+
+    def test_readers_share_history_and_restart_preserves_the_inbox(self):
+        from concurrent.futures import ThreadPoolExecutor
+        messages=[self.message(str(i),time=time.time()-300+i) for i in range(205)]
+        with patch.dict(os.environ,{'NTFY_AUTH':'Bearer test'}),self.upstream(messages) as upstream:
+            with ThreadPoolExecutor(max_workers=8) as pool:
+                results=list(pool.map(lambda _:push.retained_feed('apps'),range(16)))
+            self.assertTrue(all(len(feed)==200 for feed in results))
+            upstream.assert_called_once()
+            push.initialize()
+            self.assertEqual(push.retained_feed('apps'),results[0])
+            upstream.assert_called_once()
+
+    def test_new_alert_is_in_the_badge_before_delivery_without_another_replay(self):
+        with patch.dict(os.environ,{'NTFY_AUTH':'Bearer test'}),self.upstream([self.message('read')]) as upstream:
+            push.retained_feed('apps')
+            requests=upstream.call_count
+            now=time.time()
+            push.ingest([self.message('new',time=now)],now)
+            with push.connect() as db:
+                db.execute('INSERT INTO inbox_state VALUES (?,?,?,?)',('account','read','read',now))
+            feed=push.retained_feed('apps')
+            with push.connect() as db:
+                self.assertEqual(push.unread_badge(db,'account',feed),1)
+            self.assertEqual({m['id'] for m in feed},{'read','new'})
+            self.assertEqual(upstream.call_count,requests)
+
+    def test_refresh_uses_cursor_and_partial_failure_preserves_last_complete_history(self):
+        with patch.dict(os.environ,{'NTFY_AUTH':'Bearer test'}),self.upstream([self.message('previous')]):
+            original=push.retained_feed('apps')
+        with push.connect() as db:
+            saved=json.loads(db.execute("SELECT value FROM state WHERE key='feed'").fetchone()[0])
+        broken=[self.message('partial'),{'code':42905,'error':'limit reached'}]
+        with patch.dict(os.environ,{'NTFY_AUTH':'Bearer test'}),patch.object(push.time,'time',return_value=saved['checked']+31),self.upstream(broken) as upstream:
+            with self.assertRaises(RuntimeError):push.retained_feed('apps')
+            self.assertTrue(upstream.call_args.args[0].full_url.endswith('since=previous'))
+        with push.connect() as db:
+            self.assertEqual(push.cached_feed(db),original)
+            self.assertEqual(json.loads(db.execute("SELECT value FROM state WHERE key='feed'").fetchone()[0]),saved)
+        with patch.dict(os.environ,{'NTFY_AUTH':'Bearer test'}),patch.object(push.time,'time',return_value=saved['checked']+32),self.upstream([self.message('next')]) as upstream:
+            self.assertEqual({m['id'] for m in push.retained_feed('apps')},{'previous','next'})
+            self.assertTrue(upstream.call_args.args[0].full_url.endswith('since=previous'))
+
+    def test_reconciliation_removes_deleted_messages_and_does_not_replay_the_month(self):
+        now=time.time()
+        messages=[self.message(str(i),time=now-300+i) for i in range(205)]
+        with patch.dict(os.environ,{'NTFY_AUTH':'Bearer test'}),self.upstream(messages):push.retained_feed('apps')
+        with patch.dict(os.environ,{'NTFY_AUTH':'Bearer test'}),patch.object(push.time,'time',return_value=now+301),self.upstream(messages[:-1]) as upstream:
+            feed=push.retained_feed('apps')
+            self.assertNotIn('204',[m['id'] for m in feed])
+            self.assertNotIn('since=720h',upstream.call_args.args[0].full_url)
+
+    def test_topic_changes_cannot_serve_history_from_the_previous_configuration(self):
+        with patch.dict(os.environ,{'NTFY_AUTH':'Bearer test'}),self.upstream([self.message('apps-only')]):push.retained_feed('apps')
+        with patch.dict(os.environ,{'NTFY_AUTH':'Bearer test'}),self.upstream([{'code':42905,'error':'limit reached'}]):
+            with self.assertRaises(RuntimeError):push.retained_feed('health')
+        with patch.dict(os.environ,{'NTFY_AUTH':'Bearer test'}),self.upstream([self.message('health-only',topic='health')]):
+            self.assertEqual([m['id'] for m in push.retained_feed('health')],['health-only'])
+
+    def test_expired_messages_disappear_and_empty_inboxes_are_cached(self):
+        now=time.time()
+        with patch.dict(os.environ,{'NTFY_AUTH':'Bearer test'}),self.upstream([self.message('short-lived',expires=now+5)]) as upstream:
+            self.assertEqual(len(push.retained_feed('apps')),1)
+            with patch.object(push.time,'time',return_value=now+6):self.assertEqual(push.retained_feed('apps'),[])
+            requests=upstream.call_count
+            push.retained_feed('apps');self.assertEqual(upstream.call_count,requests)
+
+    def test_poll_rejects_inline_errors_without_advancing_cursor_or_queuing_partial_alerts(self):
+        with push.connect() as db:cursor=db.execute("SELECT value FROM state WHERE key='cursor'").fetchone()[0]
+        items=[self.message('partial'),{'code':42905,'error':'limit reached'}]
+        with patch.dict(os.environ,{'NTFY_AUTH':'Bearer test'}),self.upstream(items):
+            with self.assertRaises(RuntimeError):push.poll()
+        with push.connect() as db:
+            self.assertEqual(db.execute("SELECT value FROM state WHERE key='cursor'").fetchone()[0],cursor)
+            self.assertEqual(db.execute('SELECT count(*) FROM events').fetchone()[0],0)
+
     def test_retained_feed_matches_latest_200_inbox_messages_and_filters_topics(self):
-        messages=[{'event':'message','id':str(i),'topic':'apps','time':i,'message':'Example'} for i in range(205)]
+        messages=[{'event':'message','id':str(i),'topic':'apps','time':time.time()-300+i,'message':'Example'} for i in range(205)]
         messages.extend([{'event':'keepalive','id':'keep','topic':'apps'},
                          {'event':'message','id':'private','topic':'another'}])
         response=io.BytesIO(''.join(json.dumps(item)+'\n' for item in messages).encode())
@@ -304,8 +408,9 @@ class RuntimeSettingsTests(unittest.TestCase):
         self.assertNotIn('event',feed[0])
         request=upstream.call_args.args[0]
         self.assertEqual(request.get_header('Authorization'),'Bearer test')
-        self.assertTrue(request.full_url.endswith('/apps/json?poll=1&since=720h'))
+        self.assertTrue(request.full_url.endswith('/apps/json?poll=1&since=1h'))
 
+class RuntimeSettingsTests(unittest.TestCase):
     def test_runtime_overrides_preserve_server_credentials_and_validate_topics(self):
         with tempfile.TemporaryDirectory() as directory:
             target = Path(directory) / 'preferences.json'
