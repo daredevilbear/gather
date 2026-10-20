@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import backup from "../../../system/full-backup.cjs";
 import vault from "../../../system/vault.cjs";
@@ -50,7 +50,10 @@ beforeEach(() => {
   salt = crypto.randomBytes(16);
   createSource(base);
 });
-afterEach(() => fs.rmSync(temp, { recursive: true, force: true }));
+afterEach(() => {
+  vi.restoreAllMocks();
+  fs.rmSync(temp, { recursive: true, force: true });
+});
 describe("complete encrypted Gather backup", () => {
   it("round trips configuration, account databases, keys and notification state without exporting controller secrets or stale jobs", () => {
     const users = new DatabaseSync(path.join(base, "config/.gather-users.sqlite"));
@@ -80,6 +83,36 @@ describe("complete encrypted Gather backup", () => {
     const accounts = new DatabaseSync(path.join(restored, "config/.gather-users.sqlite"));
     expect(accounts.prepare("SELECT id FROM users").get().id).toBe("account-with-personal-layout");
     accounts.close();
+  });
+  it("rejects metadata exceeding the restore parser limit before creating a backup", () => {
+    const manifest = {
+      ...info,
+      format: 1,
+      files: Array.from({ length: 5000 }, (_, index) => ({
+        label: "config",
+        path: `${"a".repeat(220)}${index}`,
+        size: 0,
+        sha256: "a".repeat(64),
+        sqlite: false,
+      })),
+    };
+    const archive = path.join(temp, "oversized.gather");
+    expect(() => backup.encrypt(manifest, temp, archive, key, salt)).toThrow(/metadata limit/);
+    expect(fs.existsSync(archive)).toBe(false);
+  });
+  it("completes partial filesystem writes for encrypted and decrypted data", () => {
+    const staged = path.join(temp, "snapshot"),
+      archive = path.join(temp, "partial.gather");
+    const manifest = backup.snapshot(base, staged, info);
+    const original = fs.writeSync;
+    vi.spyOn(fs, "writeSync").mockImplementation((...args) => {
+      if (!Buffer.isBuffer(args[1])) return original(...args);
+      const [fd, buffer, offset = 0, length = buffer.length - offset, position] = args;
+      return original(fd, buffer, offset, Math.max(1, Math.floor(length / 2)), position);
+    });
+    backup.encrypt(manifest, staged, archive, key, salt);
+    const parsed = backup.decrypt(archive, path.join(temp, "partial-restored"), key, info);
+    expect(parsed.files).toEqual(manifest.files);
   });
   it("includes committed WAL entries in SQLite snapshots", () => {
     const live = new DatabaseSync(path.join(base, "config/wal.sqlite"));

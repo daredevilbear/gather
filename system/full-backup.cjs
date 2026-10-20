@@ -17,6 +17,14 @@ const roots = (base) => ({
   control: path.join(base, "system/control"),
   keys: path.join(base, "keys"),
 });
+function writeAll(fd, buffer) {
+  let offset = 0;
+  while (offset < buffer.length) {
+    const written = fs.writeSync(fd, buffer, offset, buffer.length - offset);
+    if (!written) throw Error("Incomplete backup write");
+    offset += written;
+  }
+}
 function regular(file) {
   const stat = fs.lstatSync(file);
   if (!stat.isFile() || stat.isSymbolicLink()) throw Error("Unsupported file");
@@ -247,25 +255,26 @@ function encrypt(manifest, staged, output, key, salt) {
     header = Buffer.concat([MAGIC, salt, iv]);
   const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
   cipher.setAAD(header);
+  const body = Buffer.from(JSON.stringify(manifest));
+  if (body.length > 1048576) throw Error("Backup manifest exceeds the restore metadata limit");
   const fd = fs.openSync(output, "wx", 0o600),
     buffer = Buffer.alloc(65536);
   try {
-    fs.writeSync(fd, header);
-    const body = Buffer.from(JSON.stringify(manifest));
+    writeAll(fd, header);
     const length = Buffer.alloc(4);
     length.writeUInt32BE(body.length);
-    for (const chunk of [length, body]) fs.writeSync(fd, cipher.update(chunk));
+    for (const chunk of [length, body]) writeAll(fd, cipher.update(chunk));
     for (const entry of manifest.files) {
       const source = fs.openSync(path.join(staged, entry.label, entry.path), "r");
       try {
         let size;
-        while ((size = fs.readSync(source, buffer))) fs.writeSync(fd, cipher.update(buffer.subarray(0, size)));
+        while ((size = fs.readSync(source, buffer))) writeAll(fd, cipher.update(buffer.subarray(0, size)));
       } finally {
         fs.closeSync(source);
       }
     }
-    fs.writeSync(fd, cipher.final());
-    fs.writeSync(fd, cipher.getAuthTag());
+    writeAll(fd, cipher.final());
+    writeAll(fd, cipher.getAuthTag());
     fs.fsyncSync(fd);
   } finally {
     fs.closeSync(fd);
@@ -294,10 +303,10 @@ function decrypt(input, staged, key, expected) {
     while (position < size - 16) {
       const read = fs.readSync(fd, buffer, 0, Math.min(buffer.length, size - 16 - position), position);
       if (!read) throw Error("Truncated backup");
-      fs.writeSync(out, decipher.update(buffer.subarray(0, read)));
+      writeAll(out, decipher.update(buffer.subarray(0, read)));
       position += read;
     }
-    fs.writeSync(out, decipher.final());
+    writeAll(out, decipher.final());
     fs.closeSync(out);
     out = undefined;
     // Authenticate the complete archive before inspecting paths or creating restored files.
@@ -321,7 +330,7 @@ function decrypt(input, staged, key, expected) {
           while (remaining) {
             const read = fs.readSync(source, buffer, 0, Math.min(buffer.length, remaining));
             if (!read) throw Error("Truncated entry");
-            fs.writeSync(targetFD, buffer.subarray(0, read));
+            writeAll(targetFD, buffer.subarray(0, read));
             remaining -= read;
           }
         } finally {

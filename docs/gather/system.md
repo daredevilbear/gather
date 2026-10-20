@@ -201,7 +201,7 @@ uses a read-only container filesystem with only fixed data mounts. API input can
 select commands, image IDs, mount paths or container names. Normal system settings
 activation and backup/restore operations exclude each other.
 
-Snapshots are limited to 256 MiB and 10,000 files; at most ten maintenance operations
+Snapshots are limited to 256 MiB and 10,000 files, with a 1 MiB manifest metadata limit; at most ten maintenance operations
 can be stored. Delete downloaded server copies from the wizard to free space.
 Uploads require additional free space for inspection and recovery. External ntfy
 broker history, identity-provider configuration, deployment definitions and other
