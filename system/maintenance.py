@@ -70,6 +70,7 @@ class Maintenance:
                 'Entrypoint': ['node', '/app/system/full-backup.cjs'], 'Env': ['NODE_ENV=production'],
                 'HostConfig': {'Binds': [source+':'+target+(':ro' if target.endswith('transport.key') else ':rw') for source,target in sources],
                                'NetworkMode': 'none', 'ReadonlyRootfs': True, 'CapDrop': ['ALL'],
+                               'Tmpfs': {'/tmp': 'rw,nosuid,nodev,noexec,size=536870912,mode=1777'},
                                'SecurityOpt': ['no-new-privileges:true'], 'Memory': 1073741824, 'PidsLimit': 64,
                                'LogConfig': {'Type': 'none'}},
                 'Labels': {'io.gather.maintenance': file.parent.name}}

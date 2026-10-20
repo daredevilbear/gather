@@ -58,6 +58,7 @@ class MaintenanceTests(unittest.TestCase):
         self.maintenance.api=inspect;spec=self.maintenance.plan(self.file)
         self.assertEqual(spec['Image'],'sha256:'+'a'*64)
         self.assertEqual(spec['HostConfig']['NetworkMode'],'none')
+        self.assertIn('noexec',spec['HostConfig']['Tmpfs']['/tmp'])
         self.assertTrue(spec['HostConfig']['ReadonlyRootfs']);self.assertEqual(spec['HostConfig']['CapDrop'],['ALL'])
         self.assertFalse(any('docker.sock' in mount for mount in spec['HostConfig']['Binds']))
         self.assertEqual(spec['Entrypoint'],['node','/app/system/full-backup.cjs'])
