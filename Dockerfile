@@ -50,7 +50,7 @@ WORKDIR /app
 # Copy some files from context
 COPY --link --chown=1000:1000 /public ./public/
 COPY --link --chmod=755 docker-entrypoint.sh /usr/local/bin/
-COPY --link LICENSE NOTICE VERSION /usr/share/gather/
+COPY --link LICENSE NOTICE VERSION CHANGELOG.md /usr/share/gather/
 
 # Copy only necessary files from the build stage
 COPY --link --from=builder --chown=1000:1000 /app/.next/standalone/ ./
@@ -58,7 +58,7 @@ COPY --link --from=builder --chown=1000:1000 /app/.next/static/ ./.next/static
 
 RUN apk add --no-cache su-exec iputils-ping shadow
 
-COPY system/bootstrap.cjs system/database.cjs system/vault.cjs system/initialize-quickstart.cjs system/local-accounts.cjs ./system/
+COPY system/bootstrap.cjs system/database.cjs system/vault.cjs system/initialize-quickstart.cjs system/local-accounts.cjs system/full-backup.cjs ./system/
 
 # The supported Compose installation runs as UID 1001. Only this runtime cache
 # needs write access; leave the rest of the application image unchanged.

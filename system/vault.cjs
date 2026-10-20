@@ -52,5 +52,11 @@ function atomicWrite(file, data, mode = 0o600) {
     fs.closeSync(fd);
   }
   fs.renameSync(temp, file);
+  const directory = fs.openSync(path.dirname(file), "r");
+  try {
+    fs.fsyncSync(directory);
+  } finally {
+    fs.closeSync(directory);
+  }
 }
 module.exports = { seal, unseal, locations, read, atomicWrite };

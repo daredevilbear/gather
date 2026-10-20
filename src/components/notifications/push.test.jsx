@@ -246,3 +246,18 @@ it("keeps manual enable available if the browser rejects automatic recovery", as
   await screen.findByRole("button", { name: "Disable push on this device" });
   expect(subscribe).toHaveBeenCalledTimes(2);
 });
+
+it("does not automatically recover a revoked device, but permits explicit enable", async () => {
+  localStorage.setItem("gather:push:account-a:/gather-notifications/", "enabled");
+  api.mockImplementation(async (path) =>
+    path === "config"
+      ? { publicKey: "key", account: "account-a", pushRecovery: true }
+      : { enabled: false, revoked: true },
+  );
+  render(<PushControls api={api} prefix="/gather-notifications/" />);
+  const enable = await screen.findByRole("button", { name: "Enable push notifications" });
+  expect(api).not.toHaveBeenCalledWith("subscribe", expect.anything());
+  fireEvent.click(enable);
+  await screen.findByRole("button", { name: "Disable push on this device" });
+  expect(api).toHaveBeenCalledWith("subscribe", { endpoint: "test", account: "account-a" });
+});

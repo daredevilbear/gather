@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { useSWR } = vi.hoisted(() => ({ useSWR: vi.fn() }));
@@ -17,7 +19,8 @@ describe("utils/proxy/use-widget-api", () => {
     useSWR.mockReturnValue({ data: { ok: true }, error: undefined, mutate: "m" });
 
     const widget = { service_group: "g", service_name: "s", index: 0 };
-    const result = useWidgetAPI(widget, "status", { refreshInterval: 123, foo: "bar" });
+    const { result: hook } = renderHook(() => useWidgetAPI(widget, "status", { refreshInterval: 123, foo: "bar" }));
+    const result = hook.current;
 
     expect(useSWR).toHaveBeenCalledWith(
       expect.stringContaining("/api/services/proxy?"),
@@ -33,7 +36,7 @@ describe("utils/proxy/use-widget-api", () => {
 
     const widget = { service_group: "g", service_name: "s", index: 0 };
     const onSuccess = vi.fn();
-    useWidgetAPI(widget, "status", { refreshInterval: 123 }, { onSuccess });
+    renderHook(() => useWidgetAPI(widget, "status", { refreshInterval: 123 }, { onSuccess }));
 
     const [url, config] = useSWR.mock.calls[0];
     expect(url).not.toContain("onSuccess");
@@ -45,7 +48,8 @@ describe("utils/proxy/use-widget-api", () => {
     useSWR.mockReturnValue({ data: { error: dataError }, error: undefined, mutate: vi.fn() });
 
     const widget = { service_group: "g", service_name: "s", index: 0 };
-    const result = useWidgetAPI(widget, "status", {});
+    const { result: hook } = renderHook(() => useWidgetAPI(widget, "status", {}));
+    const result = hook.current;
 
     expect(result.error).toBe(dataError);
   });
@@ -54,7 +58,7 @@ describe("utils/proxy/use-widget-api", () => {
     useSWR.mockReturnValue({ data: undefined, error: undefined, mutate: vi.fn() });
 
     const widget = { service_group: "g", service_name: "s", index: 0 };
-    useWidgetAPI(widget, "");
+    renderHook(() => useWidgetAPI(widget, ""));
 
     expect(useSWR).toHaveBeenCalledWith(null, {});
   });

@@ -27,3 +27,28 @@ and configured logo-widget icons continue to take precedence on their respective
 
 Local component tests cover navigation and account dismissal. Authenticated desktop/mobile
 staging checks and real notification delivery remain required before release.
+
+## About and updates
+
+The account menu’s **About & updates** page shows installed app, notification and
+controller versions, revisions, the build channel and included release notes. It
+warns about component version or build revision mismatches and a stale controller heartbeat. Update
+all three container images together. This page reports versions; the server
+operator still installs updates.
+
+## Separate phone layouts
+
+In **My preferences → Phone layout & pinned favorites**, choose a separate profile
+for the dashboard currently selected for your account. Reorder groups and their
+services or bookmarks, pin favorites and choose comfortable or compact density.
+The profile applies below 640 pixels and saves per account and dashboard; desktop
+layout and shared dashboard configuration remain independent. Newly added groups
+and items remain visible. Compact density hides descriptions and reduces card
+spacing while retaining touch targets.
+
+Service widgets now show the last successful refresh in the current browser
+session. A failed request is distinguished from cached data and from an actual
+zero metric. Samples become stale after three polling intervals (at least one
+minute); offline status is explicit. Widgets without a completed API refresh show
+that they are waiting. The timestamp is an observation of Gather’s refresh, not a
+guarantee that the upstream system’s own measurements are current.

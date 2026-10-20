@@ -120,3 +120,34 @@ apps while closed and after backgrounding/resuming them. Notification permission
 and the device's badge setting must be enabled. Reading messages on another
 device updates a closed app's badge on its next push or open; no silent background
 push is sent for read/dismiss changes.
+
+## Notification health and delivery rules
+
+The account menu’s **My preferences → Notifications & app badges** opens the
+notification health center (`/notification-health`). It shows this account’s
+registered devices, last connection, last successful provider acceptance,
+subscription errors, queued pushes and expected unread badge count. Device names
+are editable. Revoking a device removes queued delivery and prevents automatic
+recovery for that subscription; an explicit Enable push action can register it
+again. Endpoints, subscription keys and other accounts’ devices are never returned.
+
+Provider acceptance confirms that the push service accepted a send. It does not
+confirm a banner, badge or Lock Screen display. An unavailable inbox count is
+shown as unavailable rather than zero. The badge covers the newest 200 retained
+unread alerts. Push tests do not add unread alerts.
+
+Delivery rules are saved per account. Quiet hours use an IANA time zone and follow
+local daylight-saving transitions. Muted topics and quiet-hour alerts remain in
+the inbox and its unread count, but do not generate a delayed catch-up push.
+Critical alerts can bypass quiet hours, muted topics and grouping at a chosen
+priority threshold (default 5). This is a Gather delivery rule; it does not request
+an operating system Critical Alerts entitlement or bypass iOS Focus settings.
+
+Optional grouping waits up to the chosen window (maximum one hour), then sends a
+single notification for identical topic, title, body and priority with an occurrence
+count. Every original alert remains in the inbox. Critical alerts bypass grouping
+when critical bypass is enabled. Explicit test notifications bypass delivery rules.
+
+For recovery, open the installed Home Screen app, check system permissions and
+badges, then enable push. Compare the expected count and last provider acceptance.
+A closed device receives changed read state on its next push or app open.

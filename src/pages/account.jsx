@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import LocalPassword from "components/account/local-password";
+import MobileLayout from "components/account/mobile-layout";
 import usePreferences from "components/account/preferences";
 import GatherIcon from "components/gather/icon";
 import GatherMark from "components/gather/mark";
@@ -10,9 +11,24 @@ import styles from "components/settings/editor.module.css";
 
 export default function AccountPreferences({ localLogin = false }) {
   const { data, error, mutate } = usePreferences();
-  return <AccountPreferencesContent data={data} error={error} mutate={mutate} localLogin={localLogin} />;
+  return (
+    <AccountPreferencesContent
+      data={data}
+      error={error}
+      mutate={mutate}
+      localLogin={localLogin}
+      mobileLayout={<MobileLayout />}
+    />
+  );
 }
-export function AccountPreferencesContent({ data, error, mutate, request = fetch, localLogin = false }) {
+export function AccountPreferencesContent({
+  data,
+  error,
+  mutate,
+  request = fetch,
+  localLogin = false,
+  mobileLayout = null,
+}) {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
   const [saveError, setSaveError] = useState("");
@@ -86,8 +102,9 @@ export function AccountPreferencesContent({ data, error, mutate, request = fetch
           </div>
           <p role="status">{busy ? "Saving…" : status || (!data ? "Loading preferences…" : "")}</p>
         </section>
+        {mobileLayout}
         {localLogin && <LocalPassword request={request} />}
-        <Link href="/notifications" className={styles.preferenceLink}>
+        <Link href="/notification-health" className={styles.preferenceLink}>
           <GatherIcon name="bell" />
           <span>
             <strong>Notifications & app badges</strong>

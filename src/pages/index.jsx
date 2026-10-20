@@ -11,6 +11,7 @@ import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { BiError } from "react-icons/bi";
 import useSWR, { SWRConfig } from "swr";
 
+import usePreferences from "components/account/preferences";
 import BookmarksGroup from "components/bookmarks/group";
 import ErrorBoundary from "components/errorboundry";
 import GatherHeader from "components/gather/header";
@@ -25,8 +26,10 @@ import { ColorContext } from "utils/contexts/color";
 import { SettingsContext } from "utils/contexts/settings";
 import { TabContext } from "utils/contexts/tab";
 import { ThemeContext } from "utils/contexts/theme";
+import { applyMobileProfile } from "utils/gather/mobile-layout";
 import { applyPersonalLayout } from "utils/gather/personal-layout";
 import { dashboardTabs } from "utils/gather/tabs";
+import useMobileLayout from "utils/hooks/use-mobile-layout";
 import useWindowFocus from "utils/hooks/window-focus";
 import createLogger from "utils/logger";
 import themes from "utils/styles/themes";
@@ -264,7 +267,7 @@ function Home({ initialSettings }) {
       (!workspace || workspace.legacy) &&
       !workspaceError &&
       Boolean(personal?.dashboard?.layout));
-  const { settings, services, bookmarks, widgets } = useMemo(
+  const baseView = useMemo(
     () =>
       workspace?.view ||
       applyPersonalLayout(
@@ -275,6 +278,14 @@ function Home({ initialSettings }) {
         query.shared === "1" || (workspace && !workspace.legacy) || workspaceError ? null : personal?.dashboard?.layout,
       ),
     [sharedSettings, sharedServices, sharedBookmarks, sharedWidgets, personal, query.shared, workspace, workspaceError],
+  );
+
+  const { data: preferences } = usePreferences();
+  const mobile = useMobileLayout();
+  const target = workspace?.target || query.dashboard || (query.shared === "1" ? "shared" : "shared");
+  const { settings, services, bookmarks, widgets } = useMemo(
+    () => (mobile ? applyMobileProfile(baseView, preferences?.mobileProfiles?.[target]) : baseView),
+    [baseView, mobile, preferences, target],
   );
 
   const servicesAndBookmarks = [...bookmarks.map((bg) => bg.bookmarks).flat(), ...getAllServices(services)].filter(
@@ -470,6 +481,7 @@ function Home({ initialSettings }) {
       <Script src="/api/config/custom.js" />
 
       <div
+        data-mobile-density={settings.mobileDensity}
         className={classNames(
           settings.fullWidth ? "" : "container",
           "relative m-auto flex flex-col justify-start z-10 h-full min-h-screen",

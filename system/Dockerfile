@@ -10,8 +10,8 @@ LABEL org.opencontainers.image.version=$VERSION
 LABEL org.opencontainers.image.revision=$REVISION
 LABEL org.opencontainers.image.created=$BUILDTIME
 WORKDIR /controller
-COPY controller.py database.py ./
+COPY controller.py database.py maintenance.py ./
 COPY LICENSE NOTICE VERSION /usr/share/gather/
-ENV GATHER_VERSION=$VERSION
+ENV GATHER_VERSION=$VERSION GATHER_REVISION=$REVISION
 USER 1001:1001
 ENTRYPOINT ["python", "-B", "controller.py"]
