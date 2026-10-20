@@ -2,6 +2,9 @@
 
 ## 1.0.4
 
+- Remember the browser's push opt-in per account and notification prefix. Restore
+  missing subscriptions on open/resume while OS permission remains granted,
+  preserve explicit opt-outs, and reject recovery requests after a sign-in change.
 - Include the account's unread inbox count in encrypted Web Push payloads so
   installed apps can update their badges while closed without a signed-in fetch.
 - Keep a shared persistent inbox of the latest 200 retained messages, refresh it

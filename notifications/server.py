@@ -439,7 +439,7 @@ class Handler(BaseHTTPRequestHandler):
         if owner:
             if self.path == PREFIX+'inbox-state':
                 return self.inbox(owner)
-            self.respond(200,{'publicKey':public_key,'account':owner})
+            self.respond(200,{'publicKey':public_key,'account':owner,'pushRecovery':True})
 
     def do_POST(self):
         try:
@@ -477,6 +477,10 @@ class Handler(BaseHTTPRequestHandler):
                     preferences.get('inboxView') not in ('panel','page')):
                     return self.respond(400,{'error':'Invalid notification preferences'})
                 return self.inbox(owner, updates, preferences)
+            # Recovery requests carry the account that opted in before awaiting
+            # browser APIs. Reject a sign-in change before binding or removing it.
+            if isinstance(value, dict) and 'account' in value and value['account'] != owner:
+                return self.respond(409,{'error':'Account changed; refresh Gather before changing push settings'})
             subscription = validate_subscription(value)
         except (ValueError, TypeError, KeyError):
             return self.respond(400,{'error':'Invalid browser subscription'})
