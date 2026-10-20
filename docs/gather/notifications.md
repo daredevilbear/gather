@@ -62,14 +62,31 @@ cutover. The [integrated editor](settings.md) can manage topics and branding thr
 
 ### Badge refresh diagnostics
 
+The companion includes the unread count in each encrypted push. It calculates the
+count for the subscription's account at delivery time (including retries), using
+the same latest 200 retained messages and read/dismiss states as the inbox. A
+disabled badge preference sends zero. Push tests carry the real inbox count and
+do not add a new unread message.
+
+The worker applies this count directly, so a background update does not depend
+on a valid browser sign-in session or extra network requests from a suspended
+iPhone/iPad or Mac web app. If the companion cannot read ntfy's retained feed, it
+still sends the alert without a count; the worker falls back to the authenticated
+refresh used by older companion versions. An unavailable count never clears an
+existing badge by substituting zero.
+
 The notification worker refreshes the unread app badge when a new worker activates
-and when a push arrives. The app reapplies its badge and refreshes the inbox on
-page resume (`pageshow` and visible `visibilitychange`), including when the cached
+and when a legacy push without a count arrives. The app reapplies its badge and
+refreshes the inbox on page resume (`pageshow` and visible `visibilitychange`), including when the cached
 inbox data has not changed. Existing read/dismiss updates still clear the badge.
 
 Failed updates emit `[Gather badge]` browser/worker console warnings. Worker
 warnings identify the trigger and failed stage (`inbox-state`, `feed`, `clear`
 or `apply`); they do not include notification content, account identifiers or
 credentials. These are local diagnostics, not a persistent server history.
-Deploy both the dashboard and notification companion to receive these changes.
-Test on the installed app after upgrade and after backgrounding/resuming it.
+Upgrade the notification companion, then open each installed app while signed in
+so it can register the updated worker. Test on the actual installed iPhone/iPad and Mac
+apps while closed and after backgrounding/resuming them. Notification permission
+and the device's badge setting must be enabled. Reading messages on another
+device updates a closed app's badge on its next push or open; no silent background
+push is sent for read/dismiss changes.

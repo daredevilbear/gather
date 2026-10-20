@@ -5,10 +5,18 @@ async function inboxState() {
   if (!response.ok) throw Error('Inbox unavailable');
   return response.json();
 }
-async function updateBadge(reason = 'push') {
+async function updateBadge(reason = 'push', badgeCount) {
   let stage = 'inbox-state';
   if (!self.navigator?.setAppBadge) return;
   try {
+    // New companions include an account-scoped count in the encrypted push.
+    // Apply it without cookies or network access while the app is suspended.
+    if (Number.isInteger(badgeCount) && badgeCount >= 0 && badgeCount <= 200) {
+      stage = 'apply';
+      if (badgeCount) await self.navigator.setAppBadge(badgeCount);
+      else await self.navigator.clearAppBadge();
+      return;
+    }
     const saved = await inboxState();
     if (saved.preferences?.badge === false) {
       stage = 'clear';
@@ -31,9 +39,12 @@ async function updateBadge(reason = 'push') {
 self.addEventListener('activate', event => event.waitUntil(updateBadge('activate')));
 self.addEventListener('push', event => {
   let data = {};
-  try { data = event.data ? event.data.json() : {}; } catch {}
+  try {
+    const value = event.data?.json();
+    if (value && typeof value === 'object' && !Array.isArray(value)) data = value;
+  } catch {}
   const title = typeof data.title === 'string' ? data.title : 'Gather notification';
-  event.waitUntil(Promise.all([updateBadge(), self.registration.showNotification(title, {
+  event.waitUntil(Promise.all([updateBadge('push', data.badgeCount), self.registration.showNotification(title, {
     body: typeof data.body === 'string' ? data.body : 'Open Gather to view your notification.',
     icon: __GATHER_ICON__,
     tag: typeof data.id === 'string' ? data.id : 'gather-notification',
