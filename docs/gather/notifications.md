@@ -81,6 +81,8 @@ batch. ntfy's replay bandwidth limit can append an error after HTTP 200 and some
 older messages have already been sent. Such a response is rejected, preserving
 the last complete snapshot and cursor; an incomplete replay must never become a
 false zero unread count. Individual message lookups filter by ID on the ntfy server.
+Failed replays share a persisted one-minute retry delay, allowing the bandwidth
+budget to refill even when several browsers or push batches request the inbox.
 
 The worker applies this count directly, so a background update does not depend
 on a valid browser sign-in session or extra network requests from a suspended

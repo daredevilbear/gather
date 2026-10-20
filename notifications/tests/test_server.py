@@ -290,7 +290,6 @@ class PushTests(unittest.TestCase):
         self.assertEqual(body,{'id':'unread','title':'apps','body':'Background alert','badgeCount':1})
         with push.connect() as db:self.assertEqual(db.execute('SELECT count(*) FROM queue').fetchone()[0],0)
 
-if __name__=='__main__':unittest.main()
 
 @unittest.skipUnless(importlib.util.find_spec('cryptography'), 'Run in the Gather notifications image')
 class RetainedFeedTests(unittest.TestCase):
@@ -360,7 +359,7 @@ class RetainedFeedTests(unittest.TestCase):
         with push.connect() as db:
             self.assertEqual(push.cached_feed(db),original)
             self.assertEqual(json.loads(db.execute("SELECT value FROM state WHERE key='feed'").fetchone()[0]),saved)
-        with patch.dict(os.environ,{'NTFY_AUTH':'Bearer test'}),patch.object(push.time,'time',return_value=saved['checked']+32),self.upstream([self.message('next')]) as upstream:
+        with patch.dict(os.environ,{'NTFY_AUTH':'Bearer test'}),patch.object(push.time,'time',return_value=saved['checked']+92),self.upstream([self.message('next')]) as upstream:
             self.assertEqual({m['id'] for m in push.retained_feed('apps')},{'previous','next'})
             self.assertTrue(upstream.call_args.args[0].full_url.endswith('since=previous'))
 
@@ -377,8 +376,19 @@ class RetainedFeedTests(unittest.TestCase):
         with patch.dict(os.environ,{'NTFY_AUTH':'Bearer test'}),self.upstream([self.message('apps-only')]):push.retained_feed('apps')
         with patch.dict(os.environ,{'NTFY_AUTH':'Bearer test'}),self.upstream([{'code':42905,'error':'limit reached'}]):
             with self.assertRaises(RuntimeError):push.retained_feed('health')
-        with patch.dict(os.environ,{'NTFY_AUTH':'Bearer test'}),self.upstream([self.message('health-only',topic='health')]):
+        with patch.dict(os.environ,{'NTFY_AUTH':'Bearer test'}),patch.object(push.time,'time',return_value=time.time()+61),self.upstream([self.message('health-only',topic='health')]):
             self.assertEqual([m['id'] for m in push.retained_feed('health')],['health-only'])
+
+    def test_failed_bootstrap_backs_off_across_readers_and_restart(self):
+        errors=[{'code':42905,'error':'limit reached'}]
+        with patch.dict(os.environ,{'NTFY_AUTH':'Bearer test'}),self.upstream(errors) as upstream:
+            for _ in range(10):
+                with self.assertRaises(RuntimeError):push.retained_feed('apps')
+            push.initialize()
+            with self.assertRaises(RuntimeError):push.retained_feed('apps')
+            upstream.assert_called_once()
+        with patch.dict(os.environ,{'NTFY_AUTH':'Bearer test'}),patch.object(push.time,'time',return_value=time.time()+61),self.upstream([self.message('recovered')]):
+            self.assertEqual([m['id'] for m in push.retained_feed('apps')],['recovered'])
 
     def test_expired_messages_disappear_and_empty_inboxes_are_cached(self):
         now=time.time()
@@ -423,3 +433,5 @@ class RuntimeSettingsTests(unittest.TestCase):
                     target.write_text(json.dumps(invalid))
                     with self.assertRaises(ValueError):
                         push.runtime_settings()
+
+if __name__=='__main__':unittest.main()

@@ -204,24 +204,36 @@ def retained_feed(topics):
         with connect() as db:
             row = db.execute("SELECT value FROM state WHERE key='feed'").fetchone()
             saved = json.loads(row[0]) if row else {}
+            row = db.execute("SELECT value FROM state WHERE key='feed_retry'").fetchone()
+            retry = json.loads(row[0]) if row else {}
             current = saved.get('topics') == topics
             feed = cached_feed(db) if current else []
         if current and now-saved['checked'] < 30:
             return feed
+        if retry.get('topics') == topics and now < retry['after']:
+            raise RuntimeError('Notification replay retry pending')
         replace = not current or now-saved['replayed'] >= 300
-        if not current:
-            # Find the newest 200 without downloading a busy topic's entire
-            # month. Empty/sparse topics still receive the full retention window.
-            for since in ('1h','6h','24h','168h','720h'):
+        try:
+            if not current:
+                # Find the newest 200 without downloading a busy topic's entire
+                # month. Empty/sparse topics still receive the full retention window.
+                for since in ('1h','6h','24h','168h','720h'):
+                    messages = replay(topics, since, limit=200)
+                    if len(messages) >= 200:
+                        break
+            elif replace:
+                # Reconcile deletions and cache expiry within the displayed window.
+                since = str(int(feed[-1]['time'])-1) if len(feed) == 200 else '720h'
                 messages = replay(topics, since, limit=200)
-                if len(messages) >= 200:
-                    break
-        elif replace:
-            # Reconcile deletions and cache expiry within the displayed window.
-            since = str(int(feed[-1]['time'])-1) if len(feed) == 200 else '720h'
-            messages = replay(topics, since, limit=200)
-        else:
-            messages = replay(topics, saved['cursor'], limit=200)
+            else:
+                messages = replay(topics, saved['cursor'], limit=200)
+        except Exception:
+            # Concurrent readers/retries must let ntfy's bandwidth budget refill
+            # instead of repeatedly spending it on the start of the same replay.
+            with connect() as db:
+                db.execute("INSERT OR REPLACE INTO state VALUES ('feed_retry',?)",
+                           (json.dumps({'topics':topics,'after':time.time()+60}),))
+            raise
         cursor = messages[-1]['id'] if messages else (saved['cursor'] if current and not replace else str(int(now)-1))
         state = {'topics':topics, 'cursor':cursor, 'checked':now,
                  'replayed':now if replace else saved['replayed']}
@@ -230,6 +242,7 @@ def retained_feed(topics):
                 db.execute('DELETE FROM retained_messages')
             cache_messages(db, messages, now)
             db.execute("INSERT OR REPLACE INTO state VALUES ('feed',?)", (json.dumps(state),))
+            db.execute("DELETE FROM state WHERE key='feed_retry'")
             return cached_feed(db)
 
 def unread_badge(db, owner, messages):
