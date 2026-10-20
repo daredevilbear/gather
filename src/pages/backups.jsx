@@ -92,9 +92,9 @@ export default function Backups({ request = backupRequest, refreshInterval = 300
         recovered. Backups include secrets and must be stored privately.
       </p>
       <p>
-        Requires the supported UID 1001 Compose mounts and matching component versions. Restore to the same public
+        Requires UID 1001 (directly or through the Gather entrypoint), compatible persistent mounts and matching component versions. Restore to the same public
         origin and app version. The external identity provider, ntfy broker history, container definitions and external
-        services need separate operator backups. The Gather snapshot is limited to 256 MiB and 10,000 files.
+        services need separate operator backups. Custom mounted images and integration credential files outside Gather’s state directories also need separate backups. The Gather snapshot is limited to 256 MiB and 10,000 files.
       </p>
       {error && <p role="alert">{error.message}</p>}
       <p role="status">{message}</p>

@@ -73,3 +73,14 @@ class MaintenanceTests(unittest.TestCase):
             return {'Image':'sha256:'+'a'*64,'Config':{'User':'1001:1001'},'Mounts':mounts}
         self.maintenance.api=inspect
         with self.assertRaisesRegex(RuntimeError,'mounts disagree'):self.maintenance.plan(self.file)
+
+    def test_existing_entrypoint_uid_and_generated_config_mount_are_supported(self):
+        def inspect(method,target,data=None):
+            notification = target == '/containers/notification/json'
+            mounts=[{'Type':'bind','Source':'/srv/gather/'+name,'Destination':dest} for name,dest in [
+                ('config','/app/config'),('config/.gather-runtime' if notification else 'config','/config'),
+                ('system','/system-data'),('system/notification','/vault'),('push','/data'),
+                ('app.key','/run/secrets/gather-app-key'),('notification.key','/run/secrets/gather-notification-key')]]
+            return {'Image':'sha256:'+'a'*64,'Config':{'User':'root','Env':['PUID=1001','PGID=1001']},'Mounts':mounts}
+        self.maintenance.api=inspect
+        self.assertEqual(self.maintenance.plan(self.file)['User'],'1001:1001')

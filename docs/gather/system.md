@@ -166,9 +166,9 @@ old application, notification-session and session-based MCP access.
 Protected server administrators can open **System settings → Complete encrypted
 backup & restore** (`/backups`). The updated app, notification companion and
 recovery controller must be installed together. The supported installation uses
-UID 1001, the standard `/app/config`, `/system-data`, companion `/data` mounts and
+UID 1001 (directly or through the image entrypoint with PUID/PGID 1001), the standard `/app/config`, `/system-data`, companion `/data` mounts and
 the two key file mounts under `/run/secrets`. Both services must be running.
-Installations with custom mounts must use operator-managed backups instead.
+The companion can mount the shared config directory or its generated `.gather-runtime` subdirectory. Nested persistent mounts require operator-managed backups instead.
 
 The controller pauses Gather and its notification companion while capturing a
 coordinated snapshot. SQLite databases are copied with SQLite’s snapshot mechanism,
@@ -205,7 +205,7 @@ Snapshots are limited to 256 MiB and 10,000 files; at most ten maintenance opera
 can be stored. Delete downloaded server copies from the wizard to free space.
 Uploads require additional free space for inspection and recovery. External ntfy
 broker history, identity-provider configuration, deployment definitions and other
-services are outside the Gather bundle and require separate operator backups.
+services are outside the Gather bundle and require separate operator backups. Custom files mounted outside the state directories, including images and integration credential files, also require separate operator backups.
 Restore to the same public origin and app version, with compatible Compose mounts.
 A new host must have the corresponding image set and initialized controller mounts
 before using the wizard. Keep an independent operator backup for host-loss recovery.

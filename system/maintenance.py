@@ -49,7 +49,7 @@ class Maintenance:
             return source
         state = mount(app, '/system-data')
         config = mount(app, '/app/config')
-        if mount(notification, '/vault') != state+'/notification' or mount(notification, '/config') != config:
+        if mount(notification, '/vault') != state+'/notification' or mount(notification, '/config') not in (config,config+'/.gather-runtime'):
             raise RuntimeError('Notification vault or configuration mounts disagree')
         for container, protected in ((app, ('/system-data','/app/config')), (notification, ('/data',))):
             if any(entry.get('Destination','').startswith(root+'/') for entry in container.get('Mounts',[]) for root in protected):
@@ -65,7 +65,10 @@ class Maintenance:
         image = app['Image']
         if not re.fullmatch(r'sha256:[a-f0-9]{64}', image): raise RuntimeError('Invalid installed image')
         user = app.get('Config', {}).get('User', '')
-        if user not in ('1001:1001', '1001'): raise RuntimeError('Complete backups require the supported UID 1001 installation')
+        environment = dict(entry.split('=',1) for entry in app.get('Config',{}).get('Env',[]) if isinstance(entry,str) and '=' in entry)
+        drops_privileges = user in ('', 'root', '0', '0:0') and environment.get('PUID') == '1001' and environment.get('PGID') == '1001'
+        if user not in ('1001:1001', '1001') and not drops_privileges:
+            raise RuntimeError('Complete backups require the supported UID 1001 installation')
         return {'Image': image, 'User': '1001:1001', 'WorkingDir': '/app',
                 'Entrypoint': ['node', '/app/system/full-backup.cjs'], 'Env': ['NODE_ENV=production'],
                 'HostConfig': {'Binds': [source+':'+target+(':ro' if target.endswith('transport.key') else ':rw') for source,target in sources],
