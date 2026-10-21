@@ -14,7 +14,7 @@ Send confidential reports through the process in [SECURITY.md](SECURITY.md).
 
 ## Validate a change
 
-Use Node.js 22.13 or newer and pnpm 11.19.0. CI runs:
+Use the security-patched Node.js 22.23.4 runtime and pnpm 11.19.0. CI runs:
 
 ```sh
 pnpm install --frozen-lockfile
