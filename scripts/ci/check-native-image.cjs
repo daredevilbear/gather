@@ -1,6 +1,10 @@
 // Exercise the shipped native binaries without network access or live data.
 const assert = require("node:assert/strict");
 
+const [major, minor, patch] = process.versions.node.split(".").map(Number);
+assert(major === 22 && (minor > 23 || (minor === 23 && patch >= 4)), `Unpatched Node runtime: ${process.version}`);
+console.log(`Patched Node runtime verified: ${process.version}`);
+
 const sharp = require("sharp");
 
 (async () => {
