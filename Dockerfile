@@ -3,7 +3,7 @@
 # =========================
 # Keep the builder and runner on musl so standalone output includes native
 # dependencies for the runtime platform, including sharp and libvips.
-FROM node:22-alpine AS builder
+FROM node:22.23.4-alpine@sha256:ce8d97f7cfc7c5386421eb932df20a29df99b1a7f469f6157d5c9956702ffadc AS builder
 WORKDIR /app
 
 # Setup
@@ -32,7 +32,7 @@ RUN if [ "$CI" != "true" ]; then \
 # =========================
 # Runtime Stage
 # =========================
-FROM node:22-alpine AS runner
+FROM node:22.23.4-alpine@sha256:ce8d97f7cfc7c5386421eb932df20a29df99b1a7f469f6157d5c9956702ffadc AS runner
 ARG VERSION=1.1.0
 ARG REVISION=unknown
 ARG BUILDTIME
