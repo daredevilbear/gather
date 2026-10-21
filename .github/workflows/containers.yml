@@ -105,12 +105,96 @@ jobs:
           bash scripts/ci/smoke-container.sh gather-ci:app
           sh scripts/ci/test-quickstart.sh gather-ci:app
 
-  publish:
-    name: Publish ${{ matrix.image }}
+  publish-arm-app:
+    name: Publish native ARM64 app
     needs: [tests, build]
     if: >-
-      github.event_name == 'push' ||
-      (github.event_name == 'workflow_dispatch' && inputs.publish && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'))
+      (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish)) &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 35
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify publication branch
+        run: |
+          git merge-base --is-ancestor "$GITHUB_SHA" "origin/${GITHUB_REF_NAME}"
+          [[ "$(git rev-parse "origin/${GITHUB_REF_NAME}")" == "$GITHUB_SHA" ]]
+          python3 scripts/ci/check-release.py
+      - name: Read image metadata
+        id: release
+        env:
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          version="$(cat VERSION)"
+          if [[ "$GITHUB_REF" == refs/heads/dev ]]; then version=dev; fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "created=$(git show -s --format=%cI "$GITHUB_SHA")" >> "$GITHUB_OUTPUT"
+          echo "image=ghcr.io/${OWNER,,}/gather" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check immutable ARM source image
+        id: existing
+        env:
+          IMAGE: ${{ steps.release.outputs.image }}
+        run: |
+          for reference in "$IMAGE:sha-$GITHUB_SHA" "$IMAGE:sha-$GITHUB_SHA-arm64"; do
+            if docker buildx imagetools inspect "$reference" >/tmp/arm-image.txt 2>/tmp/arm-image-error.txt; then
+              echo "exists=true" >> "$GITHUB_OUTPUT"
+              echo "reference=$reference" >> "$GITHUB_OUTPUT"
+              exit 0
+            elif ! grep -Eiq 'manifest unknown|not found|404' /tmp/arm-image-error.txt; then
+              cat /tmp/arm-image-error.txt >&2
+              exit 1
+            fi
+          done
+          echo "exists=false" >> "$GITHUB_OUTPUT"
+          echo "reference=$IMAGE:sha-$GITHUB_SHA-arm64" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        if: steps.existing.outputs.exists != 'true'
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          pull: true
+          tags: ${{ steps.existing.outputs.reference }}
+          build-args: |
+            REVISION=${{ github.sha }}
+            VERSION=${{ steps.release.outputs.version }}
+            BUILDTIME=${{ steps.release.outputs.created }}
+          provenance: mode=max
+          sbom: true
+          cache-from: type=gha,scope=app-arm64
+          cache-to: type=gha,mode=max,scope=app-arm64
+      - name: Verify native ARM runtime, dependencies, and startup
+        env:
+          REFERENCE: ${{ steps.existing.outputs.reference }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          digest="$(docker buildx imagetools inspect "$REFERENCE" --format '{{.Manifest.Digest}}')"
+          image="${REFERENCE%:*}@$digest"
+          docker pull --platform linux/arm64 "$image"
+          config="$(docker image inspect "$image" --format '{{json .Config.Labels}}')"
+          python3 -c 'import json,sys; p=json.loads(sys.argv[1]); assert p["org.opencontainers.image.revision"] == sys.argv[2]; assert p["org.opencontainers.image.version"] == sys.argv[3]' "$config" "$GITHUB_SHA" "$VERSION"
+          bash scripts/ci/smoke-container.sh "$image"
+
+  publish:
+    name: Publish ${{ matrix.image }}
+    needs: [tests, build, publish-arm-app]
+    if: >-
+      always() && needs.tests.result == 'success' && needs.build.result == 'success' &&
+      (needs.publish-arm-app.result == 'success' || needs.publish-arm-app.result == 'skipped') &&
+      (github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && inputs.publish && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')))
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     permissions:
@@ -207,10 +291,10 @@ jobs:
         if: ${{ !startsWith(github.ref, 'refs/tags/') && steps.existing.outputs.exists != 'true' }}
         with:
           context: ${{ matrix.context }}
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ matrix.image == 'gather' && 'linux/amd64' || 'linux/amd64,linux/arm64' }}
           push: true
           pull: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: ${{ matrix.image == 'gather' && format('ghcr.io/{0}/gather:sha-{1}-amd64', steps.registry.outputs.owner, github.sha) || steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             REVISION=${{ github.sha }}
@@ -220,6 +304,15 @@ jobs:
           sbom: true
           cache-from: type=gha,scope=${{ matrix.cache }}
           cache-to: type=gha,mode=max,scope=${{ matrix.cache }}
+      - name: Assemble native app platforms and promote channel
+        if: matrix.image == 'gather' && !startsWith(github.ref, 'refs/tags/') && steps.existing.outputs.exists != 'true'
+        env:
+          IMAGE: ghcr.io/${{ steps.registry.outputs.owner }}/gather
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          docker buildx imagetools create --tag "$IMAGE:sha-$GITHUB_SHA" \
+            "$IMAGE:sha-$GITHUB_SHA-amd64" "$IMAGE:sha-$GITHUB_SHA-arm64"
+          bash scripts/ci/promote-image.sh
       - name: Verify published source labels and attestations
         id: verify
         env:
