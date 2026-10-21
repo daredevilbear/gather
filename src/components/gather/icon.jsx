@@ -96,6 +96,12 @@ const paths = {
       <path d="M5 17h14l-2-3V9a5 5 0 0 0-10 0v5l-2 3ZM10 21h4M12 2v2" />
     </>
   ),
+  info: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v6m0-10h.01" />
+    </>
+  ),
   import: <path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5" />,
   lock: (
     <>

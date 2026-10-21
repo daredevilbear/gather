@@ -118,6 +118,7 @@ export function AccountMenuView({
         {notifications}
         {dashboardSettings}
         <Link href="/about" className="flex min-h-11 items-center gap-2">
+          <GatherIcon name="info" />
           About & updates
         </Link>
         {settings && (
