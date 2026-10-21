@@ -14,7 +14,7 @@ chmod 777 "$fixture"
 mkdir "$fixture/context"
 cp "$root/system/full-backup.cjs" "$root/system/vault.cjs" "$root/system/database.cjs" "$root/scripts/ci/backup-fixture.cjs" "$root/VERSION" "$fixture/context/"
 cat > "$fixture/context/Dockerfile" <<'DOCKER'
-FROM node:22-alpine
+FROM node:22.23.4-alpine@sha256:ce8d97f7cfc7c5386421eb932df20a29df99b1a7f469f6157d5c9956702ffadc
 WORKDIR /app
 COPY full-backup.cjs vault.cjs database.cjs /app/system/
 COPY backup-fixture.cjs /tests/fixture.cjs
@@ -22,8 +22,8 @@ COPY VERSION /usr/share/gather/VERSION
 USER 1001:1001
 CMD ["node","-e","process.on('SIGTERM',()=>process.exit(0));setInterval(()=>{},10000)"]
 DOCKER
-docker build -q -t "$name-helper" "$fixture/context" >/dev/null
-docker build -q -t "$name-controller" "$root/system" >/dev/null
+docker build --pull -q -t "$name-helper" "$fixture/context" >/dev/null
+docker build --pull -q -t "$name-controller" "$root/system" >/dev/null
 socket_gid=$(docker run --rm --user 0 -v /var/run/docker.sock:/var/run/docker.sock --entrypoint stat "$name-controller" -c %g /var/run/docker.sock)
 # Match production UID and socket group, so Linux file ownership is exercised.
 # Only generated synthetic secrets are ever mounted here.
