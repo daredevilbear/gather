@@ -19,6 +19,9 @@ init() {
 }
 {
  printf 'Tested image: %s\nPrivate test data retained at: %s\n' "$image" "$root"
+ docker run --rm -i --network none --read-only --user 1001:1001 \
+  --cap-drop ALL --security-opt no-new-privileges:true --entrypoint node \
+  "$image" - < scripts/ci/check-native-image.cjs
  init
  before=$(shasum -a 256 "$root/keys/"*.key "$root/system-data/"*/settings.sqlite)
  init
