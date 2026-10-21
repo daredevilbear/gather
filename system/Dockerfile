@@ -1,5 +1,5 @@
 FROM python:3.13-alpine
-ARG VERSION=1.1.0
+ARG VERSION=1.1.1
 ARG REVISION=unknown
 ARG BUILDTIME
 LABEL org.opencontainers.image.title="Gather system controller"

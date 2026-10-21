@@ -1,5 +1,22 @@
 # Gather release notes
 
+## 1.1.1
+
+- Update the dashboard build and runtime to Node.js 22.23.4 for the October 2026
+  security fixes, with digest-pinned Alpine bases and fresh base pulls.
+- Build ARM64 dashboard images on a native runner and check the patched Node
+  runtime and native Sharp image processing before publication. Keep the
+  builder and runtime on the same Alpine platform.
+- Add an Appearance toggle for widget refresh status and an information icon
+  for About & updates.
+- Update Sharp to 0.35.5, follow-redirects to 1.16.1, and pinned CI actions.
+
+Upgrade the app, notification companion and controller together to 1.1.1.
+Existing 1.1.0 state needs no migration or first-use initialization. Preserve
+configuration, all SQLite state, notification subscriptions and keys. Both
+`linux/amd64` and `linux/arm64` images retain source labels, SBOMs and provenance;
+the GitHub release records the verified immutable image set.
+
 ## 1.1.0
 
 - Add account-specific notification health, device management and expected badge diagnostics.
