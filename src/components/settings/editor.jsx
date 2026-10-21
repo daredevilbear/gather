@@ -609,6 +609,7 @@ function EntryDetails({ value, onChange, bookmarks }) {
   );
 }
 function Dashboard({ value, onChange, view, request }) {
+  const personal = useContext(PersonalEditorContext);
   if (!object(value)) return <p>Settings must be an object. Use the source view to repair it.</p>;
   const set = (key, next) => onChange({ ...value, [key]: next });
   const gather = value.gather || {};
@@ -713,6 +714,22 @@ function Dashboard({ value, onChange, view, request }) {
               </label>
             </div>
           </section>
+          {!personal && (
+            <section className={styles.card}>
+              <h2>Widget refresh status</h2>
+              <label className={styles.check}>
+                <input
+                  type="checkbox"
+                  checked={gather.showWidgetRefreshStatus !== false}
+                  onChange={(e) => set("gather", { ...gather, showWidgetRefreshStatus: e.target.checked })}
+                />
+                Show widget refresh status
+              </label>
+              <p>
+                Show the last refresh time and stale, failed or offline status below service widgets on all dashboards.
+              </p>
+            </section>
+          )}
           <p className={styles.sourceHint}>More appearance options are available in Source.</p>
         </>
       )}
