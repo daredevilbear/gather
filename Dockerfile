@@ -1,7 +1,9 @@
 # =========================
 # Builder Stage
 # =========================
-FROM node:22-slim AS builder
+# Keep the builder and runner on musl so standalone output includes native
+# dependencies for the runtime platform, including sharp and libvips.
+FROM node:22-alpine AS builder
 WORKDIR /app
 
 # Setup
