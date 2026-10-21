@@ -482,6 +482,7 @@ function Home({ initialSettings }) {
 
       <div
         data-mobile-density={settings.mobileDensity}
+        data-show-widget-refresh-status={settings.gather?.showWidgetRefreshStatus !== false}
         className={classNames(
           settings.fullWidth ? "" : "container",
           "relative m-auto flex flex-col justify-start z-10 h-full min-h-screen",

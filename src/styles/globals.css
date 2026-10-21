@@ -99,6 +99,10 @@ dialog ::-webkit-scrollbar {
   margin-bottom: 0.5rem;
 }
 
+[data-show-widget-refresh-status="false"] .widget-refresh-status {
+  display: none;
+}
+
 @media (max-width: 639px) {
   [data-mobile-density="compact"] .service-description {
     display: none;
