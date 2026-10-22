@@ -1,5 +1,22 @@
 # Gather release notes
 
+## 1.1.2
+
+- Update source-map-js to 1.2.2 to fix an event-loop denial of service when
+  processing indexed source-map section offsets (GHSA-68fv-2mgg-jv7q).
+- Update Vite to 8.2.4 to fix development-server file disclosure and cross-origin
+  script execution, plus vulnerabilities in its bundled editor launcher. The
+  editor fixes cover Windows argument escaping and existence checks, and editor
+  CLI flag handling.
+- Align the app, notification companion, controller and installation examples on
+  the same patch version. No application behavior or state format changes.
+
+Upgrade the app and enabled companions together to 1.1.2. Existing 1.1.0 and
+1.1.1 state needs no migration or first-use initialization. Preserve
+configuration, SQLite state, notification subscriptions and keys. The GitHub
+release records the verified immutable image set for both `linux/amd64` and
+`linux/arm64`, with source labels, SBOMs and provenance.
+
 ## 1.1.1
 
 - Update the dashboard build and runtime to Node.js 22.23.4 for the October 2026
