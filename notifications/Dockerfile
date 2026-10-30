@@ -1,5 +1,5 @@
 FROM python:3.13-alpine
-ARG VERSION=1.1.2
+ARG VERSION=1.1.3
 ARG REVISION=unknown
 ARG BUILDTIME
 LABEL org.opencontainers.image.title="Gather notifications"
