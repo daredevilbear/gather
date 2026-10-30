@@ -9,6 +9,9 @@ overrides:
   "source-map-js@>=1.0.0 <1.2.2": 1.2.2
   # Patch Vite development-server and bundled launch-editor vulnerabilities.
   "vite@>=8.2.0 <8.2.4": 8.2.4
+  # Patch fetch and EventSource denial of service (GHSA-xjj6-f33q-929c,
+  # GHSA-4qv8-2p9j-2685) for Kubernetes and jsdom's transitive Undici users.
+  "undici@>=8.0.0 <8.12.2": 8.12.2
 
 allowBuilds:
   "@tailwindcss/oxide": true

@@ -1,6 +1,6 @@
 # Security
 
-Security fixes target Gather 1.1.2, the latest Gather 1.1.x release. Development images are
+Security fixes target Gather 1.1.3, the latest Gather 1.1.x release. Development images are
 intended for testing and may change before a stable release. Upgrade to the
 latest supported patch version before reproducing an issue.
 

@@ -1,5 +1,27 @@
 # Gather release notes
 
+## 1.1.3
+
+- Update Undici to 8.12.2 for the Kubernetes client and jsdom dependency paths,
+  fixing fetch denial of service on excessive content encodings
+  (GHSA-xjj6-f33q-929c) and unbounded EventSource parser memory
+  (GHSA-4qv8-2p9j-2685), together with related Undici security fixes.
+- Update Vitest and its coverage package to 4.1.12, fixing development mock
+  registration code injection (GHSA-qxg6-89mg-rqv8) and Windows redirect path
+  traversal (GHSA-xp26-3454-mjgp).
+- Align the app, notification companion, controller and installation examples on
+  the same patch version. No application behavior or state format changes.
+
+Upgrade the app and enabled companions together to 1.1.3. Existing 1.1.x state
+needs no migration or first-use initialization. Preserve configuration, SQLite
+state, notification subscriptions and keys. The GitHub release records the
+verified immutable image set for both `linux/amd64` and `linux/arm64`.
+
+The dependency audit still reports separate findings in Next.js,
+systeminformation, ip-address and development Zod. This release addresses the
+four requested Dependabot alerts and related Undici advisories; it does not
+claim that the full dependency audit is clean.
+
 ## 1.1.2
 
 - Update source-map-js to 1.2.2 to fix an event-loop denial of service when
