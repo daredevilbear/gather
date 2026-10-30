@@ -28,16 +28,16 @@ built on the inherited dashboard and widget system.
 - Homepage-compatible integrations plus Gather additions, including vCenter,
   Bitcoin Node, Bitaxe, NerdAxe, Wazuh, and Velociraptor.
 
-## Install 1.1.3
+## Install 1.1.4
 
-Gather 1.1.3 uses three independently deployable images, all built from the same
+Gather 1.1.4 uses three independently deployable images, all built from the same
 source revision for `linux/amd64` and `linux/arm64`:
 
 | Image                                            | Purpose                                            | Release tag |
 | ------------------------------------------------ | -------------------------------------------------- | ----------- |
-| `ghcr.io/daredevilbear/gather`                   | Dashboard                                          | `1.1.3`     |
-| `ghcr.io/daredevilbear/gather-notifications`     | Optional inbox and Web Push companion              | `1.1.3`     |
-| `ghcr.io/daredevilbear/gather-system-controller` | Optional recovery controller with Docker authority | `1.1.3`     |
+| `ghcr.io/daredevilbear/gather`                   | Dashboard                                          | `1.1.4`     |
+| `ghcr.io/daredevilbear/gather-notifications`     | Optional inbox and Web Push companion              | `1.1.4`     |
+| `ghcr.io/daredevilbear/gather-system-controller` | Optional recovery controller with Docker authority | `1.1.4`     |
 
 Follow [INSTALL.md](INSTALL.md) for a complete dashboard example with persistent
 configuration, authentication, and HTTPS proxy requirements. Enable the optional
@@ -50,6 +50,10 @@ package through the [ghcr-badge service](https://github.com/eliasbenb/ghcr-badge
 They count downloads across tags and architectures, including automated pulls;
 they do not count unique users. Counts can be cached or unavailable, and appear
 only when the packages are publicly readable. No deployment credentials are used.
+
+Gather 1.1.4 updates Next.js, systeminformation, ip-address and development Zod
+to address the remaining dependency security findings. See the
+[1.1.4 release notes](CHANGELOG.md#114).
 
 Gather 1.1.3 updates Undici to 8.12.2 and Vitest to 4.1.12 to fix the fetch
 and EventSource denial-of-service alerts and development mock-registration and
