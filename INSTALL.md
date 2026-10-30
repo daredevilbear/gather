@@ -1,4 +1,4 @@
-# Install Gather 1.1.3
+# Install Gather 1.1.4
 
 Use Docker Engine with the Docker Compose plugin on `linux/amd64` or
 `linux/arm64`. Runtime configuration uses `GATHER_*` environment names.
@@ -25,8 +25,8 @@ installation. See [System settings](https://gather.daredevilbear.dev/gather/syst
 
 ## Dashboard with shared-password authentication
 
-Use the `v1.1.3` source checkout with the `1.1.3` images, or pin the immutable
-digests recorded in the release notes. The example selects `1.1.3` by default.
+Use the `v1.1.4` source checkout with the `1.1.4` images, or pin the immutable
+digests recorded in the release notes. The example selects `1.1.4` by default.
 From the repository root:
 
 ```sh
@@ -88,7 +88,7 @@ before adopting the instance. See [Setup](https://gather.daredevilbear.dev/gathe
 ## Optional components
 
 The dashboard runs without either companion. To enable the inbox and Web Push,
-use `ghcr.io/daredevilbear/gather-notifications:1.1.3` and follow
+use `ghcr.io/daredevilbear/gather-notifications:1.1.4` and follow
 [Notifications](https://gather.daredevilbear.dev/gather/notifications/) for ntfy,
 authenticated same-origin `/gather-notifications/` routing, session lookup,
 origin validation, and a writable `/data` volume for its unprivileged UID 1001.
@@ -103,23 +103,24 @@ key at `/run/secrets/gather-app-key` and follow
 For encrypted system settings and supervised authentication rollback, follow
 [System settings](https://gather.daredevilbear.dev/gather/system/), including
 separate keys, `/system-data` persistence, and the optional controller's authority.
-Use `ghcr.io/daredevilbear/gather-system-controller:1.1.3`; review
+Use `ghcr.io/daredevilbear/gather-system-controller:1.1.4`; review
 [the controller example](system/compose-controller.example.yaml) before mounting
 a Docker socket. These components require operator configuration and are not
 started by the dashboard example.
 
 ## Upgrades, source builds, and backups
 
-Gather 1.1.3 updates Undici to 8.12.2 for fetch and EventSource denial of
-service, and Vitest to 4.1.12 for the mock-registration code-injection and Windows
-path-traversal fixes. It retains the source-map-js and Vite patches from 1.1.2
-and the Node.js 22.23.4 runtime from 1.1.1. Upgrade all three images to 1.1.3 using
-the immutable image set recorded in the release. Existing 1.1.x state needs no
-migration or first-use initialization; preserve configuration, SQLite databases,
-notification subscriptions and keys. See the
-[1.1.3 release notes](CHANGELOG.md#113).
+Gather 1.1.4 updates Next.js to 16.4.3 for remote-code-execution and denial-of-service
+fixes, systeminformation to 5.33.18 for command-injection, path-traversal and
+prototype-pollution fixes, ip-address to 10.7.4 for bounded IPv6 zone parsing,
+and development Zod to 4.6.6 for bounded collection validation. It retains the
+Undici and Vitest patches from 1.1.3 and the Node.js 22.23.4 runtime.
+Upgrade all three images to 1.1.4 using the immutable image set recorded in the
+release. Existing 1.1.x state needs no migration or first-use initialization;
+preserve configuration, SQLite databases, notification subscriptions and keys.
+See the [1.1.4 release notes](CHANGELOG.md#114).
 
-Gather 1.1.3 includes the [six feature enhancements from 1.1.0](CHANGELOG.md#110), including
+Gather 1.1.4 includes the [six feature enhancements from 1.1.0](CHANGELOG.md#110), including
 complete encrypted backup/restore and account-specific notification and phone
 controls. It retains the [1.0.4 notification fixes](CHANGELOG.md#104) and
 [1.0.3 security fixes and compatibility notes](CHANGELOG.md#103).

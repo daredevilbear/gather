@@ -1,5 +1,22 @@
 # Gather release notes
 
+## 1.1.4
+
+- Update Next.js and its matching ESLint configuration to 16.4.3, addressing the
+  SVG image-optimization and typed-array cache remote-code-execution advisories
+  and the Server Actions denial-of-service advisory.
+- Update systeminformation to 5.33.18 for Windows command injection, Linux network
+  interface path traversal and prototype pollution.
+- Update transitive ip-address to 10.7.4 for bounded IPv6 zone parsing and
+  development Zod to 4.6.6 for bounded oversized collection validation.
+- Align the app, notification companion, controller and installation examples on
+  the same patch version. No application state format changes.
+
+Upgrade the app and enabled companions together to 1.1.4. Existing 1.1.x state
+needs no migration or first-use initialization. Preserve configuration, SQLite
+state, notification subscriptions and keys. The release records the verified
+immutable image set for both `linux/amd64` and `linux/arm64`.
+
 ## 1.1.3
 
 - Update Undici to 8.12.2 for the Kubernetes client and jsdom dependency paths,
