@@ -1,8 +1,8 @@
 # Encrypted single-file quickstart
 
 Use `deploy/compose.quickstart.yaml` with a released app image containing
-`/app/system/initialize-quickstart.cjs`. The manifest defaults to the Gather 1.1.2 app, companion and controller version tags.
-For repeatable installation, use the verified immutable image set in the 1.1.2
+`/app/system/initialize-quickstart.cjs`. The manifest defaults to the Gather 1.1.3 app, companion and controller version tags.
+For repeatable installation, use the verified immutable image set in the 1.1.3
 release notes through `GATHER_IMAGE`, `GATHER_NOTIFICATIONS_IMAGE` and
 `GATHER_CONTROLLER_IMAGE`.
 Keep the shown `GATHER_IMAGE` in your private `.env` so the socket-group command
@@ -16,7 +16,7 @@ Copy only `deploy/compose.quickstart.yaml` into a fresh private installation dir
 
 ```dotenv
 GATHER_PROJECT=gather-encrypted
-GATHER_IMAGE=ghcr.io/daredevilbear/gather:1.1.2
+GATHER_IMAGE=ghcr.io/daredevilbear/gather:1.1.3
 GATHER_DOMAIN=your-gather-hostname
 GATHER_OIDC_ISSUER=https://your-identity-provider
 GATHER_OIDC_CLIENT_ID=your-client-id
@@ -27,7 +27,7 @@ GATHER_SUBNET=an-unused-private-subnet-in-CIDR-notation
 
 ### Local accounts instead of OIDC
 
-Gather 1.1.2 retains the local-account initializer and the OIDC quickstart.
+Gather 1.1.3 retains the local-account initializer and the OIDC quickstart.
 Use the same selected app image for both initialization and the dashboard.
 
 Keep the hostname, project and subnet inputs. Omit all three `GATHER_OIDC_*`
@@ -67,7 +67,7 @@ Detect the active Docker engine's socket group before Compose validates required
 
 ```sh
 # Set GATHER_IMAGE to the same app image selected in your .env.
-export GATHER_IMAGE=ghcr.io/daredevilbear/gather:1.1.2
+export GATHER_IMAGE=ghcr.io/daredevilbear/gather:1.1.3
 export DOCKER_SOCKET_GID=$(docker run --rm --network none --user 0:0 --entrypoint sh \
   -v /var/run/docker.sock:/engine.sock:ro "$GATHER_IMAGE" \
   -c "stat -c '%g' /engine.sock")

@@ -1,10 +1,10 @@
 # Encrypted single-file installation. Requires an image with the versioned initializer.
-# Gather 1.1.2. Pin the compatible immutable image set from the release evidence.
+# Gather 1.1.3. Pin the compatible immutable image set from the release evidence.
 # GATHER_IMAGE, GATHER_NOTIFICATIONS_IMAGE and GATHER_CONTROLLER_IMAGE accept digests.
 name: ${GATHER_PROJECT:-gather-encrypted}
 services:
   gather:
-    image: ${GATHER_IMAGE:-ghcr.io/daredevilbear/gather:1.1.2}
+    image: ${GATHER_IMAGE:-ghcr.io/daredevilbear/gather:1.1.3}
     container_name: ${GATHER_PROJECT:-gather-encrypted}-dashboard
     restart: unless-stopped
     user: 1001:1001
@@ -23,7 +23,7 @@ services:
       - ./keys/app.key:/run/secrets/gather-app-key:ro
       - ./keys/notification.key:/run/secrets/gather-notification-key:ro
   notifications:
-    image: ${GATHER_NOTIFICATIONS_IMAGE:-ghcr.io/daredevilbear/gather-notifications:1.1.2}
+    image: ${GATHER_NOTIFICATIONS_IMAGE:-ghcr.io/daredevilbear/gather-notifications:1.1.3}
     container_name: ${GATHER_PROJECT:-gather-encrypted}-notifications
     restart: unless-stopped
     user: 1001:1001
@@ -56,7 +56,7 @@ services:
       retries: 12
       start_period: 30s
   system-controller:
-    image: ${GATHER_CONTROLLER_IMAGE:-ghcr.io/daredevilbear/gather-system-controller:1.1.2}
+    image: ${GATHER_CONTROLLER_IMAGE:-ghcr.io/daredevilbear/gather-system-controller:1.1.3}
     container_name: ${GATHER_PROJECT:-gather-encrypted}-controller
     restart: unless-stopped
     user: 1001:1001
@@ -132,7 +132,7 @@ services:
       retries: 12
       start_period: 10s
   initialize:
-    image: ${GATHER_IMAGE:-ghcr.io/daredevilbear/gather:1.1.2}
+    image: ${GATHER_IMAGE:-ghcr.io/daredevilbear/gather:1.1.3}
     profiles:
       - setup
     user: "0:0"
@@ -167,7 +167,7 @@ services:
       - source: broker-initialize
         target: /setup/ntfy-initialize.sh
   publish-test:
-    image: ${GATHER_IMAGE:-ghcr.io/daredevilbear/gather:1.1.2}
+    image: ${GATHER_IMAGE:-ghcr.io/daredevilbear/gather:1.1.3}
     profiles:
       - setup
     user: "0:0"
