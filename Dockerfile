@@ -58,7 +58,8 @@ COPY --link LICENSE NOTICE VERSION CHANGELOG.md /usr/share/gather/
 COPY --link --from=builder --chown=1000:1000 /app/.next/standalone/ ./
 COPY --link --from=builder --chown=1000:1000 /app/.next/static/ ./.next/static
 
-RUN apk add --no-cache su-exec iputils-ping shadow
+RUN apk add --no-cache su-exec iputils-ping shadow && \
+    rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 COPY system/bootstrap.cjs system/database.cjs system/vault.cjs system/initialize-quickstart.cjs system/local-accounts.cjs system/full-backup.cjs ./system/
 

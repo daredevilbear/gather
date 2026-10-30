@@ -1,5 +1,12 @@
 // Exercise the shipped native binaries without network access or live data.
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+
+// The standalone runtime does not install packages. npm's separate dependency
+// tree can otherwise retain vulnerable copies outside the application lockfile.
+for (const path of ["/usr/local/lib/node_modules/npm", "/usr/local/bin/npm", "/usr/local/bin/npx"]) {
+  assert(!fs.existsSync(path), `Unexpected runtime package installer: ${path}`);
+}
 
 const [major, minor, patch] = process.versions.node.split(".").map(Number);
 assert(major === 22 && (minor > 23 || (minor === 23 && patch >= 4)), `Unpatched Node runtime: ${process.version}`);

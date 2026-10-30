@@ -9,6 +9,9 @@
   interface path traversal and prototype pollution.
 - Update transitive ip-address to 10.7.4 for bounded IPv6 zone parsing and
   development Zod to 4.6.6 for bounded oversized collection validation.
+- Remove the unused npm/npx CLI tree from the final dashboard runtime filesystem,
+  including its separate old ip-address copy. Package installation remains in
+  the builder stage; native image checks guard the runtime exclusion.
 - Align the app, notification companion, controller and installation examples on
   the same patch version. No application state format changes.
 
