@@ -12,6 +12,10 @@ overrides:
   # Patch fetch and EventSource denial of service (GHSA-xjj6-f33q-929c,
   # GHSA-4qv8-2p9j-2685) for Kubernetes and jsdom's transitive Undici users.
   "undici@>=8.0.0 <8.12.2": 8.12.2
+  # Bound IPv6 zone parsing in the Kubernetes client's SOCKS dependencies.
+  "ip-address@>=10.0.0 <10.7.4": 10.7.4
+  # Bound oversized collection validation in development lint dependencies.
+  "zod@>=4.0.0 <4.6.6": 4.6.6
 
 allowBuilds:
   "@tailwindcss/oxide": true
