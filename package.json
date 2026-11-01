@@ -51,7 +51,7 @@
     "swr": "^2.5.1",
     "systeminformation": "^5.33.18",
     "tough-cookie": "^6.0.2",
-    "urbackup-server-api": "^0.92.2",
+    "urbackup-server-api": "^0.92.9",
     "winston": "^3.19.0",
     "ws": "^8.21.3",
     "xml-js": "^1.6.11"
