@@ -74,6 +74,28 @@ describe("components/quicklaunch", () => {
     state.widgets = {};
   });
 
+  it("synchronizes the native dialog and focus with open and closed state", async () => {
+    renderWithProviders(<Wrapper initialOpen={false} />, {
+      settings: { quicklaunch: { provider: "duckduckgo", showSearchSuggestions: false } },
+    });
+    const input = screen.getByPlaceholderText("Search");
+    const dialog = input.closest("dialog");
+    expect(dialog.open).toBe(false);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("seed-key"));
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+    expect(screen.getByRole("dialog", { name: "Find services and bookmarks" })).toBe(dialog);
+    expect(dialog.open).toBe(true);
+    await waitFor(() => expect(input).toHaveFocus());
+
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(dialog.open).toBe(false);
+    expect(input).not.toHaveFocus();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 350)));
+  });
+
   it("uses a custom provider from quicklaunch settings when configured", async () => {
     renderWithProviders(<Wrapper />, {
       settings: {

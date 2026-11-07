@@ -1,5 +1,32 @@
 # Gather release notes
 
+## 1.1.5
+
+- Verify upstream HTTPS certificates and hostnames in the shared HTTP widget
+  proxy. Keep private CA trust explicit through a read-only PEM bundle and
+  `NODE_EXTRA_CA_CERTS`; configure certificate-matching integration hostnames
+  with the intended private routing before upgrading.
+- Update follow-redirects to 1.16.2 and development minimatch to 11.0.1 for the
+  affected dependency ranges. Retain the existing security patches from 1.1.4.
+- Apply Alpine security updates in app build/runtime and both Python companions.
+  Remove unused pip/ensurepip and their vulnerable bundled installer libraries
+  from the companion runtimes while retaining notification dependencies.
+- Gate all three CI image builds on full-filesystem OS/application vulnerability
+  scans with a pinned, unprivileged scanner and retained JSON reports.
+- Update Urbackup, Kubernetes client, next-i18next, React, jsdom and Docker login
+  dependencies. Fix Quick Launch native dialog state and focus restoration with
+  current jsdom while preserving the accessibility and keyboard checks.
+- Route new Dependabot updates to dev and require actual successful CodeQL scans
+  for all three languages before development merges.
+- Align the app, notification companion, controller and installation examples on
+  the same patch version. No application state format changes.
+
+Upgrade the app and enabled companions together to 1.1.5 after preparing upstream
+certificate trust. Existing 1.1.x state needs no migration or first-use
+initialization. Preserve configuration, SQLite state, notification subscriptions
+and keys. The release records the verified immutable image set for both
+`linux/amd64` and `linux/arm64`.
+
 ## 1.1.4
 
 - Update Next.js and its matching ESLint configuration to 16.4.3, addressing the

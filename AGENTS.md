@@ -7,6 +7,14 @@
 - Container channels are `dev` from `dev` and `latest` from `main`, for all three
   images. Keep immutable commit tags and version tags for traceability.
 - Container publishing does not authorize deployment changes.
+- Before merging into `dev`, require successful `Analyze (actions)`,
+  `Analyze (javascript-typescript)`, `Analyze (python)` and `CodeQL` checks on
+  the current PR revision, as well as the application tests and three builds.
+  A neutral CodeQL summary reporting missing configurations is not a scan.
+  Default CodeQL setup can skip Dependabot-created revisions. Refresh reviewed
+  dependency branches as a maintainer (normally by merging the latest `dev`)
+  and verify that all three language analyses actually completed. Keep the
+  existing queries and documented alert assessments enabled.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

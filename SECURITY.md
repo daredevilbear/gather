@@ -1,6 +1,6 @@
 # Security
 
-Security fixes target Gather 1.1.4, the latest Gather 1.1.x release. Development images are
+Security fixes target Gather 1.1.5, the latest Gather 1.1.x release. Development images are
 intended for testing and may change before a stable release. Upgrade to the
 latest supported patch version before reproducing an issue.
 
@@ -16,6 +16,9 @@ and request a private reporting channel before sharing sensitive details.
 
 ## Operate Gather securely
 
+- The shared HTTP widget proxy verifies upstream HTTPS certificates and hostnames.
+  For a private CA, mount its PEM file read-only and set `NODE_EXTRA_CA_CERTS`
+  before starting the app. Do not use `NODE_TLS_REJECT_UNAUTHORIZED=0`.
 - Configure authentication, an exact external URL and allowed hosts, and HTTPS.
   OIDC provides distinct identities for named users; a shared password provides
   one shared identity. Do not expose an unauthenticated dashboard to the internet.
@@ -33,6 +36,12 @@ and request a private reporting channel before sharing sensitive details.
 - Pin image digests, back up state before upgrades, and test recovery in an
   isolated instance. SBOMs and provenance identify builds; they are not a security
   certification.
+- Python companion images retain their application dependencies but exclude pip,
+  ensurepip, and their bundled installer libraries from the final runtime. Install
+  dependencies during the image build and rebuild the image to update them.
+- CI scans the complete runtime image for known OS and application dependency
+  vulnerabilities. Findings fail the build; the JSON report is retained with the
+  build artifacts. This complements the source dependency audit and CodeQL.
 
 See [INSTALL.md](INSTALL.md) for authentication and persistence, and
 [Operations](https://gather.daredevilbear.dev/gather/operations/) for backups.

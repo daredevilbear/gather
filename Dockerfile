@@ -4,6 +4,7 @@
 # Keep the builder and runner on musl so standalone output includes native
 # dependencies for the runtime platform, including sharp and libvips.
 FROM node:22.23.4-alpine@sha256:ce8d97f7cfc7c5386421eb932df20a29df99b1a7f469f6157d5c9956702ffadc AS builder
+RUN apk upgrade --no-cache
 WORKDIR /app
 
 # Setup
@@ -12,7 +13,7 @@ COPY . .
 
 ARG CI
 ARG BUILDTIME
-ARG VERSION=1.1.4
+ARG VERSION=1.1.5
 ARG REVISION=unknown
 ENV CI=$CI
 
@@ -33,7 +34,7 @@ RUN if [ "$CI" != "true" ]; then \
 # Runtime Stage
 # =========================
 FROM node:22.23.4-alpine@sha256:ce8d97f7cfc7c5386421eb932df20a29df99b1a7f469f6157d5c9956702ffadc AS runner
-ARG VERSION=1.1.4
+ARG VERSION=1.1.5
 ARG REVISION=unknown
 ARG BUILDTIME
 LABEL org.opencontainers.image.title="Gather"
@@ -58,7 +59,8 @@ COPY --link LICENSE NOTICE VERSION CHANGELOG.md /usr/share/gather/
 COPY --link --from=builder --chown=1000:1000 /app/.next/standalone/ ./
 COPY --link --from=builder --chown=1000:1000 /app/.next/static/ ./.next/static
 
-RUN apk add --no-cache su-exec iputils-ping shadow && \
+RUN apk upgrade --no-cache && \
+    apk add --no-cache su-exec iputils-ping shadow && \
     rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 
 COPY system/bootstrap.cjs system/database.cjs system/vault.cjs system/initialize-quickstart.cjs system/local-accounts.cjs system/full-backup.cjs ./system/
