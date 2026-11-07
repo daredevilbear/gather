@@ -16,6 +16,9 @@ and request a private reporting channel before sharing sensitive details.
 
 ## Operate Gather securely
 
+- The shared HTTP widget proxy verifies upstream HTTPS certificates and hostnames.
+  For a private CA, mount its PEM file read-only and set `NODE_EXTRA_CA_CERTS`
+  before starting the app. Do not use `NODE_TLS_REJECT_UNAUTHORIZED=0`.
 - Configure authentication, an exact external URL and allowed hosts, and HTTPS.
   OIDC provides distinct identities for named users; a shared password provides
   one shared identity. Do not expose an unauthenticated dashboard to the internet.

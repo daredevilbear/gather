@@ -242,7 +242,7 @@ function getAgent(protocol, disableIpv6) {
 
   const agent =
     protocol === "https:"
-      ? new https.Agent({ ...agentOptions, rejectUnauthorized: false })
+      ? new https.Agent({ ...agentOptions, rejectUnauthorized: true })
       : new http.Agent(agentOptions);
 
   agentCache.set(cacheKey, agent);
