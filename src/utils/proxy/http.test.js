@@ -408,12 +408,12 @@ describe("utils/proxy/http httpProxy", () => {
     expect(state.lastAgentOptions.autoSelectFamily).toBe(false);
   });
 
-  it("uses the https agent with rejectUnauthorized=false for https:// URLs", async () => {
+  it("verifies upstream certificates for https:// URLs", async () => {
     const httpMod = await import("./http");
 
     await httpMod.httpProxy("https://example.com");
 
-    expect(state.lastAgentOptions.rejectUnauthorized).toBe(false);
+    expect(state.lastAgentOptions.rejectUnauthorized).toBe(true);
   });
 
   it("reuses the same keep-alive agent for repeated http requests", async () => {
