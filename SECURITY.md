@@ -36,6 +36,12 @@ and request a private reporting channel before sharing sensitive details.
 - Pin image digests, back up state before upgrades, and test recovery in an
   isolated instance. SBOMs and provenance identify builds; they are not a security
   certification.
+- Python companion images retain their application dependencies but exclude pip,
+  ensurepip, and their bundled installer libraries from the final runtime. Install
+  dependencies during the image build and rebuild the image to update them.
+- CI scans the complete runtime image for known OS and application dependency
+  vulnerabilities. Findings fail the build; the JSON report is retained with the
+  build artifacts. This complements the source dependency audit and CodeQL.
 
 See [INSTALL.md](INSTALL.md) for authentication and persistence, and
 [Operations](https://gather.daredevilbear.dev/gather/operations/) for backups.
