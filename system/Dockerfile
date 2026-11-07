@@ -9,6 +9,10 @@ LABEL org.opencontainers.image.licenses="GPL-3.0"
 LABEL org.opencontainers.image.version=$VERSION
 LABEL org.opencontainers.image.revision=$REVISION
 LABEL org.opencontainers.image.created=$BUILDTIME
+# The controller uses the standard library and never installs packages at runtime.
+RUN apk upgrade --no-cache \
+    && python -m pip uninstall --yes pip \
+    && rm -rf /usr/local/lib/python3.13/ensurepip
 WORKDIR /controller
 COPY controller.py database.py maintenance.py ./
 COPY LICENSE NOTICE VERSION /usr/share/gather/

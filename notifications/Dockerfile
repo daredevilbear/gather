@@ -9,8 +9,11 @@ LABEL org.opencontainers.image.licenses="GPL-3.0"
 LABEL org.opencontainers.image.version=$VERSION
 LABEL org.opencontainers.image.revision=$REVISION
 LABEL org.opencontainers.image.created=$BUILDTIME
-RUN apk add --no-cache tzdata
-RUN pip install --no-cache-dir pywebpush==2.0.3
+RUN apk upgrade --no-cache && apk add --no-cache tzdata
+# Runtime dependencies remain installed; pip and its bundled libraries are build tools.
+RUN pip install --no-cache-dir pywebpush==2.0.3 \
+    && python -m pip uninstall --yes pip \
+    && rm -rf /usr/local/lib/python3.13/ensurepip
 WORKDIR /app
 COPY server.py sw.js vault_loader.py alert_rules.py ./
 COPY LICENSE NOTICE VERSION /usr/share/gather/
