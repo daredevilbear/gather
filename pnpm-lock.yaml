@@ -110,8 +110,8 @@ importers:
         specifier: ^6.0.2
         version: 6.0.2
       urbackup-server-api:
-        specifier: ^0.92.2
-        version: 0.92.6
+        specifier: ^0.92.9
+        version: 0.92.9
       winston:
         specifier: ^3.19.0
         version: 3.19.0
@@ -3657,8 +3657,8 @@ packages:
     peerDependencies:
       browserslist: '>= 4.21.0'
 
-  urbackup-server-api@0.92.6:
-    resolution: {integrity: sha512-TZtCvC3AtdluGFVwuVB+h56+xZtorLnLR52xT+c88a6G817b889aa8EdRX4kM9z8NhE/Sv/r33sJQ7iiTiX11w==}
+  urbackup-server-api@0.92.9:
+    resolution: {integrity: sha512-w3FGA2+O/MF6qPC6eNb36cZvInmN9YSoKQZ0o26IpGxFq63qJ0wD4Z3FqPPxD73YGN+gxR+eDlV46wmVw7NNBQ==}
 
   uri-js@4.4.1:
     resolution: {integrity: sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==}
@@ -7533,7 +7533,7 @@ snapshots:
       escalade: 3.2.0
       picocolors: 1.1.1
 
-  urbackup-server-api@0.92.6:
+  urbackup-server-api@0.92.9:
     dependencies:
       async-mutex: 0.5.0
 
