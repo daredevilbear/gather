@@ -128,7 +128,10 @@ Upgrade the app and enabled companions together; existing encrypted state and
 local/OIDC accounts do not need reinitialization. TrueNAS v2 now requires HTTPS
 and verified TLS. Use a certificate matching its configured hostname; for a
 private CA, mount the PEM CA file read-only and set `NODE_EXTRA_CA_CERTS` to its
-container path before starting the app. Do not disable certificate verification.
+container path before starting the app. All integrations using the shared HTTP
+widget proxy also verify HTTPS certificates and hostnames. Private CAs use the
+same `NODE_EXTRA_CA_CERTS` configuration; keep the upstream URL's hostname in the
+certificate's subject alternative names. Do not disable certificate verification.
 Review configured shared passwords against the limits above.
 
 Pin the three image digests listed in the release notes for repeatability. The
